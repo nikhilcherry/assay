@@ -1,5 +1,7 @@
 # assay
 
+[![tests](https://github.com/nikhilcherry/assay/actions/workflows/tests.yml/badge.svg)](https://github.com/nikhilcherry/assay/actions/workflows/tests.yml)
+
 **An agentic fraud investigator on TigerGraph, whose probabilities are measured, not guessed.**
 Hacker House Goa 2026, Task 4 (TigerGraph x IEEE-CIS).
 
