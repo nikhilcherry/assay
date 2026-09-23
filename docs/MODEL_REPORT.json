@@ -1,0 +1,83 @@
+{
+  "train": "2016-07..2016-09",
+  "validate": "2016-10",
+  "n_train": 316984,
+  "n_validate": 100420,
+  "validate_fraud_rate": 0.03269269069906393,
+  "auc_model": 0.9639925078763762,
+  "auc_bank_risk_score": 0.8659616708797483,
+  "ap_model": 0.6384621172273999,
+  "ap_bank_risk_score": 0.2521077003894367,
+  "brier_calibrated": 0.016093013769922445,
+  "reliability": [
+    {
+      "bin": "(-0.001, 0.05]",
+      "n": 91067,
+      "mean_predicted": 0.0047,
+      "observed_rate": 0.0045
+    },
+    {
+      "bin": "(0.05, 0.15]",
+      "n": 4951,
+      "mean_predicted": 0.0792,
+      "observed_rate": 0.082
+    },
+    {
+      "bin": "(0.15, 0.3]",
+      "n": 990,
+      "mean_predicted": 0.2013,
+      "observed_rate": 0.2121
+    },
+    {
+      "bin": "(0.3, 0.5]",
+      "n": 730,
+      "mean_predicted": 0.4109,
+      "observed_rate": 0.389
+    },
+    {
+      "bin": "(0.5, 0.7]",
+      "n": 659,
+      "mean_predicted": 0.638,
+      "observed_rate": 0.6449
+    },
+    {
+      "bin": "(0.7, 0.85]",
+      "n": 2009,
+      "mean_predicted": 0.7711,
+      "observed_rate": 0.768
+    },
+    {
+      "bin": "(0.85, 1.0]",
+      "n": 14,
+      "mean_predicted": 0.888,
+      "observed_rate": 0.6429
+    }
+  ],
+  "top_features_by_gain": [
+    "risk_score",
+    "V258",
+    "card_id_amt_ratio",
+    "D1n",
+    "C1",
+    "id_15",
+    "C13",
+    "uid_amt_mean",
+    "uid_amt_std",
+    "C14",
+    "DeviceInfo",
+    "TransactionAmt",
+    "card_id_n",
+    "card_id_amt_mean",
+    "uid_n",
+    "card2",
+    "card_id_amt_std",
+    "card1",
+    "C8",
+    "addr1_freq",
+    "V294",
+    "addr1",
+    "D2",
+    "V139",
+    "hour"
+  ]
+}

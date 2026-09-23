@@ -1,0 +1,112 @@
+{
+  "case_id": "HHG-008",
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.88,
+    "pattern": "card_not_present_fraud",
+    "pattern_description": "",
+    "affected_txn_ids": [
+      "3557979",
+      "3558054"
+    ],
+    "first_suspicious_txn_id": "3557979",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 111.28,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3558054 ($55.68, product C, online) scores 0.72 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.38.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3558054)",
+        "entity_ids": [
+          "3558054"
+        ]
+      },
+      {
+        "claim": "Card baseline from 899 earlier transactions: median $39.37, 95th percentile $161.31; the flagged amount is 1.4x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C13171-K2)",
+        "entity_ids": [
+          "C13171-K2"
+        ]
+      },
+      {
+        "claim": "Device profile '? | ? | chrome 66.0 | ?' was used by this card before; identity record marks it Found.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C13171-K2)",
+        "entity_ids": [
+          "C13171-K2"
+        ]
+      },
+      {
+        "claim": "Cardholder C13171 reported the $55.68 charge as not theirs (case pack trigger, 2016-12-20 03:08:56).",
+        "source": "customer",
+        "ref": "case_pack:HHG-008",
+        "entity_ids": [
+          "3558054"
+        ]
+      },
+      {
+        "claim": "Card-not-present fraud: the number used online without the card; amounts and products that don't fit the cardholder, often two to four within 48 hours.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/card_not_present_fraud",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
+        "source": "document",
+        "ref": "document:fraud-policy#R2",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-3566",
+      "CC-3728",
+      "CC-4396"
+    ],
+    "summary": "Card not present fraud on card C13171-K2: 2 transaction(s) from 2016-12-19 to 2016-12-19 totalling $111.28, probability 0.88.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-HHG-008"
+  },
+  "evidence_requests": [],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      }
+    ],
+    "what_changed": "nothing"
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: fraud is suspected but no reporting trigger is met -- exposure $111.28 is under $1,000, the activity is isolated to this card, and the pattern is a known one. Case only, no report.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 0.18
+}

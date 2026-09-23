@@ -1,0 +1,124 @@
+{
+  "case_id": "MON-055",
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.97,
+    "pattern": "card_not_present_fraud",
+    "pattern_description": "",
+    "affected_txn_ids": [
+      "3428197"
+    ],
+    "first_suspicious_txn_id": "3428197",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 86.33,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3428197 ($86.33, product C, online) scores 0.78 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.20.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3428197)",
+        "entity_ids": [
+          "3428197"
+        ]
+      },
+      {
+        "claim": "Card baseline from 13 earlier transactions: median $53.65, 95th percentile $105.77; the flagged amount is 1.6x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C00071-K1)",
+        "entity_ids": [
+          "C00071-K1"
+        ]
+      },
+      {
+        "claim": "Device profile '? | ? | chrome 62.0 | ?' was not used by this card before; identity record marks it Found.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C00071-K1)",
+        "entity_ids": [
+          "C00071-K1"
+        ]
+      },
+      {
+        "claim": "Simulated customer validation: Cardholder states they did not make this transaction and still has the card.",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": []
+      },
+      {
+        "claim": "Card-not-present fraud: the number used online without the card; amounts and products that don't fit the cardholder, often two to four within 48 hours.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/card_not_present_fraud",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
+        "source": "document",
+        "ref": "document:fraud-policy#R2",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-5188",
+      "CC-4151",
+      "CC-1423"
+    ],
+    "summary": "Card not present fraud on card C00071-K1: 1 transaction(s) from 2016-11-04 to 2016-11-04 totalling $86.33, probability 0.97. Cardholder states they did not make this transaction and still has the card.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-MON-055"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 6,
+      "assumed_response": "Cardholder states they did not make this transaction and still has the card."
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "DECLINE_TRANSACTION",
+        "route": "L1",
+        "reason": "\u00a73b: probability 0.78 leans fraud; hold this authorization while the cardholder is asked, rather than block the card."
+      },
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.78 is between 0.15 and 0.85, so ask the cardholder before deciding."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: fraud probability 0.78 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      }
+    ],
+    "what_changed": "Cardholder states they did not make this transaction and still has the card. Probability moved 0.78 -> 0.97; added BLOCK_CARD, dropped DECLINE_TRANSACTION, VERIFY_WITH_CUSTOMER."
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: fraud is suspected but no reporting trigger is met -- exposure $86.33 is under $1,000, the activity is isolated to this card, and the pattern is a known one. Case only, no report.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 1.41,
+  "monitor": {
+    "source": "model_monitor",
+    "trigger_text": "Autonomous monitor (model_monitor): assay model 0.78 vs bank risk score 0.20. Review transaction 3428197."
+  }
+}

@@ -1,0 +1,93 @@
+// The investigation's tools. Each query is one named step an investigation
+// can take, and its name is what the answer files cite in evidence `ref`.
+USE GRAPH assay
+
+CREATE OR REPLACE QUERY get_transaction(VERTEX<Txn> txn) FOR GRAPH assay {
+  R = {txn};
+  PRINT R;
+}
+
+// Everything a card did in a window around the alert: the card-testing,
+// structuring and episode questions are all asked of this set.
+CREATE OR REPLACE QUERY card_window(VERTEX<Card> card, DATETIME t0, INT hours_before, INT hours_after) FOR GRAPH assay {
+  C = {card};
+  R = SELECT t FROM C:c -(MADE>)- Txn:t
+      WHERE t.ts >= datetime_sub(t0, INTERVAL hours_before HOUR)
+        AND t.ts <= datetime_add(t0, INTERVAL hours_after HOUR);
+  PRINT R;
+}
+
+CREATE OR REPLACE QUERY card_history(VERTEX<Card> card, DATETIME before_ts) FOR GRAPH assay {
+  C = {card};
+  R = SELECT t FROM C:c -(MADE>)- Txn:t WHERE t.ts < before_ts;
+  PRINT R;
+}
+
+// The inferred individual behind a card: card + billing region + account-open day.
+CREATE OR REPLACE QUERY holder_history(VERTEX<Holder> holder) FOR GRAPH assay {
+  H = {holder};
+  R = SELECT t FROM H:h -(HOLDER_MADE>)- Txn:t;
+  PRINT R;
+}
+
+// Who else used this device profile around the alert? The R6 / R9 question.
+CREATE OR REPLACE QUERY device_neighbors(VERTEX<DeviceProfile> device, DATETIME t0, INT days) FOR GRAPH assay {
+  D = {device};
+  R = SELECT t FROM D:d -(DEVICE_USED_IN>)- Txn:t
+      WHERE t.ts >= datetime_sub(t0, INTERVAL days DAY) AND t.ts <= datetime_add(t0, INTERVAL days DAY);
+  PRINT R;
+}
+
+CREATE OR REPLACE QUERY closed_cases_for_card(VERTEX<Card> card) FOR GRAPH assay {
+  C = {card};
+  R = SELECT k FROM C:c -(HAS_CLOSED_CASE>)- ClosedCase:k;
+  PRINT R;
+}
+
+// Two hops: device -> its transactions -> the closed cases that name them.
+CREATE OR REPLACE QUERY closed_cases_by_device(VERTEX<DeviceProfile> device) FOR GRAPH assay {
+  D = {device};
+  T = SELECT t FROM D:d -(DEVICE_USED_IN>)- Txn:t;
+  R = SELECT k FROM T:t -(IN_CLOSED_CASE>)- ClosedCase:k;
+  PRINT R;
+}
+
+CREATE OR REPLACE QUERY closed_cases_touching(SET<VERTEX<Card>> cards) FOR GRAPH assay {
+  C = {cards};
+  R1 = SELECT k FROM C:c -(HAS_CLOSED_CASE>)- ClosedCase:k;
+  R2 = SELECT k FROM C:c -(CONNECTED_IN_CASE>)- ClosedCase:k;
+  R = R1 UNION R2;
+  PRINT R;
+}
+
+// Typology retrieval over the bank's history: closed cases of the same
+// pattern, ranked by how closely their transactions resemble this one -- a
+// named device model in the analyst notes first, then the same product code,
+// then the nearest amount.
+CREATE OR REPLACE QUERY similar_prior_cases(STRING pattern, STRING device, STRING product, DOUBLE amount, INT k) FOR GRAPH assay {
+  // Nearest amount among the case's transactions with the same product code;
+  // cases with no such transaction keep the sentinel and sort last.
+  MinAccum<DOUBLE> @dist = 1000000000.0;
+  S = {ClosedCase.*};
+  S = SELECT c FROM S:c WHERE c.pattern == pattern;
+  IF device != "" THEN
+    D = SELECT c FROM S:c WHERE c.analyst_notes LIKE "%" + device + "%";
+    IF D.size() > 0 THEN S = D; END;
+  END;
+  X = SELECT c FROM S:c -(INVOLVES>)- Txn:t
+      WHERE product == "" OR t.product == product
+      ACCUM c.@dist += abs(t.amount - amount);
+  R = SELECT c FROM S:c ORDER BY c.@dist ASC LIMIT k;
+  PRINT R;
+}
+
+// Case memory: what this agent itself concluded earlier about a card.
+CREATE OR REPLACE QUERY prior_fraud_cases(VERTEX<Card> card) FOR GRAPH assay {
+  C = {card};
+  R1 = SELECT f FROM C:c -(HAS_FRAUD_CASE>)- FraudCase:f;
+  R2 = SELECT f FROM C:c -(LINKED_IN_CASE>)- FraudCase:f;
+  R = R1 UNION R2;
+  PRINT R;
+}
+
+INSTALL QUERY ALL

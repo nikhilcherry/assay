@@ -1,0 +1,112 @@
+{
+  "case_id": "HHG-001",
+  "case": {
+    "status": "closed_legitimate",
+    "verdict": "legitimate",
+    "fraud_probability": 0.03,
+    "pattern": "none",
+    "pattern_description": "",
+    "affected_txn_ids": [],
+    "first_suspicious_txn_id": "",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 0.0,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3514030 ($77.07, product W, in_person) scores 0.31 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.61.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3514030)",
+        "entity_ids": [
+          "3514030"
+        ]
+      },
+      {
+        "claim": "Holder baseline from 10 earlier transactions: median $59.05, 95th percentile $88.07; the flagged amount is 1.3x the median.",
+        "source": "graph",
+        "ref": "query:holder_history(holder_id=C12382-K1|444|73)",
+        "entity_ids": [
+          "C12382-K1"
+        ]
+      },
+      {
+        "claim": "Billing region 444 is among the 1 regions in this holder's history.",
+        "source": "graph",
+        "ref": "query:holder_history(holder_id=C12382-K1|444|73)",
+        "entity_ids": [
+          "C12382-K1"
+        ]
+      },
+      {
+        "claim": "Simulated customer validation: Cardholder confirms they made the transaction.",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "source": "document",
+        "ref": "document:fraud-policy#R3",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a73a",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-1645",
+      "CC-5132"
+    ],
+    "summary": "Alert on transaction 3514030 ($77.07) on card C12382-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.03. Cardholder confirms they made the transaction. Closed as legitimate; no report.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-HHG-001"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 5,
+      "assumed_response": "Cardholder confirms they made the transaction."
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.31 is between 0.15 and 0.85, so ask the cardholder before deciding."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: fraud probability 0.31 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      }
+    ],
+    "final": [
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "route": "auto",
+        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached."
+      }
+    ],
+    "what_changed": "Cardholder confirms they made the transaction. Probability moved 0.31 -> 0.03; added CLOSE_NO_FRAUD, dropped VERIFY_WITH_CUSTOMER."
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.03.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 7,
+  "tokens": 0,
+  "latency_s": 0.12
+}

@@ -1,0 +1,108 @@
+{
+  "case_id": "MON-007",
+  "case": {
+    "status": "closed_legitimate",
+    "verdict": "legitimate",
+    "fraud_probability": 0.08,
+    "pattern": "none",
+    "pattern_description": "",
+    "affected_txn_ids": [],
+    "first_suspicious_txn_id": "",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 0.0,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3553923 ($400.07, product R, online) scores 0.01 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.27.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3553923)",
+        "entity_ids": [
+          "3553923"
+        ]
+      },
+      {
+        "claim": "Card baseline from 192 earlier transactions: median $116.97, 95th percentile $799.93; the flagged amount is 3.4x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C04285-K1)",
+        "entity_ids": [
+          "C04285-K1"
+        ]
+      },
+      {
+        "claim": "Device profile 'Windows | Windows 10 | edge 17.0 | 1920x1079' was used by this card before; identity record marks it Found.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C04285-K1)",
+        "entity_ids": [
+          "C04285-K1"
+        ]
+      },
+      {
+        "claim": "Structuring: 3 online purchases between $400.05 and $400.08 within 9 minutes, each just under a $500 threshold, from 1 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+        "source": "graph",
+        "ref": "query:card_window(card_id=C04285-K1, hours_before=168, hours_after=168)",
+        "entity_ids": [
+          "3553899",
+          "3553904",
+          "3553923"
+        ]
+      },
+      {
+        "claim": "Policy \u00a76: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a76",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-0768",
+      "CC-0769"
+    ],
+    "summary": "Alert on transaction 3553923 ($400.07) on card C04285-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.08. Closed as legitimate; no report.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-MON-007"
+  },
+  "evidence_requests": [],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "ALLOW_TRANSACTION",
+        "route": "auto",
+        "reason": "Policy \u00a70: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history."
+      },
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "route": "auto",
+        "reason": "Policy \u00a76: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate."
+      }
+    ],
+    "final": [
+      {
+        "action": "ALLOW_TRANSACTION",
+        "route": "auto",
+        "reason": "Policy \u00a70: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history."
+      },
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "route": "auto",
+        "reason": "Policy \u00a76: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate."
+      }
+    ],
+    "what_changed": "nothing"
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.08.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: fraud probability 0.08 is at or below 0.15 on 3 independent pieces of evidence.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 0.9,
+  "monitor": {
+    "source": "structure_scan",
+    "trigger_text": "Autonomous monitor (structure_scan): 3 online purchases between $400 and $500 within an hour on card C04285-K1. Review transaction 3553923."
+  }
+}

@@ -1,0 +1,48 @@
+// Loading job. Input CSVs are produced by `python -m assay.tg prepare` into
+// data/tg/, which the container sees at /home/tigergraph/data/tg/.
+USE GRAPH assay
+CREATE LOADING JOB load_assay FOR GRAPH assay {
+  DEFINE FILENAME f_txn = "/home/tigergraph/data/tg/txn.csv";
+  DEFINE FILENAME f_card = "/home/tigergraph/data/tg/card.csv";
+  DEFINE FILENAME f_dev = "/home/tigergraph/data/tg/device.csv";
+  DEFINE FILENAME f_next = "/home/tigergraph/data/tg/next.csv";
+  DEFINE FILENAME f_cc = "/home/tigergraph/data/tg/closed_case.csv";
+  DEFINE FILENAME f_cci = "/home/tigergraph/data/tg/closed_case_txn.csv";
+  DEFINE FILENAME f_ccc = "/home/tigergraph/data/tg/closed_case_connected.csv";
+
+  LOAD f_card TO VERTEX Card VALUES ($"card_id", $"customer_id", $"card_type", $"network"),
+              TO VERTEX Customer VALUES ($"customer_id"),
+              TO EDGE OWNS VALUES ($"customer_id", $"card_id")
+       USING SEPARATOR=",", HEADER="true", QUOTE="double";
+
+  LOAD f_txn TO VERTEX Txn VALUES ($"txn_id", $"ts", $"amount", $"product", $"channel", $"addr1", $"dist1",
+                 $"p_email", $"r_email", $"risk_score", $"p_fraud", $"id_15", $"id_23", $"device_type",
+                 $"device_info", $"os", $"browser", $"screen", $"device_profile", $"m4", $"m5", $"m6",
+                 $"d1", $"c1", $"card_id", $"customer_id", $"holder_id"),
+             TO VERTEX Holder VALUES ($"holder_id", $"card_id"),
+             TO EDGE MADE VALUES ($"card_id", $"txn_id"),
+             TO EDGE HELD_BY VALUES ($"card_id", $"holder_id"),
+             TO EDGE BY_HOLDER VALUES ($"txn_id", $"holder_id"),
+             TO EDGE FROM_DEVICE VALUES ($"txn_id", $"device_id") WHERE $"device_id" != "",
+             TO EDGE PURCHASER_EMAIL VALUES ($"txn_id", $"p_email") WHERE $"p_email" != "",
+             TO VERTEX EmailDomain VALUES ($"p_email") WHERE $"p_email" != "",
+             TO EDGE BILLED_IN VALUES ($"txn_id", $"addr1") WHERE $"addr1" != "-1",
+             TO VERTEX BillingRegion VALUES ($"addr1") WHERE $"addr1" != "-1"
+       USING SEPARATOR=",", HEADER="true", QUOTE="double";
+
+  LOAD f_dev TO VERTEX DeviceProfile VALUES ($"device_id", $"profile", $"n_cards", $"n_txns")
+       USING SEPARATOR=",", HEADER="true", QUOTE="double";
+
+  LOAD f_next TO EDGE NEXT VALUES ($"src", $"dst", $"gap_seconds")
+       USING SEPARATOR=",", HEADER="true";
+
+  LOAD f_cc TO VERTEX ClosedCase VALUES ($"case_id", $"card_id", $"customer_id", $"opened_at", $"closed_at",
+                 $"outcome", $"pattern", $"first_fraud_txn_id", $"txn_ids", $"n_txns", $"exposure_usd",
+                 $"connected_card_ids", $"actions_taken", $"report_filed", $"analyst_notes"),
+            TO EDGE ON_CARD VALUES ($"case_id", $"card_id")
+       USING SEPARATOR=",", HEADER="true", QUOTE="double";
+
+  LOAD f_cci TO EDGE INVOLVES VALUES ($"case_id", $"txn_id") USING SEPARATOR=",", HEADER="true";
+  LOAD f_ccc TO EDGE CONNECTED_TO VALUES ($"case_id", $"card_id") USING SEPARATOR=",", HEADER="true";
+}
+RUN LOADING JOB load_assay

@@ -1,0 +1,64 @@
+// assay -- graph schema (TigerGraph 4.2, Community Edition or Savanna)
+//
+// Two departures from the brief's suggested schema, both load-bearing:
+//
+//   1. Holder. A `customer_id` here is an issuer bucket (card1), not a person:
+//      one bucket carries up to thousands of transactions across dozens of
+//      billing regions. A Holder is the inferred individual -- card + billing
+//      region + the account-open day implied by D1 -- and behavioural
+//      baselines hang off it. Investigations fall back to the Card when a
+//      holder has too little history, and say so in the evidence.
+//
+//   2. FraudCase separate from ClosedCase. The bank's 5,565 closed cases are
+//      read-only labelled history (and the model's training labels); the
+//      cases this agent closes are new memory. Separate types keep our writes
+//      out of the calibration set, and let a retrieval ask "what did the bank
+//      conclude" and "what did I conclude" as two questions.
+
+CREATE VERTEX Customer (PRIMARY_ID customer_id STRING) WITH primary_id_as_attribute="true"
+CREATE VERTEX Card (PRIMARY_ID card_id STRING, customer_id STRING, card_type STRING, network STRING) WITH primary_id_as_attribute="true"
+CREATE VERTEX Holder (PRIMARY_ID holder_id STRING, card_id STRING) WITH primary_id_as_attribute="true"
+CREATE VERTEX Txn (
+  PRIMARY_ID txn_id STRING,
+  ts DATETIME, amount DOUBLE, product STRING, channel STRING,
+  addr1 INT, dist1 DOUBLE, p_email STRING, r_email STRING,
+  risk_score DOUBLE,          // the bank's model: an input, never an answer
+  p_fraud DOUBLE,             // assay's calibrated model, trained on the closed cases only
+  id_15 STRING, id_23 STRING, device_type STRING, device_info STRING,
+  os STRING, browser STRING, screen STRING, device_profile STRING,
+  m4 STRING, m5 STRING, m6 STRING, d1 DOUBLE, c1 DOUBLE,
+  card_id STRING, customer_id STRING, holder_id STRING
+) WITH primary_id_as_attribute="true"
+CREATE VERTEX DeviceProfile (PRIMARY_ID device_id STRING, profile STRING, n_cards INT, n_txns INT) WITH primary_id_as_attribute="true"
+CREATE VERTEX EmailDomain (PRIMARY_ID domain STRING) WITH primary_id_as_attribute="true"
+CREATE VERTEX BillingRegion (PRIMARY_ID region STRING) WITH primary_id_as_attribute="true"
+CREATE VERTEX ClosedCase (
+  PRIMARY_ID case_id STRING, card_id STRING, customer_id STRING, opened_at DATETIME, closed_at DATETIME,
+  outcome STRING, pattern STRING, first_fraud_txn_id STRING, txn_ids STRING, n_txns INT,
+  exposure_usd DOUBLE, connected_card_ids STRING, actions_taken STRING, report_filed STRING,
+  analyst_notes STRING
+) WITH primary_id_as_attribute="true"
+CREATE VERTEX FraudCase (
+  PRIMARY_ID case_id STRING, alert_id STRING, status STRING, verdict STRING, fraud_probability DOUBLE,
+  pattern STRING, pattern_description STRING, exposure_usd DOUBLE, summary STRING, stop_reason STRING,
+  sar_filed BOOL, final_actions STRING, written_at DATETIME
+) WITH primary_id_as_attribute="true"
+
+CREATE DIRECTED EDGE OWNS (FROM Customer, TO Card) WITH REVERSE_EDGE="OWNED_BY"
+CREATE DIRECTED EDGE MADE (FROM Card, TO Txn) WITH REVERSE_EDGE="MADE_ON"
+CREATE DIRECTED EDGE BY_HOLDER (FROM Txn, TO Holder) WITH REVERSE_EDGE="HOLDER_MADE"
+CREATE DIRECTED EDGE HELD_BY (FROM Card, TO Holder) WITH REVERSE_EDGE="HOLDS"
+CREATE DIRECTED EDGE FROM_DEVICE (FROM Txn, TO DeviceProfile) WITH REVERSE_EDGE="DEVICE_USED_IN"
+CREATE DIRECTED EDGE PURCHASER_EMAIL (FROM Txn, TO EmailDomain) WITH REVERSE_EDGE="EMAIL_USED_IN"
+CREATE DIRECTED EDGE BILLED_IN (FROM Txn, TO BillingRegion) WITH REVERSE_EDGE="REGION_OF"
+CREATE DIRECTED EDGE NEXT (FROM Txn, TO Txn, gap_seconds INT) WITH REVERSE_EDGE="PREV"
+CREATE DIRECTED EDGE INVOLVES (FROM ClosedCase, TO Txn) WITH REVERSE_EDGE="IN_CLOSED_CASE"
+CREATE DIRECTED EDGE ON_CARD (FROM ClosedCase, TO Card) WITH REVERSE_EDGE="HAS_CLOSED_CASE"
+CREATE DIRECTED EDGE CONNECTED_TO (FROM ClosedCase, TO Card) WITH REVERSE_EDGE="CONNECTED_IN_CASE"
+CREATE DIRECTED EDGE CITES (FROM FraudCase, TO Txn) WITH REVERSE_EDGE="CITED_BY"
+CREATE DIRECTED EDGE ABOUT_CARD (FROM FraudCase, TO Card) WITH REVERSE_EDGE="HAS_FRAUD_CASE"
+CREATE DIRECTED EDGE LINKS_CARD (FROM FraudCase, TO Card) WITH REVERSE_EDGE="LINKED_IN_CASE"
+CREATE DIRECTED EDGE IMPLICATES (FROM FraudCase, TO DeviceProfile) WITH REVERSE_EDGE="IMPLICATED_IN"
+CREATE DIRECTED EDGE DREW_ON (FROM FraudCase, TO ClosedCase) WITH REVERSE_EDGE="INFORMED"
+
+CREATE GRAPH assay (*)

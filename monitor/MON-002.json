@@ -1,0 +1,132 @@
+{
+  "case_id": "MON-002",
+  "case": {
+    "status": "closed_legitimate",
+    "verdict": "legitimate",
+    "fraud_probability": 0.02,
+    "pattern": "none",
+    "pattern_description": "",
+    "affected_txn_ids": [],
+    "first_suspicious_txn_id": "",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 0.0,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3524133 ($400.07, product R, online) scores 0.03 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.37.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3524133)",
+        "entity_ids": [
+          "3524133"
+        ]
+      },
+      {
+        "claim": "Card baseline from 15 earlier transactions: median $124.94, 95th percentile $400.04; the flagged amount is 3.2x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C01569-K1)",
+        "entity_ids": [
+          "C01569-K1"
+        ]
+      },
+      {
+        "claim": "Device profile 'iOS Device | iOS 11.3.0 | mobile safari 11.0 | 2048x1536' was used by this card before; identity record marks it Found.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C01569-K1)",
+        "entity_ids": [
+          "C01569-K1"
+        ]
+      },
+      {
+        "claim": "Structuring: 4 online purchases between $400.02 and $400.09 within 6 minutes, each just under a $500 threshold, from 1 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+        "source": "graph",
+        "ref": "query:card_window(card_id=C01569-K1, hours_before=168, hours_after=168)",
+        "entity_ids": [
+          "3524117",
+          "3524126",
+          "3524132",
+          "3524133"
+        ]
+      },
+      {
+        "claim": "Simulated customer validation: Cardholder confirms they made the transaction.",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "source": "document",
+        "ref": "document:fraud-policy#R3",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a73a",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-0886",
+      "CC-0768"
+    ],
+    "summary": "Alert on transaction 3524133 ($400.07) on card C01569-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.02. Cardholder confirms they made the transaction. Closed as legitimate; no report.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-MON-002"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 6,
+      "assumed_response": "Cardholder confirms they made the transaction."
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.21 is between 0.15 and 0.85, so ask the cardholder before deciding."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: evidence was requested, so the investigation is recorded as an internal case and written to the graph."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R8: the verdict is uncertain and exposure $1,600.20 exceeds $500."
+      }
+    ],
+    "final": [
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "route": "auto",
+        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached."
+      }
+    ],
+    "what_changed": "Cardholder confirms they made the transaction. Probability moved 0.21 -> 0.02; added CLOSE_NO_FRAUD, dropped VERIFY_WITH_CUSTOMER, ESCALATE_TO_ANALYST."
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.02.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 0.9,
+  "monitor": {
+    "source": "structure_scan",
+    "trigger_text": "Autonomous monitor (structure_scan): 4 online purchases between $400 and $500 within an hour on card C01569-K1. Review transaction 3524133."
+  }
+}

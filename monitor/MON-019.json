@@ -1,0 +1,158 @@
+{
+  "case_id": "MON-019",
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.97,
+    "pattern": "undocumented",
+    "pattern_description": "Amount structuring: 3 online purchases between $499.93 and $499.96 within 10 minutes, each just under a $500 threshold, from 1 device profiles marked New. The amounts sit just below a $500 authorization threshold, which none of the five documented patterns describes; the same shape recurs on unrelated cardholders in the bank's closed cases. Found by scanning the card's one-hour window for repeated near-threshold online amounts.",
+    "affected_txn_ids": [
+      "3493524",
+      "3493535",
+      "3493541"
+    ],
+    "first_suspicious_txn_id": "3493524",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 1499.85,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3493541 ($499.96, product R, online) scores 0.78 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.39.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3493541)",
+        "entity_ids": [
+          "3493541"
+        ]
+      },
+      {
+        "claim": "Card baseline from 1375 earlier transactions: median $107.92, 95th percentile $500.01; the flagged amount is 4.6x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C12897-K1)",
+        "entity_ids": [
+          "C12897-K1"
+        ]
+      },
+      {
+        "claim": "Device profile 'iOS Device | iOS 11.0.3 | mobile safari generic | 2208x1242' was used by this card before; identity record marks it Found.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C12897-K1)",
+        "entity_ids": [
+          "C12897-K1"
+        ]
+      },
+      {
+        "claim": "Structuring: 3 online purchases between $499.93 and $499.96 within 10 minutes, each just under a $500 threshold, from 1 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+        "source": "graph",
+        "ref": "query:card_window(card_id=C12897-K1, hours_before=168, hours_after=168)",
+        "entity_ids": [
+          "3493524",
+          "3493535",
+          "3493541"
+        ]
+      },
+      {
+        "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/undocumented",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a76: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a76",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a73a",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R9: Undocumented coordinated abuse: CREATE_CASE, FILE_REPORT, ESCALATE_TO_ANALYST, and describe the pattern in your own words.",
+        "source": "document",
+        "ref": "document:fraud-policy#R9",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-2649",
+      "CC-2971",
+      "CC-2985"
+    ],
+    "summary": "Undocumented on card C12897-K1: 3 transaction(s) from 2016-11-28 to 2016-11-28 totalling $1,499.85, probability 0.97.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-MON-019"
+  },
+  "evidence_requests": [],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "\u00a76: fraud probability 0.97 on 2 independent pieces of evidence; the card is compromised and verification would not change the decision."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: fraud probability 0.97 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "Policy \u00a73a: fraud is suspected and exposure $1,499.85 exceeds $1,000; the pattern is coordinated or undocumented (R9)."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "\u00a76: fraud probability 0.97 on 2 independent pieces of evidence; the card is compromised and verification would not change the decision."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: fraud probability 0.97 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "Policy \u00a73a: fraud is suspected and exposure $1,499.85 exceeds $1,000; the pattern is coordinated or undocumented (R9)."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+      }
+    ],
+    "what_changed": "nothing"
+  },
+  "sar": {
+    "file": true,
+    "reason": "Policy \u00a73a: fraud is suspected and exposure $1,499.85 exceeds $1,000; the pattern is coordinated or undocumented (R9).",
+    "narrative": "Between 2016-11-28 and 2016-11-28, card C12897-K1 held by customer C12897 was used for 3 transaction(s) totalling $1,499.85 that the bank has determined were not authorised by the cardholder (transaction IDs 3493524, 3493535, 3493541). The activity was online, from device profile(s) iOS Device | iOS 11.0.3 | mobile safari generic | 2208x1242, billed to region code(s) 299. The alert was raised on 2016-11-28 01:44:44 by risk score on transaction 3493541 ($499.96). The purchases were placed minutes apart with each amount just below $500, consistent with deliberately keeping each authorization under a review threshold; the bank has seen the identical shape on five other cardholders, all confirmed fraud. The activity was identified by the bank's transaction monitoring and confirmed by investigation. The card has been blocked pending reissue; this report is filed because fraud is suspected and exposure $1,499.85 exceeds $1,000; the pattern is coordinated or undocumented (R9).",
+    "subjects": [
+      "C12897",
+      "C12897-K1",
+      "iOS Device | iOS 11.0.3 | mobile safari generic | 2208x1242"
+    ],
+    "total_amount_usd": 1499.85,
+    "activity_dates": [
+      "2016-11-28",
+      "2016-11-28"
+    ]
+  },
+  "stop_reason": "Policy \u00a76: fraud probability 0.97 is at or above 0.85 on 2 independent pieces of evidence.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 0.03,
+  "monitor": {
+    "source": "structure_scan",
+    "trigger_text": "Autonomous monitor (structure_scan): 3 online purchases between $400 and $500 within an hour on card C12897-K1. Review transaction 3493541."
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "case_id": "HHG-012",
+  "case": {
+    "status": "closed_legitimate",
+    "verdict": "legitimate",
+    "fraud_probability": 0.02,
+    "pattern": "none",
+    "pattern_description": "",
+    "affected_txn_ids": [],
+    "first_suspicious_txn_id": "",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 0.0,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3553342 ($30.91, product W, in_person) scores 0.02 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.55.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3553342)",
+        "entity_ids": [
+          "3553342"
+        ]
+      },
+      {
+        "claim": "Card baseline from 910 earlier transactions: median $49.08, 95th percentile $226.05; the flagged amount is 0.6x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C05876-K2)",
+        "entity_ids": [
+          "C05876-K2"
+        ]
+      },
+      {
+        "claim": "Billing region 494 is among the 42 regions in this card's history.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C05876-K2)",
+        "entity_ids": [
+          "C05876-K2"
+        ]
+      },
+      {
+        "claim": "Policy \u00a76: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a76",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-0003",
+      "CC-1645"
+    ],
+    "summary": "Alert on transaction 3553342 ($30.91) on card C05876-K2. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.02. Closed as legitimate; no report.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-HHG-012"
+  },
+  "evidence_requests": [],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "ALLOW_TRANSACTION",
+        "route": "auto",
+        "reason": "Policy \u00a70: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history."
+      },
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "route": "auto",
+        "reason": "Policy \u00a76: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate."
+      }
+    ],
+    "final": [
+      {
+        "action": "ALLOW_TRANSACTION",
+        "route": "auto",
+        "reason": "Policy \u00a70: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history."
+      },
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "route": "auto",
+        "reason": "Policy \u00a76: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate."
+      }
+    ],
+    "what_changed": "nothing"
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.02.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: fraud probability 0.02 is at or below 0.15 on 3 independent pieces of evidence.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 0.15
+}

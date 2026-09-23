@@ -1,0 +1,7 @@
+pandas>=3.0
+pyarrow>=25.0
+numpy>=2.5
+lightgbm>=4.7
+scikit-learn>=1.9
+pyTigerGraph>=2.0
+pytest>=9.1

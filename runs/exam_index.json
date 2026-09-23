@@ -1,0 +1,190 @@
+[
+  {
+    "case_id": "HHG-017",
+    "card_id": "C04570-K1",
+    "graph_case_id": "ASSAY-HHG-017",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-015",
+    "card_id": "C03042-K1",
+    "graph_case_id": "ASSAY-HHG-015",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-006",
+    "card_id": "C07297-K1",
+    "graph_case_id": "ASSAY-HHG-006",
+    "verdict": "fraud",
+    "pattern": "undocumented",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-014",
+    "card_id": "C13487-K1",
+    "graph_case_id": "ASSAY-HHG-014",
+    "verdict": "fraud",
+    "pattern": "undocumented",
+    "connected": [
+      "C01289-K1",
+      "C01996-K2",
+      "C02910-K1",
+      "C02975-K1",
+      "C03676-K2",
+      "C04108-K2",
+      "C04274-K1",
+      "C05448-K2",
+      "C06031-K2",
+      "C06650-K2",
+      "C06710-K1",
+      "C07472-K1",
+      "C08168-K1",
+      "C08972-K2",
+      "C09049-K1",
+      "C09195-K1",
+      "C09906-K1",
+      "C09975-K2",
+      "C10020-K1",
+      "C10193-K2",
+      "C10326-K1",
+      "C11082-K1",
+      "C11670-K2",
+      "C11702-K1",
+      "C12645-K1",
+      "C12796-K1",
+      "C13291-K1"
+    ]
+  },
+  {
+    "case_id": "HHG-002",
+    "card_id": "C11891-K1",
+    "graph_case_id": "ASSAY-HHG-002",
+    "verdict": "uncertain",
+    "pattern": "card_not_present_fraud",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-018",
+    "card_id": "C02354-K2",
+    "graph_case_id": "ASSAY-HHG-018",
+    "verdict": "fraud",
+    "pattern": "account_takeover",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-019",
+    "card_id": "C07987-K2",
+    "graph_case_id": "ASSAY-HHG-019",
+    "verdict": "fraud",
+    "pattern": "card_not_present_new_device",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-010",
+    "card_id": "C10434-K1",
+    "graph_case_id": "ASSAY-HHG-010",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-020",
+    "card_id": "C12265-K2",
+    "graph_case_id": "ASSAY-HHG-020",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-001",
+    "card_id": "C12382-K1",
+    "graph_case_id": "ASSAY-HHG-001",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-007",
+    "card_id": "C09933-K2",
+    "graph_case_id": "ASSAY-HHG-007",
+    "verdict": "fraud",
+    "pattern": "account_takeover",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-005",
+    "card_id": "C02923-K1",
+    "graph_case_id": "ASSAY-HHG-005",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-013",
+    "card_id": "C07671-K2",
+    "graph_case_id": "ASSAY-HHG-013",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-003",
+    "card_id": "C08623-K2",
+    "graph_case_id": "ASSAY-HHG-003",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-016",
+    "card_id": "C09988-K1",
+    "graph_case_id": "ASSAY-HHG-016",
+    "verdict": "fraud",
+    "pattern": "card_not_present_new_device",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-012",
+    "card_id": "C05876-K2",
+    "graph_case_id": "ASSAY-HHG-012",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-008",
+    "card_id": "C13171-K2",
+    "graph_case_id": "ASSAY-HHG-008",
+    "verdict": "fraud",
+    "pattern": "card_not_present_fraud",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-009",
+    "card_id": "C08299-K1",
+    "graph_case_id": "ASSAY-HHG-009",
+    "verdict": "fraud",
+    "pattern": "card_not_present_fraud",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-011",
+    "card_id": "C11923-K2",
+    "graph_case_id": "ASSAY-HHG-011",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  },
+  {
+    "case_id": "HHG-004",
+    "card_id": "C08106-K1",
+    "graph_case_id": "ASSAY-HHG-004",
+    "verdict": "legitimate",
+    "pattern": "none",
+    "connected": []
+  }
+]

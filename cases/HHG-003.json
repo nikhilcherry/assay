@@ -1,0 +1,130 @@
+{
+  "case_id": "HHG-003",
+  "case": {
+    "status": "closed_legitimate",
+    "verdict": "legitimate",
+    "fraud_probability": 0.02,
+    "pattern": "none",
+    "pattern_description": "",
+    "affected_txn_ids": [],
+    "first_suspicious_txn_id": "",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 0.0,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3530164 ($49.00, product W, in_person) scores 0.10 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.40.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3530164)",
+        "entity_ids": [
+          "3530164"
+        ]
+      },
+      {
+        "claim": "Card baseline from 980 earlier transactions: median $67.91, 95th percentile $425.08; the flagged amount is 0.7x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C08623-K2)",
+        "entity_ids": [
+          "C08623-K2"
+        ]
+      },
+      {
+        "claim": "Billing region 330 is among the 53 regions in this card's history.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C08623-K2)",
+        "entity_ids": [
+          "C08623-K2"
+        ]
+      },
+      {
+        "claim": "Cardholder C08623 reported the $49.00 charge as not theirs (case pack trigger, 2016-12-10 15:01:21).",
+        "source": "customer",
+        "ref": "case_pack:HHG-003",
+        "entity_ids": [
+          "3530164"
+        ]
+      },
+      {
+        "claim": "Simulated customer validation: Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute.",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "source": "document",
+        "ref": "document:fraud-policy#R3",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a73a",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-1589",
+      "CC-1645"
+    ],
+    "summary": "Alert on transaction 3530164 ($49.00) on card C08623-K2. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.02. Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute. Closed as legitimate; no report.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-HHG-003"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 6,
+      "assumed_response": "Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute."
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "STEP_UP_AUTH",
+        "route": "auto",
+        "reason": "\u00a75: the cardholder disputes the charge but the graph evidence does not settle it; require step-up authentication on further activity while it is reviewed."
+      },
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.24 is between 0.15 and 0.85, so ask the cardholder before deciding."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: the customer disputes a charge, so the investigation is recorded as an internal case and written to the graph."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R8: the verdict is uncertain and the evidence conflicts."
+      }
+    ],
+    "final": [
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "route": "auto",
+        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached."
+      }
+    ],
+    "what_changed": "Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute. Probability moved 0.24 -> 0.02; added CLOSE_NO_FRAUD, dropped STEP_UP_AUTH, VERIFY_WITH_CUSTOMER, ESCALATE_TO_ANALYST."
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.02.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 0.16
+}

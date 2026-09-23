@@ -1,0 +1,178 @@
+{
+  "case_id": "MON-008",
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.92,
+    "pattern": "undocumented",
+    "pattern_description": "Amount structuring: 3 online purchases between $499.91 and $499.97 within 4 minutes, each just under a $500 threshold, from 1 device profiles marked New. The amounts sit just below a $500 authorization threshold, which none of the five documented patterns describes; the same shape recurs on unrelated cardholders in the bank's closed cases. Found by scanning the card's one-hour window for repeated near-threshold online amounts.",
+    "affected_txn_ids": [
+      "3531473",
+      "3531477",
+      "3531493"
+    ],
+    "first_suspicious_txn_id": "3531473",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 1499.85,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3531493 ($499.97, product R, online) scores 0.02 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.04.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3531493)",
+        "entity_ids": [
+          "3531493"
+        ]
+      },
+      {
+        "claim": "Card baseline from 20 earlier transactions: median $125.09, 95th percentile $499.91; the flagged amount is 4.0x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C04697-K1)",
+        "entity_ids": [
+          "C04697-K1"
+        ]
+      },
+      {
+        "claim": "Device profile 'Windows | Windows 10 | chrome 66.0 | 1920x1080' was used by this card before; identity record marks it Found.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C04697-K1)",
+        "entity_ids": [
+          "C04697-K1"
+        ]
+      },
+      {
+        "claim": "The strongest transaction in the burst scores 0.16 on the same model (3531473); the episode is assessed at that level, not at the flagged transaction's.",
+        "source": "graph",
+        "ref": "query:card_window(card_id=C04697-K1, hours_before=168, hours_after=168)",
+        "entity_ids": [
+          "3531473"
+        ]
+      },
+      {
+        "claim": "Structuring: 3 online purchases between $499.91 and $499.97 within 4 minutes, each just under a $500 threshold, from 1 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+        "source": "graph",
+        "ref": "query:card_window(card_id=C04697-K1, hours_before=168, hours_after=168)",
+        "entity_ids": [
+          "3531473",
+          "3531477",
+          "3531493"
+        ]
+      },
+      {
+        "claim": "Simulated customer validation: Cardholder states they did not make this transaction and still has the card.",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": []
+      },
+      {
+        "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/undocumented",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
+        "source": "document",
+        "ref": "document:fraud-policy#R2",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a73a",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R9: Undocumented coordinated abuse: CREATE_CASE, FILE_REPORT, ESCALATE_TO_ANALYST, and describe the pattern in your own words.",
+        "source": "document",
+        "ref": "document:fraud-policy#R9",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-2649",
+      "CC-2971",
+      "CC-2985"
+    ],
+    "summary": "Undocumented on card C04697-K1: 3 transaction(s) from 2016-12-10 to 2016-12-10 totalling $1,499.85, probability 0.92. Cardholder states they did not make this transaction and still has the card.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-MON-008"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 6,
+      "assumed_response": "Cardholder states they did not make this transaction and still has the card."
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "DECLINE_TRANSACTION",
+        "route": "L1",
+        "reason": "\u00a73b: probability 0.60 leans fraud; hold this authorization while the cardholder is asked, rather than block the card."
+      },
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.60 is between 0.15 and 0.85, so ask the cardholder before deciding."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: fraud probability 0.60 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R8: the verdict is uncertain and exposure $1,499.85 exceeds $500."
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "Policy \u00a73a: fraud is suspected and exposure $1,499.85 exceeds $1,000; the pattern is coordinated or undocumented (R9)."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+      }
+    ],
+    "what_changed": "Cardholder states they did not make this transaction and still has the card. Probability moved 0.60 -> 0.92; added BLOCK_CARD, FILE_REPORT, dropped DECLINE_TRANSACTION, VERIFY_WITH_CUSTOMER."
+  },
+  "sar": {
+    "file": true,
+    "reason": "Policy \u00a73a: fraud is suspected and exposure $1,499.85 exceeds $1,000; the pattern is coordinated or undocumented (R9).",
+    "narrative": "Between 2016-12-10 and 2016-12-10, card C04697-K1 held by customer C04697 was used for 3 transaction(s) totalling $1,499.85 that the bank has determined were not authorised by the cardholder (transaction IDs 3531473, 3531477, 3531493). The activity was online, from device profile(s) Windows | Windows 10 | chrome 66.0 | 1920x1080, billed to region code(s) 299. The alert was raised on 2016-12-10 20:39:21 by risk score on transaction 3531493 ($499.97). The purchases were placed minutes apart with each amount just below $500, consistent with deliberately keeping each authorization under a review threshold; the bank has seen the identical shape on five other cardholders, all confirmed fraud. The activity was identified by the bank's transaction monitoring and confirmed by investigation. The card has been blocked pending reissue; this report is filed because fraud is suspected and exposure $1,499.85 exceeds $1,000; the pattern is coordinated or undocumented (R9).",
+    "subjects": [
+      "C04697",
+      "C04697-K1",
+      "Windows | Windows 10 | chrome 66.0 | 1920x1080"
+    ],
+    "total_amount_usd": 1499.85,
+    "activity_dates": [
+      "2016-12-10",
+      "2016-12-10"
+    ]
+  },
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 0.02,
+  "monitor": {
+    "source": "structure_scan",
+    "trigger_text": "Autonomous monitor (structure_scan): 3 online purchases between $400 and $500 within an hour on card C04697-K1. Review transaction 3531493."
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "case_id": "HHG-002",
+  "case": {
+    "status": "open",
+    "verdict": "uncertain",
+    "fraud_probability": 0.55,
+    "pattern": "card_not_present_fraud",
+    "pattern_description": "",
+    "affected_txn_ids": [
+      "3478782"
+    ],
+    "first_suspicious_txn_id": "3478782",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 292.36,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3478782 ($292.36, product C, online) scores 0.55 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.79.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3478782)",
+        "entity_ids": [
+          "3478782"
+        ]
+      },
+      {
+        "claim": "Card baseline from 35 earlier transactions: median $47.29, 95th percentile $91.41; the flagged amount is 6.2x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C11891-K1)",
+        "entity_ids": [
+          "C11891-K1"
+        ]
+      },
+      {
+        "claim": "Simulated customer validation: No reply within 24 hours. The probability sits near even, so no reply was assumed rather than inventing a decisive answer.",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": []
+      },
+      {
+        "claim": "Card-not-present fraud: the number used online without the card; amounts and products that don't fit the cardholder, often two to four within 48 hours.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/card_not_present_fraud",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R4: No reply within 24 hours: MONITOR_CARD and DECLINE_TRANSACTION for pending authorizations; escalate if exposure exceeds $500.",
+        "source": "document",
+        "ref": "document:fraud-policy#R4",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a73a",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-4160",
+      "CC-4373",
+      "CC-4425"
+    ],
+    "summary": "Card not present fraud on card C11891-K1: 1 transaction(s) from 2016-11-22 to 2016-11-22 totalling $292.36, probability 0.55. The evidence does not settle it, so it is held for a human under R4/R8. No reply within 24 hours. The probability sits near even, so no reply was assumed rather than inventing a decisive answer.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-HHG-002"
+  },
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 6,
+      "assumed_response": "No reply within 24 hours. The probability sits near even, so no reply was assumed rather than inventing a decisive answer."
+    }
+  ],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "DECLINE_TRANSACTION",
+        "route": "L1",
+        "reason": "\u00a73b: probability 0.55 leans fraud; hold this authorization while the cardholder is asked, rather than block the card."
+      },
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.55 is between 0.15 and 0.85, so ask the cardholder before deciding."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: fraud probability 0.55 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      }
+    ],
+    "final": [
+      {
+        "action": "MONITOR_CARD",
+        "route": "auto",
+        "reason": "R4: no reply within 24 hours; raise monitoring sensitivity for 72 hours."
+      },
+      {
+        "action": "DECLINE_TRANSACTION",
+        "route": "L1",
+        "reason": "R4: decline pending authorizations while the verification is outstanding."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "Policy \u00a73a: fraud probability 0.55 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      }
+    ],
+    "what_changed": "No reply within 24 hours. The probability sits near even, so no reply was assumed rather than inventing a decisive answer. Probability moved 0.55 -> 0.55; added MONITOR_CARD, dropped VERIFY_WITH_CUSTOMER."
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is uncertain at probability 0.55.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: no reply within 24 hours. R4 actions apply and further waiting is unlikely to change the decision.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 0.13
+}

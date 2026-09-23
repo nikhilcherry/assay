@@ -1,0 +1,271 @@
+{
+  "case_id": "MON-038",
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.98,
+    "pattern": "undocumented",
+    "pattern_description": "Device-ring fraud: a single Samsung SM-G935F / Android 7.0 / Chrome 62 / 1920x1080 handset behind an anonymous proxy, marked New on every card it touches, used on 28 unrelated cards within a month for a few purchases each, every one scoring low on the bank's model. No single card shows a credential or channel change, so it is not account takeover, and the link that makes it fraud is the shared handset across cardholders. Found by traversing from the flagged transaction's device profile to every other card that used it.",
+    "affected_txn_ids": [
+      "3491089"
+    ],
+    "first_suspicious_txn_id": "3491089",
+    "connected_card_ids": [
+      "C01289-K1",
+      "C01996-K2",
+      "C02910-K1",
+      "C02975-K1",
+      "C03676-K2",
+      "C04108-K2",
+      "C04274-K1",
+      "C05448-K2",
+      "C06031-K2",
+      "C06650-K2",
+      "C06710-K1",
+      "C07472-K1",
+      "C08168-K1",
+      "C08972-K2",
+      "C09049-K1",
+      "C09195-K1",
+      "C09906-K1",
+      "C09975-K2",
+      "C10193-K2",
+      "C10326-K1",
+      "C11082-K1",
+      "C11670-K2",
+      "C11702-K1",
+      "C12645-K1",
+      "C12796-K1",
+      "C13291-K1",
+      "C13487-K1"
+    ],
+    "connected_device_profiles": [
+      "SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080"
+    ],
+    "exposure_usd": 188.68,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3491089 ($188.68, product C, online) scores 0.16 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.18.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3491089)",
+        "entity_ids": [
+          "3491089"
+        ]
+      },
+      {
+        "claim": "Card baseline from 35 earlier transactions: median $58.96, 95th percentile $126.79; the flagged amount is 3.2x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C10020-K1)",
+        "entity_ids": [
+          "C10020-K1"
+        ]
+      },
+      {
+        "claim": "Device profile 'SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080' was not used by this card before; identity record marks it New, proxy IP_PROXY:ANONYMOUS.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C10020-K1)",
+        "entity_ids": [
+          "C10020-K1"
+        ]
+      },
+      {
+        "claim": "Device profile 'SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080' (IP_PROXY:ANONYMOUS, marked New on every card) appears on 28 different cards within 30 days of this alert: 60 transactions. One handset on this many unrelated cardholders is a shared origin, not a household.",
+        "source": "graph",
+        "ref": "query:device_neighbors(device_profile=SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080, days=30)",
+        "entity_ids": [
+          "C01289-K1",
+          "C01996-K2",
+          "C02910-K1",
+          "C02975-K1",
+          "C03676-K2",
+          "C04108-K2",
+          "C04274-K1",
+          "C05448-K2",
+          "C06031-K2",
+          "C06650-K2",
+          "C06710-K1",
+          "C07472-K1",
+          "C08168-K1",
+          "C08972-K2",
+          "C09049-K1",
+          "C09195-K1",
+          "C09906-K1",
+          "C09975-K2",
+          "C10193-K2",
+          "C10326-K1",
+          "C11082-K1",
+          "C11670-K2",
+          "C11702-K1",
+          "C12645-K1",
+          "C12796-K1"
+        ]
+      },
+      {
+        "claim": "The same device profile was confirmed fraud in 4 closed case(s) in 2016-08, 2016-09 (CC-2649, CC-2971, CC-2985, CC-3035); patterns recorded: undocumented, linked by analysts across 24 cards.",
+        "source": "graph",
+        "ref": "query:closed_cases_by_device(device_profile=SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080)",
+        "entity_ids": [
+          "CC-2649",
+          "CC-2971",
+          "CC-2985",
+          "CC-3035"
+        ]
+      },
+      {
+        "claim": "Case memory: this card is named in 8 earlier investigation(s) by this agent (ASSAY-HHG-014, ASSAY-MON-025, ASSAY-MON-045, ASSAY-MON-041, ASSAY-MON-042, ASSAY-MON-028, ASSAY-MON-046, ASSAY-MON-039), 8 of them concluded as fraud (undocumented).",
+        "source": "graph",
+        "ref": "query:prior_fraud_cases(card_id=C10020-K1)",
+        "entity_ids": [
+          "ASSAY-HHG-014",
+          "ASSAY-MON-025",
+          "ASSAY-MON-045",
+          "ASSAY-MON-041",
+          "ASSAY-MON-042",
+          "ASSAY-MON-028",
+          "ASSAY-MON-046",
+          "ASSAY-MON-039"
+        ]
+      },
+      {
+        "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/undocumented",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a76: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a76",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R6: Shared origin: name the shared element, CREATE_CASE, FILE_REPORT, and MONITOR_CONNECTED_CARDS for every card that shares it.",
+        "source": "document",
+        "ref": "document:fraud-policy#R6",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a73a",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-2649",
+      "CC-2985",
+      "CC-3035"
+    ],
+    "summary": "Undocumented on card C10020-K1: 1 transaction(s) from 2016-11-27 to 2016-11-27 totalling $188.68, probability 0.98. Linked to 27 other card(s) through device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-MON-038"
+  },
+  "evidence_requests": [],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "\u00a76: fraud probability 0.98 on 5 independent pieces of evidence; the card is compromised and verification would not change the decision."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R6: several cards show fraud from the same device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080."
+      },
+      {
+        "action": "MONITOR_CONNECTED_CARDS",
+        "route": "auto",
+        "reason": "R6: every card sharing device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080 goes under monitoring (27 card(s))."
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "Policy \u00a73a: fraud is suspected and activity connects to device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080; the pattern is coordinated or undocumented (R9)."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "\u00a76: fraud probability 0.98 on 5 independent pieces of evidence; the card is compromised and verification would not change the decision."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R6: several cards show fraud from the same device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080."
+      },
+      {
+        "action": "MONITOR_CONNECTED_CARDS",
+        "route": "auto",
+        "reason": "R6: every card sharing device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080 goes under monitoring (27 card(s))."
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "Policy \u00a73a: fraud is suspected and activity connects to device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080; the pattern is coordinated or undocumented (R9)."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+      }
+    ],
+    "what_changed": "nothing"
+  },
+  "sar": {
+    "file": true,
+    "reason": "Policy \u00a73a: fraud is suspected and activity connects to device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080; the pattern is coordinated or undocumented (R9).",
+    "narrative": "Between 2016-11-27 and 2016-11-27, card C10020-K1 held by customer C10020 was used for 1 transaction(s) totalling $188.68 that the bank has determined were not authorised by the cardholder (transaction IDs 3491089). The activity was online, from device profile(s) SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080, billed to region code(s) 181. The alert was raised on 2016-11-27 08:20:00 by risk score on transaction 3491089 ($188.68). The same device profile was used on 27 other cards in the same period (C01289-K1, C01996-K2, C02910-K1, C02975-K1, C03676-K2, C04108-K2, C04274-K1, C05448-K2, C06031-K2, C06650-K2, C06710-K1, C07472-K1, ...), each time marked as a new device behind an anonymous proxy, indicating a single actor operating across multiple unrelated cardholders. The bank's closed cases from August and September record confirmed fraud from this same device profile on other cardholders, which analysts could not match to a documented typology. The activity was identified by the bank's transaction monitoring and confirmed by investigation. The card has been blocked pending reissue and the connected cards placed under monitoring; this report is filed because fraud is suspected and activity connects to device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080; the pattern is coordinated or undocumented (R9).",
+    "subjects": [
+      "C10020",
+      "C10020-K1",
+      "C01289-K1",
+      "C01996-K2",
+      "C02910-K1",
+      "C02975-K1",
+      "C03676-K2",
+      "C04108-K2",
+      "C04274-K1",
+      "C05448-K2",
+      "C06031-K2",
+      "C06650-K2",
+      "C06710-K1",
+      "C07472-K1",
+      "C08168-K1",
+      "C08972-K2",
+      "C09049-K1",
+      "C09195-K1",
+      "C09906-K1",
+      "C09975-K2",
+      "C10193-K2",
+      "C10326-K1",
+      "C11082-K1",
+      "C11670-K2",
+      "C11702-K1",
+      "C12645-K1",
+      "C12796-K1",
+      "C13291-K1",
+      "C13487-K1",
+      "SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080"
+    ],
+    "total_amount_usd": 188.68,
+    "activity_dates": [
+      "2016-11-27",
+      "2016-11-27"
+    ]
+  },
+  "stop_reason": "Policy \u00a76: fraud probability 0.98 is at or above 0.85 on 5 independent pieces of evidence.",
+  "tool_calls": 10,
+  "tokens": 0,
+  "latency_s": 0.02,
+  "monitor": {
+    "source": "ring_scan",
+    "trigger_text": "Autonomous monitor (ring_scan): device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080 on 28 cards in 19 days, marked New and behind a proxy on every use. Review transaction 3491089."
+  }
+}
