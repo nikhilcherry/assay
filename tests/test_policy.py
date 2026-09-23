@@ -424,3 +424,12 @@ def test_a_legitimate_case_never_files_or_blocks():
     a = actions(s)
     assert not ({Action.FILE_REPORT, Action.BLOCK_CARD, Action.BLOCK_ALL_CARDS,
                  Action.DECLINE_TRANSACTION} & a)
+
+
+def test_uncertain_undocumented_never_files_a_report():
+    # R9 reports coordinated abuse, but §3a still requires fraud confirmed or
+    # strongly suspected: an uncertain verdict must not reach the regulator.
+    s = Signals(fraud_probability=0.55, verdict=Verdict.UNCERTAIN, pattern=Pattern.UNDOCUMENTED,
+                coordinated_abuse=True, single_signal=False, exposure_usd=1900.0)
+    assert Action.FILE_REPORT not in actions(s)
+    assert Action.ESCALATE_TO_ANALYST in actions(s)

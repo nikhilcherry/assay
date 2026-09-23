@@ -55,7 +55,7 @@ agent is a small state machine around it:
 4. Combine: the model's log-odds plus the likelihood ratio of each finding.
 5. Apply policy §6 literally: stop at ≥ 0.85 or ≤ 0.15 on two independent pieces
    of evidence, or ask for more.
-6. Run the fraud policy (encoded as code with 49 tests) *twice*: once before the
+6. Run the fraud policy (encoded as code with 50 tests) *twice*: once before the
    evidence comes back, once after. That's how `initial` and `final` actions
    come out genuinely different, instead of as two copies of one list.
 
@@ -131,6 +131,6 @@ cards, 9 structuring episodes, and 14 frauds the bank's model had rated under 0.
 Replace the simulated customer replies with a proper model of reply behaviour,
 measure the likelihood ratios that are still assumptions, and put the SAR
 narratives through a regulator-style checklist. The code for all of it is at
-the link below: 100 tests, and everything reproduces from the four CSVs.
+the link below: 101 tests, and everything reproduces from the four CSVs.
 
 *Repo: github.com/nikhilcherry/assay*

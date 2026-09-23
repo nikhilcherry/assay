@@ -125,7 +125,7 @@ alert ─► get_transaction ─► holder_history / card_history ─► card_wi
 ```
 
 - **No language model produces a number, an ID, an action or a route.** Policy
-  v1.0 is code ([`assay/policy.py`](assay/policy.py)) with 49 tests, most of
+  v1.0 is code ([`assay/policy.py`](assay/policy.py)) with 50 tests, most of
   them negatives: R1 must *not* block on one signal, R7 beats R2 on a recurring
   charge, R10 refuses on one compromised card, an uncertain verdict never files a report.
 - **Every evidence claim cites its query**, e.g.
@@ -224,7 +224,7 @@ python -m assay.tg setup              # schema, load, install queries           
 python -m assay.run                   # the 20 cases, on TigerGraph  -> cases/
 python -m assay.run --local           # same, on the pandas reference store
 python -m assay.monitor               # the autonomous sweep         -> monitor/
-python -m pytest -q                   # 100 tests
+python -m pytest -q                   # 101 tests
 ```
 
 ## Layout
