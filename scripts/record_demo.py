@@ -118,6 +118,13 @@ async def main() -> int:
         await wait(2500)
         await page.click("details.sar summary")
         await wait(5500)
+        await page.click("details.sar summary")
+        await ev("document.querySelector('.readout').scrollTop = 0")
+        await ev("cap(`Is the graph doing the work? Remove the device-ring finding from the ledger and the same case reads <b>0.16</b>, not 0.85.`)")
+        await page.click(".moves li:nth-child(2)")
+        await wait(6000)
+        await page.click(".moves li:nth-child(2)")
+        await wait(1200)
 
         # structuring
         await ev("cap(`HHG-006: four purchases just under <b>$500</b> in 30 minutes. None of the five documented patterns covers it. The bank's closed cases do.`)")

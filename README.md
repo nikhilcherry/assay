@@ -10,9 +10,11 @@ pattern, affected transactions, connected cards, exposure, evidence with the
 graph query behind every claim, a SAR when the policy calls for one, and the
 next best action before and after the evidence the agent asked for.
 
+[![The bank scored it 0.05. It was one of 28 cards on one phone.](site/og.jpg)](https://nikhilcherry.github.io/assay/)
+
 > **Watch it think: [nikhilcherry.github.io/assay](https://nikhilcherry.github.io/assay/)**. Every
 > investigation replayed query by query: the graph grows as each query returns, and each
-> likelihood ratio visibly moves the probability. Demo video (2:34):
+> likelihood ratio visibly moves the probability. Demo video (2:41):
 > [`demo.mp4`](https://github.com/nikhilcherry/assay/releases/download/replay-v1/demo.mp4).
 
 - **20 answer files**: [`cases/`](cases/)
