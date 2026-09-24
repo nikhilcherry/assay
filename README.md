@@ -295,6 +295,12 @@ checks this in CI, along with two other properties: every ledger adds up to the 
 probability, and every graph claim in an answer file cites a query that appears in
 the trace.
 
+**Live mode.** `python -m assay.serve` serves the same page on
+`localhost:8740` with an *Investigate any transaction* box: type any of the
+590,742 TransactionIDs and the real agent runs on it then and there (about a
+tenth of a second after the store loads), and the page plays its trace like any
+other case. It binds to localhost only, because the store holds the full dataset.
+
 The page has no build step and no framework. It is one HTML file with a hand-written
 force layout on canvas. [`scripts/record_demo.py`](scripts/record_demo.py) drives it
 headlessly and records the demo video from the DevTools screencast, so the video is
@@ -324,6 +330,7 @@ python -m assay.trace                 # replay traces                -> site/dat
 python -m pytest -q                   # 427 tests
 
 python -m http.server 8731 -d site    # the replay, at localhost:8731
+python -m assay.serve                 # live mode: investigate any transaction, localhost:8740
 python scripts/record_demo.py         # the demo video               -> docs/demo.mp4  (needs playwright)
 ```
 
@@ -333,7 +340,8 @@ python scripts/record_demo.py         # the demo video               -> docs/dem
 assay/        data.py (staging, card IDs, holders)   model.py (calibrated model)
               patterns.py   detectors.py   policy.py   documents.py
               investigate.py (the agent)   store.py / tg.py (the two backends)
-              disputes.py (measured dispute evidence)
+              disputes.py (measured dispute evidence)   crossfit.py / measure.py / evaluate.py
+              serve.py (live mode)
               run.py   monitor.py   validate.py   trace.py (replay traces)
 graph/        schema.gsql   load.gsql   queries/investigation.gsql
 cases/        the 20 answer files

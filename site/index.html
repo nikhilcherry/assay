@@ -69,6 +69,12 @@ header.mast{display:flex;justify-content:space-between;align-items:baseline;gap:
 .rail .tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--rule)}
 .rail .tabs button{background:none;border:0;padding:11px 6px;font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);cursor:pointer}
 .rail .tabs button[aria-selected="true"]{color:var(--ink);box-shadow:inset 0 -2px 0 var(--trace)}
+.live{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:10px 12px;border-bottom:1px solid var(--rule);background:var(--trace-soft)}
+.live label{font:500 10.5px/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--trace)}
+.live div{display:flex;gap:6px}
+.live input{min-width:0;width:100%;flex:1;font:500 12.5px/1 var(--mono);padding:6px 7px;border:1px solid var(--rule);background:var(--panel);color:var(--ink)}
+.live button{font:600 12px/1 var(--mono);padding:6px 9px;border:0;background:var(--trace);color:#fff;cursor:pointer}
+.live p{margin:0;font:400 11px/1.35 var(--mono);color:var(--ink-3)}
 .cases{list-style:none;margin:0;padding:6px 0;overflow:auto;flex:1;min-height:0}
 .cases button{width:100%;display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:9px;align-items:center;background:none;border:0;padding:6px 12px;text-align:left;cursor:pointer;font:500 12.5px/1.2 var(--mono)}
 .cases button:hover{background:var(--trace-soft)}
@@ -214,6 +220,11 @@ footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--rule);font:40
       <button role="tab" id="tab-exam" aria-selected="true">Exam 20</button>
       <button role="tab" id="tab-mon" aria-selected="false">Monitor 60</button>
     </div>
+    <form class="live" id="live" hidden>
+      <label for="live-txn">Investigate any transaction</label>
+      <div><input id="live-txn" inputmode="numeric" placeholder="e.g. 3478561" autocomplete="off"><button type="submit">Run</button></div>
+      <p id="live-msg">Live: the real agent, run now.</p>
+    </form>
     <ul class="cases" id="cases"></ul>
   </aside>
 
@@ -690,6 +701,18 @@ async function story(){
   await say("That's assay: a detective that connects the dots the bank's computer can't see, shows every step of its reasoning, and doesn't punish innocent customers.",[["Explore the cases","done",true],["Watch again","again"]])
     .then(v=>{ if(!live()) return; endStory(); if(v==="again") story(); });
 }
+/* ================= live mode (only when served by python -m assay.serve) ================= */
+$("#live").addEventListener("submit",async e=>{ e.preventDefault();
+  const id=$("#live-txn").value.trim(), msg=$("#live-msg");
+  if(!/^\d+$/.test(id)){ msg.textContent="Enter a TransactionID: digits only."; return; }
+  msg.textContent=`Investigating ${id}…`;
+  try{ const r=await fetch("api/investigate?txn="+id); const t=await r.json();
+    if(!r.ok){ msg.textContent=t.error||("Failed: HTTP "+r.status); return; }
+    cache.set(t.case_id,Promise.resolve(t)); await load(t.case_id,{autoplay:true});
+    msg.textContent=`${t.answer.case.verdict} · p ${t.answer.case.fraud_probability.toFixed(2)} · ${t.steps.length} queries in ${t.answer.latency_s}s`;
+  }catch(err){ msg.textContent="The live server stopped answering ("+err.message+")."; } });
+fetch("api/health").then(r=>r.ok?r.json():null).then(h=>{ if(h&&h.ok) $("#live").hidden=false; }).catch(()=>{});
+
 $("#story-btn").onclick=()=>{ endStory(); story(); };
 $("#story-x").onclick=endStory;
 addEventListener("keydown",e=>{ if(e.key==="Escape"&&!$("#story").hidden) endStory(); });
