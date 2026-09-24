@@ -19,6 +19,10 @@ purchase scored low on the bank's model. You can only see it by walking device �
 8 fraud · 11 legitimate · 1 uncertain across 20 cases. It blocks 8 cards, not 20.
 Plus 60 investigations it started on its own.
 
+Watch it think: every investigation replayed query by query, with the graph growing
+and the probability needle moving on each piece of evidence:
+nikhilcherry.github.io/assay
+
 Repo + write-up: github.com/nikhilcherry/assay
 
 #TigerGraph #GraphRAG #FraudDetection #HHGoa2026

@@ -126,11 +126,30 @@ transactions where its model and the bank's disagree sharply). It raised 60
 alerts nobody asked for and investigated each with the same agent. 27 ring
 cards, 9 structuring episodes, and 14 frauds the bank's model had rated under 0.30.
 
+## Watching it think
+
+An agent's answer file is the end of the story, but judges and analysts want to
+see the middle. So every investigation is also exported as a trace: each graph
+query in the order the agent ran it, the vertices it returned, and the
+probability after each piece of evidence. The replay at
+**nikhilcherry.github.io/assay** draws it. The graph grows query by query, and a
+needle on a log-odds scale moves with each likelihood ratio. For HHG-014 the
+reading goes from 0.06 at the model score, to 0.65 when the device ring appears
+(×30), to 0.85 when the bank's own closed cases on that handset turn up (×3).
+The brass tick for the bank's score stays at 0.05 the whole time.
+
+Nothing in the replay is animated for effect. The traces come from rerunning the
+same agent, and the export refuses to write if a single verdict, probability or
+connected card differs from the submitted answer files. The tests check that
+every ledger adds up in log-odds and that every graph claim cites a query the
+agent actually ran.
+
 ## What I'd do with another week
 
 Replace the simulated customer replies with a proper model of reply behaviour,
 measure the likelihood ratios that are still assumptions, and put the SAR
 narratives through a regulator-style checklist. The code for all of it is at
-the link below: 101 tests, and everything reproduces from the four CSVs.
+the link below: 343 tests, and everything reproduces from the four CSVs.
 
-*Repo: github.com/nikhilcherry/assay*
+*Repo: github.com/nikhilcherry/assay · Replay: nikhilcherry.github.io/assay ·
+Demo video: github.com/nikhilcherry/assay/releases/tag/replay-v1*
