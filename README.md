@@ -338,7 +338,8 @@ assay/        data.py (staging, card IDs, holders)   model.py (calibrated model)
 graph/        schema.gsql   load.gsql   queries/investigation.gsql
 cases/        the 20 answer files
 monitor/      the autonomous monitor's alerts and investigations
-docs/         BRIEF.md (organizer brief)   ARCHITECTURE.md   MODEL_REPORT.json   BLOG.md
+docs/         BRIEF.md (organizer brief)   ARCHITECTURE.md   BLOG.md   VOICEOVER.md
+              MODEL_REPORT.json   LR_REPORT.json   DISPUTE_REPORT.json   EVAL_REPORT.json
 site/         the replay: index.html + data/ (one trace per investigation)
 scripts/      record_demo.py
 tests/        policy, detectors, disputes, answer files, replay traces
