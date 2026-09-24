@@ -10,6 +10,11 @@ pattern, affected transactions, connected cards, exposure, evidence with the
 graph query behind every claim, a SAR when the policy calls for one, and the
 next best action before and after the evidence the agent asked for.
 
+> **Watch it think: [nikhilcherry.github.io/assay](https://nikhilcherry.github.io/assay/)**. Every
+> investigation replayed query by query: the graph grows as each query returns, and each
+> likelihood ratio visibly moves the probability. Demo video (2:34):
+> [`demo.mp4`](https://github.com/nikhilcherry/assay/releases/download/replay-v1/demo.mp4).
+
 - **20 answer files**: [`cases/`](cases/)
 - **60 investigations the agent started unprompted** (the optional monitor): [`monitor/`](monitor/)
 - **How it works**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
@@ -205,6 +210,26 @@ cleared as legitimate, because the scan is a reason to look, not a verdict.
   narratives are generated from the evidence ledger, so every figure in them is
   one the ledger holds.
 
+## The replay
+
+[`site/`](site/) is a static page that replays all 80 investigations (20 exam cases
+and 60 monitor cases) from traces of real runs. [`assay/trace.py`](assay/trace.py) reruns the
+same `Investigator` against a store that records what each query returned. It writes
+three things per investigation. The first is every query in order, with the vertices
+it returned, so the replay draws exactly the graph the agent saw. The second is the
+probability ledger: the calibrated model score, then each likelihood ratio applied in
+log-odds, then the §6 gate and the evidence reply. The third is the answer file
+itself. The trace step fails if any verdict, probability, pattern, exposure or
+connected card differs from `cases/` or `monitor/`. [`tests/test_trace.py`](tests/test_trace.py)
+checks this in CI, along with two other properties: every ledger adds up to the final
+probability, and every graph claim in an answer file cites a query that appears in
+the trace.
+
+The page has no build step and no framework. It is one HTML file with a hand-written
+force layout on canvas. [`scripts/record_demo.py`](scripts/record_demo.py) drives it
+headlessly and records the demo video from the DevTools screencast, so the video is
+reproducible too.
+
 ## Reproduce
 
 Needs Python 3.12, Docker, and the four dataset files in `data/`.
@@ -224,7 +249,11 @@ python -m assay.tg setup              # schema, load, install queries           
 python -m assay.run                   # the 20 cases, on TigerGraph  -> cases/
 python -m assay.run --local           # same, on the pandas reference store
 python -m assay.monitor               # the autonomous sweep         -> monitor/
-python -m pytest -q                   # 101 tests
+python -m assay.trace                 # replay traces                -> site/data/     (~3 min)
+python -m pytest -q                   # 343 tests
+
+python -m http.server 8731 -d site    # the replay, at localhost:8731
+python scripts/record_demo.py         # the demo video               -> docs/demo.mp4  (needs playwright)
 ```
 
 ## Layout
@@ -233,15 +262,19 @@ python -m pytest -q                   # 101 tests
 assay/        data.py (staging, card IDs, holders)   model.py (calibrated model)
               patterns.py   detectors.py   policy.py   documents.py
               investigate.py (the agent)   store.py / tg.py (the two backends)
-              run.py   monitor.py   validate.py
+              run.py   monitor.py   validate.py   trace.py (replay traces)
 graph/        schema.gsql   load.gsql   queries/investigation.gsql
 cases/        the 20 answer files
 monitor/      the autonomous monitor's alerts and investigations
 docs/         BRIEF.md (organizer brief)   ARCHITECTURE.md   MODEL_REPORT.json   BLOG.md
-tests/        policy, detectors, answer files
+site/         the replay: index.html + data/ (one trace per investigation)
+scripts/      record_demo.py
+tests/        policy, detectors, answer files, replay traces
 ```
 
 Data: IEEE-CIS Fraud Detection dataset, Vesta Corporation, via the IEEE
 Computational Intelligence Society; customers, calendar, channel, risk scores,
 closed cases and case pack added by TigerGraph for Hacker House Goa 2026. The
-data is not redistributed here.
+dataset is not redistributed here. `site/data/` holds only the rows the agent's own
+queries returned for these 80 investigations (4,159 of 590,742 transactions), with
+the fields the replay draws.

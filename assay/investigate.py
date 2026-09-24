@@ -59,6 +59,7 @@ class Investigator:
         self.s = store
         self.patterns = patterns or PatternModel()
         self.writer = writer    # callable(answer) -> graph_case_id, or None
+        self.last: dict = {}    # the numbers behind the last answer, for assay.trace
 
     # ------------------------------------------------------------------ run
     def run(self, case: pd.Series) -> dict:
@@ -184,6 +185,8 @@ class Investigator:
             con += 1
 
         # -- 5. the §6 gate and evidence --------------------------------------
+        self.last = {"p_model": p_model, "p1": p1, "pro": pro, "con": con, "findings": findings,
+                     "flagged": f}
         answer = self._decide(case, f, p1, pro, con, findings, disputed, scenario, ring, rec_hits is not None,
                               card_win, prior_cc, base)
         answer["latency_s"] = round(time.time() - t_start, 2)
@@ -408,6 +411,7 @@ class Investigator:
                 answer["case"]["written_to_graph"] = True
                 answer["case"]["graph_case_id"] = gid
         answer["tool_calls"] = len(self.s.calls)
+        self.last.update(p2=p2, band=band, episode=ep)
         return answer
 
     # ----------------------------------------------------------- helpers

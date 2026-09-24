@@ -3,5 +3,6 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
-data/
+/data/
 scratch/
+docs/demo.mp4

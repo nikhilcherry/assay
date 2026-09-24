@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>assay replay</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 1h8l4 7-4 7H4L0 8z' fill='%232A45C9'/%3E%3C/svg%3E">
+<meta name="description" content="Watch an agentic fraud investigator walk a TigerGraph graph, query by query, with every likelihood ratio moving a calibrated probability.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --ground:#E9ECE8; --panel:#F4F6F2; --ink:#141B22; --ink-2:#44505B; --ink-3:#6F7A85; --rule:#C9CFC9;
+  --trace:#2A45C9; --trace-soft:rgba(42,69,201,.12);
+  --fraud:#B8321F; --legit:#2D7A68; --bank:#A8792A; --unsure:#8A6D14;
+  --node:#9AA4AD; --canvas:#F1F3EF;
+  --display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --ground:#0E1317; --panel:#141B21; --ink:#E6EAE6; --ink-2:#A9B3BB; --ink-3:#77838E; --rule:#26313A;
+  --trace:#7D93FF; --trace-soft:rgba(125,147,255,.14);
+  --fraud:#F0674E; --legit:#5BC2A6; --bank:#D7A650; --unsure:#D8B84A; --node:#56626D; --canvas:#11171C;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0E1317; --panel:#141B21; --ink:#E6EAE6; --ink-2:#A9B3BB; --ink-3:#77838E; --rule:#26313A;
+  --trace:#7D93FF; --trace-soft:rgba(125,147,255,.14);
+  --fraud:#F0674E; --legit:#5BC2A6; --bank:#D7A650; --unsure:#D8B84A; --node:#56626D; --canvas:#11171C;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font:15px/1.5 var(--serif);padding-inline:clamp(16px,3vw,40px);padding-block:0 64px}
+[hidden]{display:none!important}
+.wrap{max-width:1400px;margin:0 auto}
+a{color:var(--trace)}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--trace);outline-offset:2px}
+.eyebrow{font:500 11px/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+header.mast{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;padding-block:22px 18px;border-bottom:1px solid var(--rule)}
+.brand{font:700 22px/1 var(--display);letter-spacing:-.01em}
+.brand span{color:var(--ink-3);font-weight:500}
+.mast nav{display:flex;gap:18px;flex-wrap:wrap;font:500 12px/1 var(--mono)}
+.mast nav a{color:var(--ink-2);text-decoration:none}
+.mast nav a:hover{color:var(--trace)}
+
+.thesis{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(20px,4vw,56px);align-items:end;padding-block:34px 26px}
+.thesis h1{font:700 clamp(30px,4.3vw,58px)/1.02 var(--display);letter-spacing:-.025em;margin:12px 0 0;text-wrap:balance}
+.thesis h1 .b{color:var(--bank)}
+.thesis h1 .f{color:var(--fraud)}
+.thesis p{margin:0;color:var(--ink-2);max-width:62ch;font-size:15.5px}
+.readings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:18px}
+.readings div{background:var(--ground);padding:12px 14px}
+.readings b{display:block;font:600 26px/1.05 var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.readings span{font:400 11.5px/1.35 var(--mono);color:var(--ink-3)}
+
+.bench{display:grid;grid-template-columns:200px minmax(0,1fr) 370px;border:1px solid var(--rule);background:var(--panel);height:min(820px,max(640px,86vh))}
+.rail{border-right:1px solid var(--rule);display:flex;flex-direction:column;min-height:0}
+.rail .tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--rule)}
+.rail .tabs button{background:none;border:0;padding:11px 6px;font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);cursor:pointer}
+.rail .tabs button[aria-selected="true"]{color:var(--ink);box-shadow:inset 0 -2px 0 var(--trace)}
+.cases{list-style:none;margin:0;padding:6px 0;overflow:auto;flex:1;min-height:0}
+.cases button{width:100%;display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:9px;align-items:center;background:none;border:0;padding:6px 12px;text-align:left;cursor:pointer;font:500 12.5px/1.2 var(--mono)}
+.cases button:hover{background:var(--trace-soft)}
+.cases button[aria-current="true"]{background:var(--ink);color:var(--ground)}
+.cases .dot{width:8px;height:8px;border-radius:50%}
+.cases .p{font-variant-numeric:tabular-nums;color:var(--ink-3);font-size:11.5px}
+.cases button[aria-current="true"] .p{color:inherit;opacity:.7}
+.cases .sub{display:block;font:400 10.5px/1.3 var(--mono);color:var(--ink-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cases button[aria-current="true"] .sub{color:inherit;opacity:.65}
+
+.stage{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0}
+.stagebar{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--rule)}
+.stagebar h2{font:700 20px/1 var(--display);margin:0;letter-spacing:-.01em}
+.trigger{font:400 13.5px/1.45 var(--serif);color:var(--ink-2);padding:9px 14px;margin:0;border-bottom:1px solid var(--rule);min-height:3.4em}
+.ctl{margin-left:auto;display:flex;gap:6px;align-items:center}
+.ctl button{border:1px solid var(--rule);background:var(--ground);padding:6px 11px;font:500 12px/1 var(--mono);cursor:pointer;min-width:34px}
+.ctl button.primary{background:var(--ink);color:var(--ground);border-color:var(--ink);min-width:76px}
+.ctl button:hover{border-color:var(--trace)}
+.ctl select{font:500 12px/1 var(--mono);background:var(--ground);border:1px solid var(--rule);padding:5px 4px}
+.canvaswrap{position:relative;flex:1;min-height:0}
+canvas#g{position:absolute;inset:0;width:100%;height:100%;display:block;background:var(--canvas);cursor:grab;touch-action:none}
+.legend{position:absolute;left:10px;bottom:10px;display:flex;gap:6px 12px;flex-wrap:wrap;font:400 10.5px/1 var(--mono);color:var(--ink-3);pointer-events:none;background:var(--canvas);padding:6px 8px;border:1px solid var(--rule);max-width:calc(100% - 20px)}
+.legend i{display:inline-block;width:9px;height:9px;margin-right:5px;vertical-align:-1px}
+.hover{position:absolute;pointer-events:none;background:var(--ink);color:var(--ground);font:400 11.5px/1.45 var(--mono);padding:7px 9px;max-width:340px;white-space:pre-line;z-index:2}
+.banner{position:absolute;top:12px;left:50%;transform:translateX(-50%);font:600 13px/1.2 var(--display);letter-spacing:.02em;padding:7px 12px;background:var(--ink);color:var(--ground);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;transition:opacity .3s}
+
+.readout{border-left:1px solid var(--rule);display:flex;flex-direction:column;min-width:0;min-height:0}
+.readout section{padding:13px 16px;border-bottom:1px solid var(--rule)}
+.readout h3{margin:0 0 8px;font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);display:flex;justify-content:space-between;gap:8px}
+.readout h3 .big{font:700 22px/1 var(--display);letter-spacing:0;color:var(--ink);font-variant-numeric:tabular-nums}
+#bal{width:100%;height:auto;display:block}
+#needle{transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+.moves{list-style:none;margin:6px 0 0;padding:0;font:400 12px/1.35 var(--mono)}
+.moves li{display:grid;grid-template-columns:58px minmax(0,1fr) 44px;gap:8px;padding:4px 0;border-top:1px dashed var(--rule);opacity:.25;transition:opacity .35s}
+.moves li.on{opacity:1}
+.moves .lr{color:var(--trace);font-weight:700}
+.moves .lr.down{color:var(--legit)}
+.moves .pv{text-align:right;font-variant-numeric:tabular-nums}
+.claim{font:400 14px/1.5 var(--serif);margin:0;max-height:10.5em;overflow:auto}
+.claim .src{display:block;font:400 10.5px/1.4 var(--mono);color:var(--ink-3);margin-top:6px;word-break:break-all}
+.logsec{flex:1;display:flex;flex-direction:column;min-height:90px}
+.log{flex:1;overflow:auto;font:400 11.5px/1.45 var(--mono);padding:0;margin:0;list-style:none;min-height:0}
+.log li{padding:4px 0;border-top:1px dashed var(--rule);color:var(--ink-3);opacity:.35;word-break:break-word}
+.log li.on{opacity:1;color:var(--ink-2)}
+.log li.now{color:var(--ink)}
+.log li.now .q{color:var(--trace)}
+.log .q{font-weight:700}
+.verdict{padding:13px 16px}
+.stamp{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.stamp b{font:700 28px/1 var(--display);letter-spacing:-.02em;text-transform:uppercase}
+.stamp .pp{font:500 13px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.verdict.fraud .stamp b{color:var(--fraud)}
+.verdict.legitimate .stamp b{color:var(--legit)}
+.verdict.uncertain .stamp b{color:var(--unsure)}
+.verdict.pending .stamp b{color:var(--ink-3)}
+.facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;margin:9px 0;font:400 12px/1.4 var(--mono)}
+.facts dt{color:var(--ink-3)}
+.facts dd{margin:0}
+.acts{display:flex;flex-wrap:wrap;gap:5px}
+.acts span{font:500 10.5px/1 var(--mono);padding:5px 7px;border:1px solid currentColor;letter-spacing:.04em}
+.acts .blk{color:var(--fraud)} .acts .ok{color:var(--legit)} .acts .nt{color:var(--ink-2)}
+details.sar{margin-top:9px;font:400 13px/1.5 var(--serif)}
+details.sar summary{cursor:pointer;font:500 11px/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--fraud)}
+details.sar p{margin:8px 0 0;color:var(--ink-2);max-height:12em;overflow:auto}
+
+.lower{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:clamp(24px,3.5vw,48px);padding-block:48px 0}
+.lower h2{font:700 25px/1.1 var(--display);margin:8px 0 8px;letter-spacing:-.015em;text-wrap:balance}
+.lower p{color:var(--ink-2);margin:0 0 14px;max-width:62ch}
+.chartbox{overflow-x:auto}
+#period-svg{display:block;width:100%;min-width:600px;height:auto}
+#calib-svg{display:block;width:100%;max-width:420px;height:auto}
+table.rel{width:100%;max-width:420px;border-collapse:collapse;font:400 12px/1.3 var(--mono);font-variant-numeric:tabular-nums;margin-top:12px}
+table.rel th,table.rel td{padding:5px 6px;text-align:right;border-bottom:1px solid var(--rule)}
+table.rel th{color:var(--ink-3);font-weight:500}
+table.rel td:first-child,table.rel th:first-child{text-align:left}
+footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--rule);font:400 12px/1.6 var(--mono);color:var(--ink-3);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:1180px){
+  .bench{grid-template-columns:minmax(0,1fr);height:auto}
+  .rail{border-right:0;border-bottom:1px solid var(--rule)}
+  .cases{display:flex;overflow-x:auto;padding:6px}
+  .cases li{flex:0 0 auto}
+  .cases button{width:auto}
+  .cases .sub{display:none}
+  .canvaswrap{height:min(560px,70vh);flex:none}
+  .readout{border-left:0;border-top:1px solid var(--rule)}
+  .log{max-height:220px}
+  .thesis,.lower{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .canvaswrap{height:400px}
+  .readings b{font-size:20px}
+  .ctl{margin-left:0}
+  .legend{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="mast">
+  <div class="brand">assay <span>/ replay</span></div>
+  <nav><a href="#bench">Replay</a><a href="#period">Exam period</a><a href="#calibration">Calibration</a><a href="https://github.com/nikhilcherry/assay">Source</a></nav>
+</header>
+
+<section class="thesis">
+  <div>
+    <div class="eyebrow">HHG-014 · 22 Nov 2016 · $74.96 · online purchase</div>
+    <h1>The bank scored it <span class="b">0.05</span>. It was one of <span class="f">28 cards</span> on one phone.</h1>
+  </div>
+  <div>
+    <p>assay is a fraud investigator that runs on a TigerGraph graph. This page replays every query it ran on each case, in order. The graph grows as results come back, and each finding moves a probability that is calibrated against the bank's 5,565 closed cases. Nothing here is staged: the traces come from rerunning the agent and match the committed answer files.</p>
+    <div class="readings">
+      <div><b>0.964</b><span>AUC, held-out month<br>bank's own score: 0.866</span></div>
+      <div><b>8 of 20</b><span>cards blocked<br>11 cleared, 1 held</span></div>
+      <div><b>60</b><span>investigations it<br>opened unprompted</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="bench" id="bench" aria-label="Investigation replay">
+  <aside class="rail">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-exam" aria-selected="true">Exam 20</button>
+      <button role="tab" id="tab-mon" aria-selected="false">Monitor 60</button>
+    </div>
+    <ul class="cases" id="cases"></ul>
+  </aside>
+
+  <div class="stage">
+    <div class="stagebar">
+      <h2 id="cid">HHG-014</h2>
+      <span class="eyebrow" id="cmeta"></span>
+      <div class="ctl">
+        <button id="b-back" title="Previous step (←)" aria-label="Previous step">◀</button>
+        <button id="b-play" class="primary" title="Play or pause (space)">Replay</button>
+        <button id="b-fwd" title="Next step (→)" aria-label="Next step">▶</button>
+        <select id="speed" aria-label="Replay speed"><option value="0.6">0.6×</option><option value="1" selected>1×</option><option value="1.8">1.8×</option><option value="3">3×</option></select>
+      </div>
+    </div>
+    <p class="trigger" id="trigger"></p>
+    <div class="canvaswrap">
+      <canvas id="g" aria-label="The part of the graph the agent has traversed so far"></canvas>
+      <div class="banner" id="banner" hidden></div>
+      <div class="legend">
+        <span><i style="background:var(--fraud);border-radius:50%"></i>txn, high p</span>
+        <span><i style="background:var(--node);border-radius:50%"></i>txn, low p</span>
+        <span><i style="border:1.5px solid var(--ink)"></i>card</span>
+        <span><i style="background:var(--trace);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)"></i>device</span>
+        <span><i style="border:1.5px solid var(--bank)"></i>closed case</span>
+        <span><i style="background:var(--trace);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></i>assay case</span>
+      </div>
+      <div class="hover" id="hover" hidden></div>
+    </div>
+  </div>
+
+  <div class="readout">
+    <section>
+      <h3><span>Fraud probability</span><span class="big" id="pnow">—</span></h3>
+      <svg id="bal" viewBox="0 0 340 78" role="img" aria-label="Probability on a log-odds scale, with the policy thresholds and the bank's score">
+        <g id="balstatic"></g>
+        <g id="needle" style="transform:translateX(-40px)"><path id="needle-tip" d="M0 18 L-6 9 L6 9 Z"/><circle id="needle-dot" cx="0" cy="32" r="6.5" stroke-width="2"/></g>
+      </svg>
+      <ul class="moves" id="moves"></ul>
+    </section>
+    <section>
+      <h3><span>What it just learned</span><span id="stepn"></span></h3>
+      <p class="claim" id="claim"></p>
+    </section>
+    <section class="logsec">
+      <h3><span>Graph queries</span><span id="qn"></span></h3>
+      <ol class="log" id="log"></ol>
+    </section>
+    <div class="verdict pending" id="verdict"></div>
+  </div>
+</section>
+
+<section class="lower">
+  <div id="period">
+    <div class="eyebrow">Nov – Dec 2016 · 80 investigations</div>
+    <h2>Where it disagrees with the bank</h2>
+    <p>Every investigation from the exam period. Each dot is assay's final probability, and the brass tick is the bank's risk score for the same transaction. The line between them is the disagreement. Hollow dots are the 60 alerts the agent raised on its own: structuring bursts, device rings, and fraud the bank's score missed. Click a dot to replay that investigation.</p>
+    <div class="chartbox"><svg id="period-svg" viewBox="0 0 820 300" role="img" aria-label="Final probability against the bank's risk score for 80 investigations"></svg></div>
+  </div>
+  <div id="calibration">
+    <div class="eyebrow">October 2016 · held out · 100,420 transactions</div>
+    <h2>When it says 0.30, it means three in ten</h2>
+    <p>The model learns only from the bank's closed cases for July to September. It is then scored on October, which it never saw, and calibrated with cross-fitted isotonic regression.</p>
+    <svg id="calib-svg" viewBox="0 0 320 250" role="img" aria-label="Reliability diagram: predicted against observed fraud rate"></svg>
+    <table class="rel" id="rel"></table>
+  </div>
+</section>
+
+<footer>
+  <span>assay · Hacker House Goa 2026 · Task 4 · TigerGraph × IEEE-CIS</span>
+  <span>space: play · ← →: step · drag nodes · hover for details</span>
+</footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const DATA = "data/";
+// docs/MODEL_REPORT.json, reliability on the held-out month: [mean predicted, observed, n]
+const REL = [[0.0047,0.0045,91067],[0.0792,0.082,4951],[0.2013,0.2121,990],[0.4109,0.389,730],[0.638,0.6449,659],[0.7711,0.768,2009],[0.9308,0.9376,2024]];
+const MONO = '"JetBrains Mono",ui-monospace,monospace';
+let css = {};
+function readCss(){ const s=getComputedStyle(document.documentElement);
+  for (const k of ["ground","panel","ink","ink-2","ink-3","rule","trace","fraud","legit","bank","unsure","node","canvas"]) css[k]=s.getPropertyValue("--"+k).trim(); }
+readCss();
+
+const clampP = p => Math.max(1e-4,Math.min(1-1e-4,p));
+const logit = p => Math.log(clampP(p)/(1-clampP(p)));
+const fmt$ = x => "$"+x.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const vcol = v => v==="fraud"?css.fraud:v==="legitimate"?css.legit:css.unsure;
+const devShort = d => { if(!d) return ""; const a=d.split(" | "); const m=a[0].split(" Build")[0]; return m==="?"?(a[1]||"device"):m; };
+const generic = d => !d || /^(Windows|MacOS|iOS Device|Trident\/7\.0|\?)( |$)/.test(d);
+const TAGNAME = {model:"model score",ring:"device ring",ring_history:"ring history",structuring:"structuring",card_testing:"card testing",
+  recurring:"recurring charge",memory:"case memory",dispute:"customer dispute",gate:"§6 gate",evidence:"evidence reply"};
+// which query produced each likelihood ratio (assay/investigate.py)
+const TAGQ = {model:"get_transaction",structuring:"card_window",card_testing:"card_window",ring:"device_neighbors",
+  ring_history:"closed_cases_by_device",recurring:"holder_history",memory:"prior_fraud_cases",dispute:"@alert"};
+
+function hex(c){ c=c.replace("#",""); if(c.length===3)c=[...c].map(x=>x+x).join(""); return [0,2,4].map(i=>parseInt(c.substr(i,2),16)); }
+function mix(a,b,t){ const A=hex(a),B=hex(b); return "rgb("+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(",")+")"; }
+function alpha(c,a){ const h=hex(c); return `rgba(${h[0]},${h[1]},${h[2]},${a})`; }
+const pcol = p => mix(css.node,css.fraud,Math.max(0,Math.min(1,(logit(p)+3.5)/6)));
+
+/* ================= graph ================= */
+const cv=$("#g"), ctx=cv.getContext("2d");
+let W=600,H=400,DPR=1;
+const G={nodes:[],edges:[],byId:new Map(),pulses:[]};
+const cam={x:0,y:0,s:1,init:false}; // eases to fit the graph, so nothing piles against the walls
+function resize(){ DPR=Math.min(2,devicePixelRatio||1); const r=cv.getBoundingClientRect(); if(!r.width) return;
+  const ox=W, oy=H; W=r.width; H=r.height; cv.width=W*DPR; cv.height=H*DPR;
+  for(const n of G.nodes){ n.x+= (W-ox)/2; n.y+=(H-oy)/2; } }
+new ResizeObserver(resize).observe(cv);
+let seed=7; const rnd=()=>{ seed=(seed*16807)%2147483647; return (seed-1)/2147483646; };
+function clearGraph(){ G.nodes=[];G.edges=[];G.byId.clear();G.pulses=[]; seed=7; }
+function node(id,type,data,near){
+  let n=G.byId.get(id); if(n){ Object.assign(n.data,data||{}); return n; }
+  const a=near||{x:W/2,y:H/2}; const ang=rnd()*6.283, d=18+rnd()*26;
+  n={id,type,data:Object.assign({},data||{}),x:a.x+Math.cos(ang)*d,y:a.y+Math.sin(ang)*d,vx:0,vy:0,born:performance.now()};
+  G.nodes.push(n); G.byId.set(id,n); return n;
+}
+function edge(a,b,kind){ if(!a||!b||a===b) return; const k=a.id+">"+b.id+">"+kind; if(G.edges.some(e=>e.k===k)) return; G.edges.push({k,a,b,kind,born:performance.now()}); }
+function pulse(n){ if(n) G.pulses.push({n,t:performance.now()}); }
+const REST={made:30,device:62,cc:74,link:110,similar:120,memory:84};
+function tick(){
+  const N=G.nodes, n=N.length, cx=W/2, cy=H/2;
+  for(let i=0;i<n;i++){ const a=N[i];
+    for(let j=i+1;j<n;j++){ const b=N[j]; let dx=a.x-b.x, dy=a.y-b.y; const d2=dx*dx+dy*dy+.01;
+      if(d2>62500) continue; const big=(a.type!=="txn")+(b.type!=="txn"); const f=(big===2?1400:big?520:150)/d2;
+      dx*=f;dy*=f; a.vx+=dx;a.vy+=dy;b.vx-=dx;b.vy-=dy; } }
+  for(const e of G.edges){ const L=REST[e.kind]||60; let dx=e.b.x-e.a.x, dy=e.b.y-e.a.y; const d=Math.sqrt(dx*dx+dy*dy)||1;
+    const f=(d-L)*.025/d; dx*=f;dy*=f; e.a.vx+=dx;e.a.vy+=dy;e.b.vx-=dx;e.b.vy-=dy; }
+  const sx=Math.max(.0012, 380/W*.004), sy=Math.max(.0016, 300/H*.005);
+  for(const a of N){ a.vx+=(cx-a.x)*sx; a.vy+=(cy-a.y)*sy;
+    if(a.pin||a.drag){a.vx=a.vy=0;continue;}
+    a.vx*=.8;a.vy*=.8; const sp=Math.hypot(a.vx,a.vy); if(sp>12){a.vx*=12/sp;a.vy*=12/sp;}
+    a.x+=a.vx; a.y+=a.vy; }
+}
+let hoverN=null;
+function draw(now){
+  ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,W,H);
+  if(G.nodes.length){ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; for(const n of G.nodes){ if(n.x<x0)x0=n.x; if(n.x>x1)x1=n.x; if(n.y<y0)y0=n.y; if(n.y>y1)y1=n.y; }
+    const pad=46, tx=(x0+x1)/2, ty=(y0+y1)/2, ts=Math.min(1.35,(W-2*pad)/Math.max(60,x1-x0),(H-2*pad-30)/Math.max(60,y1-y0));
+    const k=cam.init&&!dragN?.08:(dragN?0:1); cam.x+=(tx-cam.x)*k; cam.y+=(ty-cam.y)*k; cam.s+=(ts-cam.s)*k; cam.init=true; }
+  const S=cam.s; ctx.setTransform(DPR*S,0,0,DPR*S,DPR*(W/2-S*cam.x),DPR*(H/2-8-S*cam.y));
+  const ep=new Set(cur&&stageDone>=verdictBeat?cur.episode.txns:[]);
+  for(const e of G.edges){ const age=Math.min(1,(now-e.born)/900);
+    ctx.strokeStyle = age<1 ? alpha(css.trace,.9-.55*age) : (e.kind==="link"?alpha(vcol(cur?.answer.case.verdict),.7):alpha(css["ink-3"], e.kind==="similar"?.28:.42));
+    ctx.lineWidth=e.kind==="link"?1.4:(age<1?1.4:.8); ctx.setLineDash(e.kind==="similar"||e.kind==="memory"?[3,4]:[]);
+    ctx.beginPath(); ctx.moveTo(e.a.x,e.a.y); ctx.lineTo(e.b.x,e.b.y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  for(const p of G.pulses){ const t=(now-p.t)/1000; if(t>1) continue; ctx.strokeStyle=alpha(css.trace,.9*(1-t)); ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(p.n.x,p.n.y,10+t*70,0,6.283); ctx.stroke(); }
+  G.pulses=G.pulses.filter(p=>now-p.t<1000);
+  for(const n of G.nodes){ const g=Math.min(1,(now-n.born)/380), s=.35+.65*g; ctx.globalAlpha=g; const d=n.data;
+    if(n.type==="txn"){ const r=(d.flagged?9:2.6+Math.min(5,Math.sqrt(d.amt||1)/5))*s;
+      ctx.fillStyle=pcol(d.p||0); ctx.beginPath(); ctx.arc(n.x,n.y,r,0,6.283); ctx.fill();
+      if(ep.has(d.id)){ ctx.strokeStyle=vcol(cur.answer.case.verdict); ctx.lineWidth=1.6; ctx.beginPath(); ctx.arc(n.x,n.y,r+3,0,6.283); ctx.stroke(); }
+      if(d.flagged){ ctx.strokeStyle=css.ink; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(n.x,n.y,r+4.5,0,6.283); ctx.stroke(); } }
+    else if(n.type==="card"){ const w=(d.home?30:19)*s,h=(d.home?19:12)*s; ctx.fillStyle=css.canvas;
+      ctx.strokeStyle=d.home?css.ink:(d.linked?css.fraud:css["ink-2"]); ctx.lineWidth=d.home?2:1.3;
+      ctx.beginPath(); ctx.roundRect?ctx.roundRect(n.x-w/2,n.y-h/2,w,h,3):ctx.rect(n.x-w/2,n.y-h/2,w,h); ctx.fill(); ctx.stroke();
+      ctx.fillStyle=ctx.strokeStyle; ctx.fillRect(n.x-w/2+3,n.y-h/2+3,w*.26,h*.3); }
+    else if(n.type==="device"){ const r=(d.home?13:10)*s; ctx.fillStyle=css.trace; ctx.beginPath();
+      for(let k=0;k<6;k++){const a=k*1.0472; ctx.lineTo(n.x+r*Math.cos(a),n.y+r*Math.sin(a));} ctx.closePath(); ctx.fill(); }
+    else if(n.type==="cc"){ const r=6.5*s; ctx.fillStyle=css.canvas; ctx.strokeStyle=d.outcome==="confirmed_fraud"?css.bank:css.legit; ctx.lineWidth=1.7;
+      ctx.fillRect(n.x-r,n.y-r,2*r,2*r); ctx.strokeRect(n.x-r,n.y-r,2*r,2*r); }
+    else if(n.type==="fc"){ const r=(d.self?12:8)*s; ctx.fillStyle=d.self?vcol(d.verdict):css.trace; ctx.beginPath();
+      ctx.moveTo(n.x,n.y-r);ctx.lineTo(n.x+r,n.y);ctx.lineTo(n.x,n.y+r);ctx.lineTo(n.x-r,n.y);ctx.closePath();ctx.fill(); }
+    ctx.globalAlpha=1;
+    if(n.label && g>=1){ ctx.font=(n.type==="device"||n.type==="fc"&&d.self?"700 ":"500 ")+((n.type==="device"||d.self?11:10)/Math.max(.55,S)).toFixed(1)+"px "+MONO;
+      ctx.fillStyle=n.type==="device"?css.trace:(n.type==="fc"&&d.self?vcol(d.verdict):css["ink-2"]);
+      ctx.fillText(n.label,n.x+(n.type==="card"?(d.home?18:12):11),n.y-(n.type==="card"?8:9)); }
+  }
+  if(hoverN){ ctx.strokeStyle=css.trace; ctx.lineWidth=1.5/S; ctx.beginPath(); ctx.arc(hoverN.x,hoverN.y,15,0,6.283); ctx.stroke(); }
+}
+function frame(now){ tick(); tick(); draw(now); advance(now); requestAnimationFrame(frame); }
+
+let dragN=null;
+function pick(x,y){ let best=null,bd=(16/cam.s)**2; for(const n of G.nodes){const d=(n.x-x)**2+(n.y-y)**2; if(d<bd){bd=d;best=n;}} return best; }
+function pos(e){ const r=cv.getBoundingClientRect(); const sx=e.clientX-r.left, sy=e.clientY-r.top;
+  return [(sx-W/2)/cam.s+cam.x,(sy-H/2+8)/cam.s+cam.y,sx,sy]; }
+cv.addEventListener("pointerdown",e=>{ const [x,y]=pos(e); dragN=pick(x,y); if(dragN){dragN.drag=true;cv.setPointerCapture(e.pointerId);cv.style.cursor="grabbing";} });
+cv.addEventListener("pointermove",e=>{ const [x,y,sx,sy]=pos(e); if(dragN){dragN.x=x;dragN.y=y;return;}
+  hoverN=pick(x,y); const h=$("#hover"); if(!hoverN){h.hidden=true;return;}
+  h.hidden=false; h.textContent=describe(hoverN);
+  h.style.left=Math.min(sx+12,W-h.offsetWidth-6)+"px"; h.style.top=Math.min(sy+12,H-h.offsetHeight-6)+"px"; });
+cv.addEventListener("pointerup",()=>{ if(dragN){dragN.drag=false;dragN=null;cv.style.cursor="";} });
+cv.addEventListener("pointerleave",()=>{ hoverN=null; $("#hover").hidden=true; });
+function describe(n){ const d=n.data;
+  if(n.type==="txn") return `Txn ${d.id} · ${fmt$(d.amt)} · ${d.t}\ncard ${d.card} · ${d.channel.replace("_"," ")} · product ${d.product}\nassay p ${d.p.toFixed(2)} · bank risk ${d.risk.toFixed(2)}${d.device?"\n"+d.device:""}${d.proxy?"\n"+d.proxy:""}${d.new?" · marked New":""}`;
+  if(n.type==="card") return `Card ${n.id}${d.home?" · the alerted card":""}${d.linked?" · linked by a shared device":""}`;
+  if(n.type==="device") return `DeviceProfile\n${n.id}`;
+  if(n.type==="cc") return `ClosedCase ${n.id} · opened ${d.opened}\n${d.outcome.replace("_"," ")} · ${d.pattern.replaceAll("_"," ")}\ncard ${d.card} · exposure ${fmt$(d.exposure||0)}`;
+  if(n.type==="fc") return `FraudCase ${n.id}${d.self?" · written by this investigation":" · assay's own memory"}\n${d.verdict||""} · ${(d.pattern||"").replaceAll("_"," ")}`;
+  return n.id; }
+
+/* ================= replay ================= */
+let cur=null, beats=[], stageDone=-1, verdictBeat=99, playing=false, nextAt=0, speed=1;
+const cache=new Map();
+function get(id){ if(!cache.has(id)) cache.set(id, fetch(DATA+id+".json").then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })); return cache.get(id); }
+
+function buildBeats(t){
+  const B=[], used=new Set(), seenQ=new Set();
+  const take=q=>t.odds.filter((o,i)=>{ if(used.has(i)||TAGQ[o.tag]!==q) return false; used.add(i); return true; });
+  B.push({kind:"alert",odds:take("@alert"),dur:2200});
+  for(const s of t.steps){ if(s.query==="write_case") continue;
+    const first=!seenQ.has(s.query); seenQ.add(s.query);
+    const ring=s.query==="device_neighbors"&&(s.n||0)>10;
+    B.push({kind:"step",step:s,odds:first?take(s.query):[],dur:ring?4200:((s.n||0)>20?2000:1500)}); }
+  const rest=t.odds.filter((o,i)=>!used.has(i)&&o.tag!=="gate"&&o.tag!=="evidence");
+  B.push({kind:"gate",odds:[...rest,t.odds.find(o=>o.tag==="gate")],dur:2400});
+  const ev=t.odds.find(o=>o.tag==="evidence"); if(ev) B.push({kind:"evidence",odds:[ev],dur:2600});
+  B.push({kind:"verdict",odds:[],dur:3000});
+  return B;
+}
+
+function applyStep(s,t){
+  const f=t.flagged;
+  const txn=(x,near)=>{ const n=node(x.id,"txn",x,near); if(x.id===f.id) n.data.flagged=true; return n; };
+  const card=(id,near,extra)=>{ const n=node(id,"card",extra,near); n.label=id; return n; };
+  const dev=(d,near)=>{ const n=node(d,"device",{},near); n.label=devShort(d); return n; };
+  const home=()=>G.byId.get(f.card);
+  switch(s.query){
+    case "get_transaction":{ const T=txn(s.txns[0]); T.x=W/2;T.y=H/2;T.pin=true;
+      const C=card(f.card,T,{home:true}); edge(C,T,"made");
+      if(f.device){ const D=dev(f.device,T); D.data.home=true; edge(T,D,"device"); } pulse(T); break; }
+    case "holder_history": case "card_history": case "card_window":{
+      const C=home(); pulse(C); const xs=(s.txns||[]).slice(s.query==="card_window"?-60:-34);
+      for(const x of xs){ if(x.id===f.id) continue; const T=txn(x,C); edge(C,T,"made");
+        if(x.device && (x.device===f.device || (s.query==="card_window" && !generic(x.device)))){ edge(T,dev(x.device,T),"device"); } }
+      break; }
+    case "device_neighbors":{ const D=dev(s.args.device_profile,G.byId.get(f.id)); pulse(D);
+      for(const x of s.txns||[]){ const T=txn(x,D); edge(T,D,"device");
+        if(x.card!==f.card){ const C=card(x.card,T,{linked:true}); edge(C,T,"made"); } else edge(home(),T,"made"); }
+      break; }
+    case "closed_cases_for_card": case "closed_cases_by_device": case "closed_cases_touching": case "similar_prior_cases":{
+      const anchor = s.query==="closed_cases_by_device"?G.byId.get(s.args.device_profile):(s.query==="similar_prior_cases"?G.byId.get(f.id):home());
+      pulse(anchor);
+      for(const c of s.closed_cases||[]){ const N=node(c.id,"cc",c,anchor); N.label=c.id; edge(N,anchor,s.query==="similar_prior_cases"?"similar":"cc"); }
+      break; }
+    case "prior_fraud_cases":{ const C=home(); pulse(C);
+      for(const m of s.memory||[]){ const N=node(m.id,"fc",m,C); N.label=m.id; edge(N,C,"memory"); } break; }
+  }
+}
+function writeCase(t){
+  const a=t.answer.case, C=G.byId.get(t.flagged.card);
+  const N=node("ASSAY-"+t.case_id,"fc",{self:true,verdict:a.verdict,pattern:a.pattern},C); N.label="ASSAY-"+t.case_id; edge(N,C,"link");
+  for(const k of a.connected_card_ids){ const K=G.byId.get(k); if(K){ K.data.linked=true; edge(N,K,"link"); } }
+  for(const d of a.connected_device_profiles){ const D=G.byId.get(d); if(D) edge(N,D,"link"); }
+  pulse(N);
+}
+function applyBeat(k){ const b=beats[k]; if(b.kind==="step") applyStep(b.step,cur); if(b.kind==="verdict") writeCase(cur); }
+// Rebuild to beat k from scratch (used by step-back and when loading at rest), then settle.
+function renderTo(k){
+  clearGraph(); for(let i=0;i<=k&&i<beats.length;i++) applyBeat(i);
+  const old=performance.now()-5000; for(const n of G.nodes) n.born=old; for(const e of G.edges) e.born=old; G.pulses=[];
+  for(let i=0;i<260;i++) tick();
+  cam.init=false;
+  stageDone=k; paintPanels(k);
+}
+function stepTo(k){ if(k<0||k>=beats.length) return; if(k===stageDone+1){ applyBeat(k); stageDone=k; paintPanels(k); } else renderTo(k); }
+function advance(now){ if(!playing||now<nextAt) return;
+  if(stageDone>=beats.length-1){ playing=false; setPlayLabel(); return; }
+  stepTo(stageDone+1); nextAt=now+beats[stageDone].dur/speed; }
+function setPlayLabel(){ $("#b-play").textContent = playing?"Pause":(stageDone>=beats.length-1?"Replay":"Play"); }
+function play(){ if(stageDone>=beats.length-1) renderTo(-1); playing=true; nextAt=performance.now()+300; setPlayLabel(); }
+function pause(){ playing=false; setPlayLabel(); }
+
+/* ================= panels ================= */
+let pShown=null;
+function currentP(k){ let p=null; for(let i=0;i<=k&&i<beats.length;i++) for(const o of beats[i].odds) p=o.p; return p; }
+function banner(text,color){ const b=$("#banner"); if(!text){b.hidden=true;return;} b.hidden=false; b.textContent=text; b.style.background=color||css.ink; }
+function paintPanels(k){
+  const t=cur, b=beats[k]||{kind:"rest"};
+  pShown=currentP(k); moveNeedle();
+  $("#pnow").textContent = pShown==null?"—":pShown.toFixed(2);
+  const on=new Set(); for(let i=0;i<=k;i++) for(const o of beats[i].odds) on.add(o);
+  [...$("#moves").children].forEach((li,i)=>li.classList.toggle("on",on.has(t.odds[i])));
+  let qi=-1; for(let i=0;i<=k;i++) if(beats[i].kind==="step") qi=t.steps.indexOf(beats[i].step);
+  if(k>=verdictBeat) qi=t.steps.length-1;
+  const lis=[...$("#log").children];
+  lis.forEach((li,i)=>{ li.classList.toggle("on",i<=qi); li.classList.toggle("now",i===qi&&(b.kind==="step"||b.kind==="verdict")); });
+  if(lis[qi]){ const box=$("#log"); box.scrollTop=Math.max(0,lis[qi].offsetTop-box.offsetTop-box.clientHeight+lis[qi].offsetHeight+8); }
+  $("#qn").textContent=`${qi+1} / ${t.steps.length}`;
+  $("#stepn").textContent=k>=0?`${k+1} / ${beats.length}`:"";
+  const ev=t.answer.case.evidence; let claim="", src="";
+  if(b.kind==="alert"){ claim=t.trigger_text||"Alert opened."; src=`alert · ${t.trigger.replaceAll("_"," ")} · ${t.opened_at}`; }
+  else if(b.kind==="step"){ const s=b.step; const o=b.odds.find(o=>o.claim); const hit=ev.find(e=>e.ref===s.ref);
+    claim = o?.claim || hit?.claim || resultLine(s,t); src=s.ref; }
+  else if(b.kind==="gate"){ claim=gateText(b.odds[b.odds.length-1],t); src="document:fraud-policy#§6"; }
+  else if(b.kind==="evidence"){ const o=b.odds[0]; claim=`Evidence requested (${o.label}). ${o.claim}`; src="evidence_request:1 · simulated reply, as the brief specifies"; }
+  else if(b.kind==="verdict"){ claim=t.answer.case.summary; src="query:write_case → FraudCase "+(t.answer.case.graph_case_id||"ASSAY-"+t.case_id); }
+  else claim="Press Play to watch this investigation query by query.";
+  $("#claim").innerHTML=esc(claim)+(src?`<span class="src">${esc(src)}</span>`:"");
+  // the one moment worth a caption on the canvas
+  if(b.kind==="step"&&b.step.query==="device_neighbors"){ const cards=new Set((b.step.txns||[]).map(x=>x.card)).size;
+    banner(cards>3?`One device profile → ${cards} cards · ${b.step.n} purchases in 30 days`:`Device traversal → ${cards} card${cards===1?"":"s"}`, cards>3?css.fraud:css.ink); }
+  else if(b.kind==="verdict"){ const c=t.answer.case; banner(`${c.verdict.toUpperCase()} · p ${c.fraud_probability.toFixed(2)} · ${t.answer.next_best_actions.final[0].action}`, vcol(c.verdict)); }
+  else banner(null);
+  paintVerdict(k>=verdictBeat);
+  setPlayLabel();
+}
+function gateText(g,t){ const p=g.p.toFixed(2);
+  if(g.band==="fraud") return `Policy §6: ${p} clears 0.85 on ${t.pro} independent pieces of evidence, or the cardholder's denial is corroborated by the graph. Stop and act.`;
+  if(g.band==="legit") return `Policy §6: ${p} is under 0.15 on ${t.con} independent pieces of evidence. Stop. Here, blocking the card would be the costly mistake.`;
+  return `Policy §6: ${p} sits between the thresholds. The graph alone does not settle it, so the agent asks for one piece of evidence before it acts.`; }
+function resultLine(s,t){ const n=s.n??0;
+  return ({holder_history:`Holder history: ${n} transaction(s) under holder ${t.holder}.`, card_history:`Card history: ${n} earlier transaction(s) on ${t.flagged.card}.`,
+    card_window:`Card window, ±7 days: ${n} transaction(s).`, closed_cases_for_card:`${n} closed case(s) on this card in the bank's history.`,
+    device_neighbors:`Device traversal: ${n} transaction(s) from this profile within the window.`, closed_cases_by_device:`${n} closed case(s) involve this device profile.`,
+    similar_prior_cases:`${n} similar closed case(s) retrieved as precedent.`, prior_fraud_cases:`Case memory: ${n} earlier assay investigation(s) name this card.`,
+    get_transaction:"Flagged transaction loaded."})[s.query]||`${s.query}: ${n} result(s).`; }
+function paintVerdict(show){
+  const el=$("#verdict"), a=cur.answer, c=a.case;
+  if(!show){ el.className="verdict pending"; el.innerHTML=`<div class="stamp"><b>Investigating</b><span class="pp">${cur.steps.length} queries · 0 LLM tokens</span></div>`; return; }
+  el.className="verdict "+c.verdict;
+  const cls=x=>/BLOCK|DECLINE|FILE_REPORT/.test(x)?"blk":/ALLOW|CLOSE_NO/.test(x)?"ok":"nt";
+  el.innerHTML=`<div class="stamp"><b>${c.verdict}</b><span class="pp">p ${c.fraud_probability.toFixed(2)} · bank ${cur.bank_risk.toFixed(2)}</span></div>
+  <dl class="facts"><dt>pattern</dt><dd>${esc(c.pattern.replaceAll("_"," "))}</dd><dt>exposure</dt><dd>${fmt$(c.exposure_usd)} · ${c.affected_txn_ids.length} txn</dd>
+  <dt>linked</dt><dd>${c.connected_card_ids.length} card(s)</dd><dt>run</dt><dd>${a.tool_calls} tool calls · ${a.latency_s}s · ${a.tokens} LLM tokens</dd></dl>
+  <div class="acts">${a.next_best_actions.final.map(x=>`<span class="${cls(x.action)}" title="${esc(x.route+": "+x.reason)}">${x.action}</span>`).join("")}</div>
+  ${a.sar.file?`<details class="sar"><summary>Report filed · read the SAR narrative</summary><p>${esc(a.sar.narrative)}</p></details>`:""}`;
+}
+
+/* log-odds balance */
+const BL=14, BR=326, BY=32, bx=p=>BL+(logit(p)+7)/14*(BR-BL);
+function paintBalance(){
+  if(!cur) return; const t9='font-family="JetBrains Mono,monospace" font-size="8.5"';
+  let s=`<rect x="${BL}" y="${BY-11}" width="${bx(.15)-BL}" height="22" fill="${alpha(css.legit,.16)}"/>
+  <rect x="${bx(.85)}" y="${BY-11}" width="${BR-bx(.85)}" height="22" fill="${alpha(css.fraud,.16)}"/>
+  <line x1="${BL}" x2="${BR}" y1="${BY}" y2="${BY}" stroke="${css["ink-3"]}"/>`;
+  for(const v of [.001,.01,.05,.15,.5,.85,.95,.99,.999]) s+=`<line x1="${bx(v)}" x2="${bx(v)}" y1="${BY-4}" y2="${BY+4}" stroke="${css["ink-3"]}"/><text x="${bx(v)}" y="${BY+20}" ${t9} fill="${css["ink-3"]}" text-anchor="middle">${String(v).replace(/^0/,"")}</text>`;
+  s+=`<text x="${BL}" y="${BY-16}" ${t9} fill="${css.legit}">clear</text><text x="${BR}" y="${BY-16}" ${t9} fill="${css.fraud}" text-anchor="end">act</text>`;
+  const b=bx(cur.bank_risk); s+=`<line x1="${b}" x2="${b}" y1="${BY-11}" y2="${BY+11}" stroke="${css.bank}" stroke-width="3"/><text x="${Math.min(BR-20,Math.max(BL+20,b))}" y="${BY+34}" ${t9} fill="${css.bank}" text-anchor="middle">bank ${cur.bank_risk.toFixed(2)}</text>`;
+  $("#balstatic").innerHTML=s; moveNeedle();
+}
+function moveNeedle(){ const n=$("#needle"); if(pShown==null){ n.style.opacity=0; return; } n.style.opacity=1;
+  n.style.transform=`translateX(${bx(pShown)}px)`; const c=pShown>=.85?css.fraud:pShown<=.15?css.legit:css.ink;
+  $("#needle-tip").setAttribute("fill",c); $("#needle-dot").setAttribute("fill",c); $("#needle-dot").setAttribute("stroke",css.panel); }
+
+function paintLists(t){
+  $("#moves").innerHTML=t.odds.map(o=>{ const lr=o.lr==null?"·":"×"+(o.lr>=1?+o.lr.toFixed(2):+o.lr.toFixed(3));
+    return `<li><span class="lr ${o.lr!=null&&o.lr<1?"down":""}">${lr}</span><span>${esc(TAGNAME[o.tag]||o.label)}</span><span class="pv">${o.p.toFixed(2)}</span></li>`; }).join("");
+  $("#log").innerHTML=t.steps.map(s=>{ const a=Object.entries(s.args).map(([k,v])=>{v=String(v); return `${k}=${v.length>30?v.slice(0,28)+"…":v}`;}).join(", ");
+    return `<li><span class="q">${s.query}</span>(${esc(a)})${s.n==null?"":` → ${s.n}`}</li>`; }).join("");
+}
+async function load(id,{autoplay=false}={}){
+  pause(); const t=await get(id); cur=t; beats=buildBeats(t); verdictBeat=beats.length-1;
+  $("#cid").textContent=t.case_id;
+  $("#cmeta").textContent=`${t.flagged.t} · ${fmt$(t.flagged.amt)} · ${t.flagged.card}`;
+  $("#trigger").textContent=t.trigger_text||"";
+  paintLists(t); paintBalance();
+  document.querySelectorAll(".cases button").forEach(b=>b.setAttribute("aria-current", String(b.dataset.id===id)));
+  if(autoplay){ renderTo(-1); play(); } else renderTo(beats.length-1);
+}
+
+/* ================= rail + charts ================= */
+let INDEX=[];
+function paintRail(kind){
+  $("#tab-exam").setAttribute("aria-selected",String(kind==="exam")); $("#tab-mon").setAttribute("aria-selected",String(kind==="monitor"));
+  const rows=INDEX.filter(r=>r.kind===kind).sort((a,b)=>a.id.localeCompare(b.id));
+  $("#cases").innerHTML=rows.map(r=>`<li><button data-id="${r.id}" aria-current="${cur&&cur.case_id===r.id}">
+    <span class="dot" style="background:${vcol(r.verdict)}"></span><span>${r.id}<span class="sub">${r.pattern==="none"?"cleared":esc(r.pattern.replaceAll("_"," "))}${r.connected?` · +${r.connected} cards`:""}</span></span><span class="p">${r.p.toFixed(2)}</span></button></li>`).join("");
+}
+function paintPeriod(){
+  const L=46,R=806,T=14,B=258, t0=Date.parse("2016-11-01T00:00"), t1=Date.parse("2017-01-01T00:00");
+  const x=d=>L+(Date.parse(d.replace(" ","T"))-t0)/(t1-t0)*(R-L), y=p=>B-(logit(p)+5.5)/11*(B-T);
+  const f10='font-family="JetBrains Mono,monospace" font-size="10"';
+  let s=`<rect x="${L}" y="${y(.999)}" width="${R-L}" height="${y(.85)-y(.999)}" fill="${alpha(css.fraud,.06)}"/><rect x="${L}" y="${y(.15)}" width="${R-L}" height="${B-y(.15)}" fill="${alpha(css.legit,.06)}"/>`;
+  for(const p of [.01,.05,.15,.5,.85,.95,.99]) s+=`<line x1="${L}" x2="${R}" y1="${y(p)}" y2="${y(p)}" stroke="${css.rule}" ${p===.15||p===.85?"":'stroke-dasharray="2 4"'}/><text x="${L-8}" y="${y(p)+3}" text-anchor="end" ${f10} fill="${css["ink-3"]}">${p}</text>`;
+  for(const [m,d] of [["1 Nov","2016-11-01 00:00"],["1 Dec","2016-12-01 00:00"],["1 Jan","2016-12-31 23:59"]]) s+=`<text x="${x(d)}" y="${B+20}" ${f10} fill="${css["ink-3"]}" text-anchor="${m==="1 Jan"?"end":m==="1 Nov"?"start":"middle"}">${m}</text>`;
+  s+=`<text x="${L}" y="${B+36}" ${f10} fill="${css["ink-3"]}">probability, log-odds scale · ● exam case  ○ raised by the monitor  ▬ bank's risk score</text>`;
+  for(const r of INDEX){ const X=x(r.t), Y=y(Math.max(.004,Math.min(.996,r.p))), BYv=y(Math.max(.004,Math.min(.996,r.bank_risk))), c=vcol(r.verdict);
+    s+=`<g class="pt" data-id="${r.id}" style="cursor:pointer"><title>${r.id} · ${r.verdict} · assay ${r.p.toFixed(2)} vs bank ${r.bank_risk.toFixed(2)}${r.source?" · "+r.source.replaceAll("_"," "):""}</title>
+    <line x1="${X}" x2="${X}" y1="${BYv}" y2="${Y}" stroke="${c}" stroke-opacity=".45"/><line x1="${X-4}" x2="${X+4}" y1="${BYv}" y2="${BYv}" stroke="${css.bank}" stroke-width="2"/>
+    <circle cx="${X}" cy="${Y}" r="${r.kind==="exam"?5:4}" fill="${r.kind==="exam"?c:css.ground}" stroke="${c}" stroke-width="1.8"/>
+    ${r.id==="HHG-014"||r.id==="HHG-006"?`<text x="${X+8}" y="${Y+(r.id==="HHG-014"?12:-6)}" ${f10} fill="${css.ink}">${r.id}</text>`:""}</g>`; }
+  $("#period-svg").innerHTML=s;
+}
+function paintCalib(){
+  const L=40,R=308,T=10,B=208, x=p=>L+p*(R-L), y=p=>B-p*(B-T), f='font-family="JetBrains Mono,monospace" font-size="9.5"';
+  let s=`<line x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}" stroke="${css["ink-3"]}" stroke-dasharray="3 4"/>`;
+  for(const v of [0,.25,.5,.75,1]) s+=`<line x1="${L}" x2="${R}" y1="${y(v)}" y2="${y(v)}" stroke="${css.rule}"/><text x="${x(v)}" y="${B+15}" text-anchor="middle" ${f} fill="${css["ink-3"]}">${v}</text><text x="${L-6}" y="${y(v)+3}" text-anchor="end" ${f} fill="${css["ink-3"]}">${v}</text>`;
+  s+=`<text x="${(L+R)/2}" y="${B+32}" text-anchor="middle" ${f} fill="${css["ink-3"]}">predicted probability</text><text x="${L+6}" y="${T+12}" ${f} fill="${css["ink-3"]}">observed fraud rate</text>`;
+  s+=`<polyline fill="none" stroke="${css.trace}" stroke-width="2" points="${REL.map(r=>x(r[0])+","+y(r[1])).join(" ")}"/>`;
+  for(const r of REL) s+=`<circle cx="${x(r[0])}" cy="${y(r[1])}" r="${2+Math.log10(r[2])}" fill="${alpha(css.trace,.22)}" stroke="${css.trace}"/>`;
+  $("#calib-svg").innerHTML=s;
+  $("#rel").innerHTML=`<tr><th>predicted</th><th>n</th><th>mean predicted</th><th>observed</th></tr>`+
+    ["≤ .05",".05–.15",".15–.30",".30–.50",".50–.70",".70–.85","> .85"].map((b,i)=>`<tr><td>${b}</td><td>${REL[i][2].toLocaleString("en-US")}</td><td>${REL[i][0].toFixed(3)}</td><td>${REL[i][1].toFixed(3)}</td></tr>`).join("");
+}
+
+$("#cases").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) load(b.dataset.id,{autoplay:true}); });
+$("#tab-exam").onclick=()=>paintRail("exam"); $("#tab-mon").onclick=()=>paintRail("monitor");
+$("#b-play").onclick=()=>playing?pause():play();
+$("#b-fwd").onclick=()=>{ pause(); stepTo(stageDone+1); };
+$("#b-back").onclick=()=>{ pause(); renderTo(Math.max(-1,stageDone-1)); };
+$("#speed").onchange=e=>{ speed=+e.target.value; };
+addEventListener("keydown",e=>{ if(e.target.closest&&e.target.closest("input,select,textarea,summary")) return;
+  if(e.code==="Space"){ e.preventDefault(); playing?pause():play(); }
+  else if(e.key==="ArrowRight"){ pause(); stepTo(stageDone+1); }
+  else if(e.key==="ArrowLeft"){ pause(); renderTo(Math.max(-1,stageDone-1)); } });
+$("#period-svg").addEventListener("click",e=>{ const g=e.target.closest(".pt"); if(!g) return; const id=g.dataset.id;
+  paintRail(id.startsWith("MON")?"monitor":"exam"); load(id,{autoplay:true}); $("#bench").scrollIntoView({behavior:"smooth"}); });
+const retheme=()=>{ readCss(); paintBalance(); if(INDEX.length){ paintPeriod(); paintCalib(); paintRail(cur&&cur.case_id.startsWith("MON")?"monitor":"exam"); } if(cur) paintVerdict(stageDone>=verdictBeat); };
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",retheme);
+new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+async function boot(){
+  resize(); requestAnimationFrame(frame);
+  INDEX=await (await fetch(DATA+"index.json")).json();
+  const h=location.hash.slice(1), start=/^(HHG|MON)-\d{3}$/.test(h)?h:"HHG-014";
+  paintRail(start.startsWith("MON")?"monitor":"exam"); paintPeriod(); paintCalib();
+  await load(start);
+}
+window.assayReplay={ load, play, pause, setSpeed:v=>{speed=v;}, get done(){ return !playing && stageDone>=beats.length-1; } };
+boot().catch(err=>{ $("#claim").textContent=`The traces did not load (${err.message}). Serve this folder over HTTP, for example: python -m http.server -d site`; });
+})();
+</script>
+</body>
+</html>
