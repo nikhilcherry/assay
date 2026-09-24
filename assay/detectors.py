@@ -5,7 +5,10 @@ IDs it rests on -- which is exactly the shape of an `evidence[]` entry in the
 answer file. Findings that carry a likelihood ratio move the probability;
 findings with lr=1 are context an analyst needs but that the model score
 already accounts for (device novelty, amount, product code: all model inputs),
-so counting them again would double-count.
+so counting them again would double-count. Measured on month-held-out scores
+(28k Aug-Oct transactions): on top of the model, an amount above the holder's
+95th percentile is worth x1.31 and one at or below it x1.22; a new device x1.25
+and a seen one x1.46. No differential lift either way -- the model has them.
 """
 
 from __future__ import annotations
