@@ -1,0 +1,62 @@
+{
+  "basis": "July-October 2016; each month scored by a model trained on the other three (assay/crossfit.py); labels are the bank's closed cases",
+  "base_rate": 0.0337,
+  "detectors": {
+    "structuring": {
+      "unit": "burst of >=3 online $400-$500 on a card within an hour",
+      "n": 45,
+      "fraud": 9,
+      "note": "scored at the burst's strongest transaction, as the agent does",
+      "rate": 0.2,
+      "lr_marginal": 7.17,
+      "lr": 1.64,
+      "ci95": [
+        0.45,
+        4.47
+      ],
+      "mean_model_p": 0.1571
+    },
+    "card_testing": {
+      "unit": "run of >=3 online < $5 within an hour, then a purchase >= $20",
+      "n": 22,
+      "fraud": 5,
+      "note": "scored at the strongest follow-on purchase",
+      "rate": 0.2273,
+      "lr_marginal": 8.44,
+      "lr": 2.07,
+      "ci95": [
+        0.33,
+        15.18
+      ],
+      "mean_model_p": 0.1763
+    },
+    "ring": {
+      "unit": "transaction from a device profile that is a ring within +-30 days",
+      "n": 54,
+      "fraud": 10,
+      "note": "1 qualifying profile(s), 24 cards: effectively one cluster, so the interval understates the uncertainty",
+      "rate": 0.1852,
+      "lr_marginal": 6.52,
+      "lr": 0.56,
+      "ci95": [
+        0.18,
+        1.37
+      ],
+      "mean_model_p": 0.2656
+    },
+    "memory": {
+      "unit": "transaction on a card with confirmed fraud opened > 1 day earlier",
+      "n": 248597,
+      "fraud": 10821,
+      "note": "what the agent's case memory asserts when it finds an earlier fraud verdict on the card",
+      "rate": 0.0435,
+      "lr_marginal": 1.31,
+      "lr": 1.11,
+      "ci95": [
+        1.08,
+        1.13
+      ],
+      "mean_model_p": 0.0415
+    }
+  }
+}

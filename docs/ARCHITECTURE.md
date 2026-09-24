@@ -61,13 +61,13 @@ per-transaction model cannot see carry LRs:
 
 | detector | LR | basis |
 |---|---|---|
-| structuring (≥3 online $400–$500 within an hour) | 8 | measured: 9 fraud in 41 bursts, Jul–Oct |
-| device ring (≥5 cards, New and proxied on ≥90% of uses) | 30 | assumption; the one qualifying profile is the analysts' undocumented ring |
+| structuring (≥3 online $400–$500 within an hour) | 1.64 | measured on top of month-held-out model scores: 9 fraud in 45 bursts, 95% CI 0.45–4.47 (raw lift 7.17 double-counts the model) |
+| device ring (≥5 cards, New and proxied on ≥90% of uses) | 30 | assumption: one cluster in the history, held-out months leak it, and its labels are incomplete (`docs/LR_REPORT.json`) |
 | ring profile in confirmed closed cases | 3 | assumption |
-| card testing (≥3 online < $5 within an hour, then larger) | 20 | assumption; 16/16 such closed cases confirmed |
+| card testing (≥3 online < $5 within an hour, then larger) | 2.07 | measured the same way: 5 fraud in 22 episodes, 95% CI 0.33–15.18 |
 | disputed charge matches own monthly recurring charge | 0.1 | assumption (R7) |
 | customer dispute | varies with the model score | measured on October: 1,203/1,203 disputes were fraud (LR ≥ 13,807), averaged equally with the score's own disputed-fraud vs legitimate density ratio, in case the dispute is planted (`assay/disputes.py`) |
-| case memory: card named in an earlier fraud verdict | 3 | assumption |
+| case memory: card named in an earlier fraud verdict | 1.11 | measured: transactions on cards with confirmed fraud more than a day earlier, 95% CI 1.08–1.13 |
 
 ## 4. The gate and the two recommendations
 

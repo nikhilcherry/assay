@@ -3,7 +3,7 @@
   "case": {
     "status": "closed_fraud",
     "verdict": "fraud",
-    "fraud_probability": 0.9,
+    "fraud_probability": 0.96,
     "pattern": "undocumented",
     "pattern_description": "Device-ring fraud: a single Samsung SM-G935F / Android 7.0 / Chrome 62 / 1920x1080 handset behind an anonymous proxy, marked New on every card it touches, used on 28 unrelated cards within a month for a few purchases each, every one scoring low on the bank's model. No single card shows a credential or channel change, so it is not account takeover, and the link that makes it fraud is the shared handset across cardholders. Found by traversing from the flagged transaction's device profile to every other card that used it.",
     "affected_txn_ids": [
@@ -145,15 +145,21 @@
         ]
       },
       {
+        "claim": "Simulated customer validation: Cardholder states they did not make this transaction and still has the card.",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": []
+      },
+      {
         "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
         "source": "document",
         "ref": "document:brief#known-fraud-patterns/undocumented",
         "entity_ids": []
       },
       {
-        "claim": "Policy \u00a76: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
         "source": "document",
-        "ref": "document:fraud-policy#\u00a76",
+        "ref": "document:fraud-policy#R2",
         "entity_ids": []
       },
       {
@@ -174,49 +180,45 @@
       "CC-2971",
       "CC-3035"
     ],
-    "summary": "Undocumented on card C03676-K2: 2 transaction(s) from 2016-11-22 to 2016-12-04 totalling $169.76, probability 0.90. Linked to 27 other card(s) through device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080.",
+    "summary": "Undocumented on card C03676-K2: 2 transaction(s) from 2016-11-22 to 2016-12-04 totalling $169.76, probability 0.96. Linked to 27 other card(s) through device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080. Cardholder states they did not make this transaction and still has the card.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-MON-024"
   },
-  "evidence_requests": [],
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 8,
+      "assumed_response": "Cardholder states they did not make this transaction and still has the card."
+    }
+  ],
   "next_best_actions": {
     "initial": [
       {
-        "action": "BLOCK_CARD",
+        "action": "DECLINE_TRANSACTION",
         "route": "L1",
-        "reason": "\u00a76: fraud probability 0.90 on 3 independent pieces of evidence; the card is compromised and verification would not change the decision."
+        "reason": "\u00a73b: probability 0.77 leans fraud; hold this authorization while the cardholder is asked, rather than block the card."
+      },
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.77 is between 0.15 and 0.85, so ask the cardholder before deciding."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "R6: several cards show fraud from the same device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080."
-      },
-      {
-        "action": "MONITOR_CONNECTED_CARDS",
-        "route": "auto",
-        "reason": "R6: every card sharing device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080 goes under monitoring (27 card(s))."
-      },
-      {
-        "action": "FILE_REPORT",
-        "route": "L2",
-        "reason": "Policy \u00a73a: fraud is suspected and activity connects to device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080; the pattern is coordinated or undocumented (R9)."
-      },
-      {
-        "action": "ESCALATE_TO_ANALYST",
-        "route": "auto",
-        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+        "reason": "Policy \u00a73a: fraud probability 0.77 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
       }
     ],
     "final": [
       {
         "action": "BLOCK_CARD",
         "route": "L1",
-        "reason": "\u00a76: fraud probability 0.90 on 3 independent pieces of evidence; the card is compromised and verification would not change the decision."
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "R6: several cards show fraud from the same device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080."
+        "reason": "R2: a denial requires an internal case with the evidence attached."
       },
       {
         "action": "MONITOR_CONNECTED_CARDS",
@@ -234,7 +236,7 @@
         "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
       }
     ],
-    "what_changed": "nothing"
+    "what_changed": "Cardholder states they did not make this transaction and still has the card. Probability moved 0.77 -> 0.96; added BLOCK_CARD, MONITOR_CONNECTED_CARDS, FILE_REPORT, ESCALATE_TO_ANALYST, dropped DECLINE_TRANSACTION, VERIFY_WITH_CUSTOMER."
   },
   "sar": {
     "file": true,
@@ -278,7 +280,7 @@
       "2016-12-04"
     ]
   },
-  "stop_reason": "Policy \u00a76: fraud probability 0.90 is at or above 0.85 on 3 independent pieces of evidence.",
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
   "tool_calls": 10,
   "tokens": 0,
   "latency_s": 0.04,

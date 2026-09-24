@@ -47,3 +47,14 @@ def test_a_disputed_charge_is_only_cleared_on_a_recurring_match(path):
     disputed = any("as not theirs" in c for c in claims)
     if disputed and a["case"]["verdict"] == "legitimate":
         assert any("recurring" in c for c in claims), "cleared a denial without R7"
+
+
+def test_detector_ratios_are_the_measured_ones():
+    from assay import detectors as D
+    r = json.loads((ROOT / "docs" / "LR_REPORT.json").read_text())["detectors"]
+    assert D.LR_STRUCTURING == r["structuring"]["lr"]
+    assert D.LR_CARD_TESTING == r["card_testing"]["lr"]
+    assert D.LR_MEMORY == r["memory"]["lr"]
+    # measured on top of the model, a detector adds far less than its raw lift
+    for k in ("structuring", "card_testing", "memory"):
+        assert r[k]["lr"] < r[k]["lr_marginal"]

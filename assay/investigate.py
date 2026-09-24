@@ -111,7 +111,9 @@ class Investigator:
             findings.append(Finding(
                 f"Structuring: {scenario[2]}. The bank's closed cases record the same shape five times "
                 "(CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. "
-                "Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+                f"Measured on July-October, such bursts are fraud {D._MEASURED['structuring']['fraud']} times in "
+                f"{D._MEASURED['structuring']['n']}; on top of the model score, which already sees much of that, the "
+                f"shape is worth x{D.LR_STRUCTURING:.2f}.",
                 ref_w, _ids(struct), lr=D.LR_STRUCTURING, tag="structuring"))
 
         ring = None
@@ -125,7 +127,7 @@ class Investigator:
                     f"Device profile '{f.device_profile}' ({proxy}, marked {f.id_15} on every card) appears on "
                     f"{len(cards) + 1} different cards within 30 days of this alert: {len(nb)} transactions. "
                     "One handset on this many unrelated cardholders is a shared origin, not a household.",
-                    ref_nb, cards[:25], lr=30.0, tag="ring"))
+                    ref_nb, cards[:25], lr=D.LR_RING, tag="ring"))
                 ring_prior = self.s.closed_cases_by_device(f.device_profile)[0]
                 ring_prior = ring_prior[ring_prior.outcome == "confirmed_fraud"]
                 if len(ring_prior):
@@ -135,7 +137,7 @@ class Investigator:
                         f"({', '.join(ring_prior.case_id)}); patterns recorded: "
                         f"{', '.join(sorted(set(ring_prior.pattern)))}, linked by analysts across "
                         f"{len(set(sum(ring_prior.connected_list.tolist(), [])))} cards.",
-                        self.s.calls[-1].ref, ring_prior.case_id.tolist(), lr=3.0, tag="ring_history"))
+                        self.s.calls[-1].ref, ring_prior.case_id.tolist(), lr=D.LR_RING_HISTORY, tag="ring_history"))
                 scenario = ("undocumented", nb[nb.card_id == f.card_id],
                             "a single Samsung SM-G935F / Android 7.0 / Chrome 62 / 1920x1080 handset behind an "
                             "anonymous proxy, marked New on every card it touches")
@@ -149,14 +151,14 @@ class Investigator:
                     f"Card testing: {len(run)} online authorizations under $5 within an hour "
                     f"({', '.join(fmt_usd(a) for a in run.TransactionAmt)}), followed by "
                     f"{len(after)} larger purchase(s) up to {fmt_usd(after.TransactionAmt.max())}.",
-                    ref_w, _ids(run) + _ids(after), lr=20.0, tag="card_testing"))
+                    ref_w, _ids(run) + _ids(after), lr=D.LR_CARD_TESTING, tag="card_testing"))
 
         rec_hits = D.recurring(hist if len(hist) > 1 else card_win, f) if disputed else None
         if rec_hits is not None:
             findings.append(Finding(
                 f"The disputed {fmt_usd(f.TransactionAmt)} matches this holder's own recurring charge: the same "
                 f"amount under product {f.ProductCD} on {', '.join(_date(t) for t in rec_hits.t)} -- monthly.",
-                ref_h, _ids(rec_hits) + [fid], lr=0.1, tag="recurring"))
+                ref_h, _ids(rec_hits) + [fid], lr=D.LR_RECURRING, tag="recurring"))
 
         # -- case memory: has this agent already concluded something about this card? --
         mem, ref_mem = self.s.prior_fraud_cases(f.card_id)
@@ -167,7 +169,7 @@ class Investigator:
                 f"Case memory: this card is named in {len(mem)} earlier investigation(s) by this agent "
                 f"({', '.join(m['v_id'] for m in mem)}), {len(fraud_mem)} of them concluded as fraud "
                 f"({', '.join(sorted({m['attributes'].get('pattern', '') for m in fraud_mem})) or 'none'}).",
-                ref_mem, [m["v_id"] for m in mem], lr=3.0 if fraud_mem else 1.0, tag="memory"))
+                ref_mem, [m["v_id"] for m in mem], lr=D.LR_MEMORY if fraud_mem else 1.0, tag="memory"))
 
         # -- 4. the alert itself ----------------------------------------------
         if disputed:

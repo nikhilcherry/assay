@@ -3,7 +3,7 @@
   "case": {
     "status": "closed_fraud",
     "verdict": "fraud",
-    "fraud_probability": 0.94,
+    "fraud_probability": 0.96,
     "pattern": "undocumented",
     "pattern_description": "Amount structuring: 4 online purchases between $467.06 and $496.08 within 27 minutes, each just under a $500 threshold, from 3 device profiles marked New. The amounts sit just below a $500 authorization threshold, which none of the five documented patterns describes; the same shape recurs on unrelated cardholders in the bank's closed cases. Found by scanning the card's one-hour window for repeated near-threshold online amounts.",
     "affected_txn_ids": [
@@ -42,7 +42,7 @@
         ]
       },
       {
-        "claim": "Structuring: 4 online purchases between $467.06 and $496.08 within 27 minutes, each just under a $500 threshold, from 3 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+        "claim": "Structuring: 4 online purchases between $467.06 and $496.08 within 27 minutes, each just under a $500 threshold, from 3 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 45; on top of the model score, which already sees much of that, the shape is worth x1.64.",
         "source": "graph",
         "ref": "query:card_window(card_id=C01890-K1, hours_before=168, hours_after=168)",
         "entity_ids": [
@@ -53,15 +53,21 @@
         ]
       },
       {
+        "claim": "Simulated customer validation: Cardholder states they did not make this transaction and still has the card.",
+        "source": "customer",
+        "ref": "evidence_request:1",
+        "entity_ids": []
+      },
+      {
         "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
         "source": "document",
         "ref": "document:brief#known-fraud-patterns/undocumented",
         "entity_ids": []
       },
       {
-        "claim": "Policy \u00a76: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
         "source": "document",
-        "ref": "document:fraud-policy#\u00a76",
+        "ref": "document:fraud-policy#R2",
         "entity_ids": []
       },
       {
@@ -82,44 +88,50 @@
       "CC-3748",
       "CC-3841"
     ],
-    "summary": "Undocumented on card C01890-K1: 4 transaction(s) from 2016-11-23 to 2016-11-23 totalling $1,921.59, probability 0.94.",
+    "summary": "Undocumented on card C01890-K1: 4 transaction(s) from 2016-11-23 to 2016-11-23 totalling $1,921.59, probability 0.96. Cardholder states they did not make this transaction and still has the card.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-MON-003"
   },
-  "evidence_requests": [],
+  "evidence_requests": [
+    {
+      "type": "customer_validation",
+      "asked_after_step": 6,
+      "assumed_response": "Cardholder states they did not make this transaction and still has the card."
+    }
+  ],
   "next_best_actions": {
     "initial": [
       {
-        "action": "BLOCK_CARD",
+        "action": "DECLINE_TRANSACTION",
         "route": "L1",
-        "reason": "\u00a76: fraud probability 0.94 on 4 independent pieces of evidence; the card is compromised and verification would not change the decision."
+        "reason": "\u00a73b: probability 0.77 leans fraud; hold this authorization while the cardholder is asked, rather than block the card."
+      },
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.77 is between 0.15 and 0.85, so ask the cardholder before deciding."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: fraud probability 0.94 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
-      },
-      {
-        "action": "FILE_REPORT",
-        "route": "L2",
-        "reason": "Policy \u00a73a: fraud is suspected and exposure $1,921.59 exceeds $1,000; the pattern is coordinated or undocumented (R9)."
+        "reason": "Policy \u00a73a: fraud probability 0.77 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
       },
       {
         "action": "ESCALATE_TO_ANALYST",
         "route": "auto",
-        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+        "reason": "R8: the verdict is uncertain and exposure $1,921.59 exceeds $500."
       }
     ],
     "final": [
       {
         "action": "BLOCK_CARD",
         "route": "L1",
-        "reason": "\u00a76: fraud probability 0.94 on 4 independent pieces of evidence; the card is compromised and verification would not change the decision."
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: fraud probability 0.94 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "R2: a denial requires an internal case with the evidence attached."
       },
       {
         "action": "FILE_REPORT",
@@ -132,7 +144,7 @@
         "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
       }
     ],
-    "what_changed": "nothing"
+    "what_changed": "Cardholder states they did not make this transaction and still has the card. Probability moved 0.77 -> 0.96; added BLOCK_CARD, FILE_REPORT, dropped DECLINE_TRANSACTION, VERIFY_WITH_CUSTOMER."
   },
   "sar": {
     "file": true,
@@ -151,7 +163,7 @@
       "2016-11-23"
     ]
   },
-  "stop_reason": "Policy \u00a76: fraud probability 0.94 is at or above 0.85 on 4 independent pieces of evidence.",
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
   "tool_calls": 8,
   "tokens": 0,
   "latency_s": 0.04,

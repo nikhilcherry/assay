@@ -97,10 +97,17 @@ ratio of 40.
 
 Then I measured it. Across July–October there are 41 bursts like that. **Nine**
 are fraud. Precision 0.22 against a base rate of 0.034 works out to a likelihood
-ratio of about 8, not 40. The other 32 bursts were ordinary people buying
-ordinary expensive things. The detector now uses 8, and the monitor, which
-sweeps the exam period for these bursts on its own, cleared 7 of the 19 it found
-as legitimate. HHG-006 is still fraud at 0.99, because its strongest transaction
+ratio of about 8, not 40. The other bursts were ordinary people buying
+ordinary expensive things.
+
+Then I measured it again, properly, and 8 was still wrong. That 8 is how much
+more often a burst is fraud than an average transaction, but the agent applies
+it *on top of* the model score, and the model already sees most of what makes
+those bursts suspicious. The right number is the one that makes model-plus-finding
+match what actually happened, measured on scores from a model that never saw
+that month: ×1.64. Card testing went from an assumed ×20 to ×2.07, case memory
+from ×3 to ×1.11. The monitor, which sweeps the exam period for bursts on its own,
+now clears 15 of the 19 it finds. HHG-006 is still fraud at 0.99, because its strongest transaction
 already scores high and the customer disputed it. Now the number behind that is
 one I can defend.
 
@@ -143,7 +150,7 @@ The brief offers an optional extra: let the agent watch the exam period on its
 own. assay's monitor runs three scans (device rings, near-$500 bursts, and
 transactions where its model and the bank's disagree sharply). It raised 60
 alerts nobody asked for and investigated each with the same agent. 27 ring
-cards, 9 structuring episodes, and 14 frauds the bank's model had rated under 0.30.
+cards, 4 structuring episodes (of 19 it looked at), and 14 frauds the bank's model had rated under 0.30.
 
 ## Watching it think
 

@@ -3,7 +3,7 @@
   "case": {
     "status": "closed_legitimate",
     "verdict": "legitimate",
-    "fraud_probability": 0.02,
+    "fraud_probability": 0.01,
     "pattern": "none",
     "pattern_description": "",
     "affected_txn_ids": [],
@@ -45,7 +45,7 @@
         ]
       },
       {
-        "claim": "Structuring: 3 online purchases between $429.96 and $429.98 within 22 minutes, each just under a $500 threshold, from 2 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+        "claim": "Structuring: 3 online purchases between $429.96 and $429.98 within 22 minutes, each just under a $500 threshold, from 2 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 45; on top of the model score, which already sees much of that, the shape is worth x1.64.",
         "source": "graph",
         "ref": "query:card_window(card_id=C12865-K1, hours_before=168, hours_after=168)",
         "entity_ids": [
@@ -65,7 +65,7 @@
       "CC-5462",
       "CC-4180"
     ],
-    "summary": "Alert on transaction 3576415 ($429.97) on card C12865-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.02. Closed as legitimate; no report.",
+    "summary": "Alert on transaction 3576415 ($429.97) on card C12865-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.01. Closed as legitimate; no report.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-MON-018"
   },
@@ -99,16 +99,16 @@
   },
   "sar": {
     "file": false,
-    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.02.",
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.00.",
     "narrative": "",
     "subjects": [],
     "total_amount_usd": 0,
     "activity_dates": []
   },
-  "stop_reason": "Policy \u00a76: fraud probability 0.02 is at or below 0.15 on 3 independent pieces of evidence.",
+  "stop_reason": "Policy \u00a76: fraud probability 0.00 is at or below 0.15 on 3 independent pieces of evidence.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 1.62,
+  "latency_s": 1.61,
   "monitor": {
     "source": "structure_scan",
     "trigger_text": "Autonomous monitor (structure_scan): 3 online purchases between $400 and $500 within an hour on card C12865-K1. Review transaction 3576415."

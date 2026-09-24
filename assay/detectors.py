@@ -10,7 +10,9 @@ so counting them again would double-count.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -25,11 +27,29 @@ RING_MIN_PROXY = 0.9          # ...and behind a proxy on (nearly) every use.
 # analysts filed as undocumented in CC-2649 et al.). Without the proxy clause,
 # 13 profiles qualify and their transactions are 1.5% fraud -- popular handsets.
 
-# Structuring: 41 near-$500 bursts on one card within an hour in July-October,
-# 9 of them confirmed fraud. Precision 0.22 against a 0.034 base rate is a
-# likelihood ratio of ~8, and it is applied to the burst's strongest model
-# score rather than to the flagged transaction alone.
-LR_STRUCTURING = 8.0
+# Likelihood ratios on top of the model, measured by assay/measure.py on
+# month-held-out scores (docs/LR_REPORT.json). The raw lift of a detector
+# (structuring: fraud 9 times in 45 bursts, 7x the base rate) double-counts
+# what the model already sees in those transactions; what is applied is the LR
+# that makes model + finding reproduce the observed fraud rate.
+# The device ring is the exception: one cluster spanning August-September, so a
+# model held out on one month has learned the ring from the other, and the bank
+# named only 10 of its 54 transactions. No honest number comes out of that; the
+# ring's LR stays a stated assumption.
+_REPORT = Path(__file__).resolve().parent.parent / "docs" / "LR_REPORT.json"
+_MEASURED = json.loads(_REPORT.read_text())["detectors"] if _REPORT.exists() else {}
+
+
+def measured(name: str, fallback: float) -> float:
+    return float(_MEASURED.get(name, {}).get("lr", fallback))
+
+
+LR_STRUCTURING = measured("structuring", 8.0)
+LR_CARD_TESTING = measured("card_testing", 20.0)
+LR_MEMORY = measured("memory", 3.0)
+LR_RING = 30.0            # assumption (see above)
+LR_RING_HISTORY = 3.0     # assumption: same single cluster
+LR_RECURRING = 0.1        # assumption (R7): no cleared dispute exists in the history to measure it on
 
 
 def is_ring(nb: pd.DataFrame) -> bool:

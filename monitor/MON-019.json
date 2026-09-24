@@ -3,7 +3,7 @@
   "case": {
     "status": "closed_fraud",
     "verdict": "fraud",
-    "fraud_probability": 0.97,
+    "fraud_probability": 0.85,
     "pattern": "undocumented",
     "pattern_description": "Amount structuring: 3 online purchases between $499.93 and $499.96 within 10 minutes, each just under a $500 threshold, from 1 device profiles marked New. The amounts sit just below a $500 authorization threshold, which none of the five documented patterns describes; the same shape recurs on unrelated cardholders in the bank's closed cases. Found by scanning the card's one-hour window for repeated near-threshold online amounts.",
     "affected_txn_ids": [
@@ -41,7 +41,7 @@
         ]
       },
       {
-        "claim": "Structuring: 3 online purchases between $499.93 and $499.96 within 10 minutes, each just under a $500 threshold, from 1 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+        "claim": "Structuring: 3 online purchases between $499.93 and $499.96 within 10 minutes, each just under a $500 threshold, from 1 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 45; on top of the model score, which already sees much of that, the shape is worth x1.64.",
         "source": "graph",
         "ref": "query:card_window(card_id=C12897-K1, hours_before=168, hours_after=168)",
         "entity_ids": [
@@ -80,7 +80,7 @@
       "CC-2971",
       "CC-2985"
     ],
-    "summary": "Undocumented on card C12897-K1: 3 transaction(s) from 2016-11-28 to 2016-11-28 totalling $1,499.85, probability 0.97.",
+    "summary": "Undocumented on card C12897-K1: 3 transaction(s) from 2016-11-28 to 2016-11-28 totalling $1,499.85, probability 0.85.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-MON-019"
   },
@@ -90,12 +90,12 @@
       {
         "action": "BLOCK_CARD",
         "route": "L1",
-        "reason": "\u00a76: fraud probability 0.97 on 2 independent pieces of evidence; the card is compromised and verification would not change the decision."
+        "reason": "\u00a76: fraud probability 0.85 on 2 independent pieces of evidence; the card is compromised and verification would not change the decision."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: fraud probability 0.97 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "Policy \u00a73a: fraud probability 0.85 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
       },
       {
         "action": "FILE_REPORT",
@@ -112,12 +112,12 @@
       {
         "action": "BLOCK_CARD",
         "route": "L1",
-        "reason": "\u00a76: fraud probability 0.97 on 2 independent pieces of evidence; the card is compromised and verification would not change the decision."
+        "reason": "\u00a76: fraud probability 0.85 on 2 independent pieces of evidence; the card is compromised and verification would not change the decision."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: fraud probability 0.97 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "Policy \u00a73a: fraud probability 0.85 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
       },
       {
         "action": "FILE_REPORT",
@@ -147,7 +147,7 @@
       "2016-11-28"
     ]
   },
-  "stop_reason": "Policy \u00a76: fraud probability 0.97 is at or above 0.85 on 2 independent pieces of evidence.",
+  "stop_reason": "Policy \u00a76: fraud probability 0.85 is at or above 0.85 on 2 independent pieces of evidence.",
   "tool_calls": 8,
   "tokens": 0,
   "latency_s": 0.04,

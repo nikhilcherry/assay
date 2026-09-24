@@ -202,12 +202,24 @@ in [`monitor/`](monitor/):
 | source | what it looks for | alerts | outcome |
 |---|---|---|---|
 | ring scan | a specific device profile on ≥5 cards, New and proxied on ≥90% of uses | 27 | 27 fraud, $8,429 |
-| structure scan | ≥3 online purchases of $400–$500 on one card within an hour | 19 | 9 fraud, 7 legitimate, 3 uncertain |
+| structure scan | ≥3 online purchases of $400–$500 on one card within an hour | 19 | 4 fraud, 15 legitimate |
 | model monitor | assay p ≥ 0.70 where the bank's risk score was < 0.30 | 14 | 14 fraud, $5,638 |
 
 It deliberately does not re-raise what the bank's risk score already flags;
-those alerts exist without it. Seven of the nineteen structure alerts were
-cleared as legitimate, because the scan is a reason to look, not a verdict.
+those alerts exist without it. Fifteen of the nineteen structure alerts were
+cleared as legitimate, because the scan is a reason to look, not a verdict: in
+July–October only 9 of 45 such bursts were fraud, and on top of the model the
+shape is worth ×1.64 ([`docs/LR_REPORT.json`](docs/LR_REPORT.json)).
+
+**A finding about the data itself.** Twelve of the nineteen bursts in the exam
+period, and HHG-006, are four purchases whose timestamps all fall on a whole
+minute, the first exactly on the hour: rows added to the dataset to seed the
+exercise (by chance, four whole-minute timestamps is about 1 in 13 million).
+The same planted shape appears ten times in September–October, and the bank
+confirmed **five** of them as fraud and cleared five. So the planted bursts are
+decoys as often as they are fraud, and the timestamp marks an exercise, not a
+verdict. assay does not use it as evidence: it is an artifact of how the
+dataset was built, not something fraud looks like at a bank.
 
 ## What is assumed, stated plainly
 
@@ -216,11 +228,20 @@ cleared as legitimate, because the scan is a reason to look, not a verdict.
   between they do not reply (R4). A customer's own dispute is a denial (R2):
   the agent never simulates a disputing customer changing their mind, except on
   a recurring-charge match (R7).
-- **Likelihood ratios that are not measured are named as assumptions:** a
-  a simulated denial ×8, a confirmation ÷15, a device ring ×30, case memory of
-  prior fraud ×3. Structuring (×8) and customer disputes are measured; the one
-  assumption in the dispute reading is the equal weight between "real dispute"
-  and "planted dispute".
+- **Likelihood ratios are measured on top of the model**, on scores from a
+  model that never saw the month it is scoring ([`assay/crossfit.py`](assay/crossfit.py),
+  [`assay/measure.py`](assay/measure.py)): structuring ×1.64 (95% CI 0.45–4.47),
+  card testing ×2.07 (0.33–15.18), case memory ×1.11. An earlier version used
+  raw lifts (×8, ×20, ×3) that double-counted what the model already sees.
+  Customer disputes are measured too; the one assumption there is the equal
+  weight between "real dispute" and "planted dispute".
+- **Still assumptions, and why:** the device ring ×30 and its closed-case
+  history ×3. There is one ring in the history, spanning August and September,
+  so a model held out on one month has learned the ring from the other, and the
+  bank named only 10 of its 54 transactions: the attempted measurement
+  (×0.56) is in the report and is not trustworthy either way. Also a
+  simulated denial ×8, a confirmation ÷15, and a recurring-charge match ×0.1
+  (no cleared dispute exists in the history to measure it on).
 - **Card IDs are derived.** Transactions carry no card column. Within a
   customer, a card is a distinct `card6`, numbered from least to most used. The
   rule reproduces 99.2% of the 14,975 card IDs the closed cases name, and all 20

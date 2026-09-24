@@ -145,5 +145,5 @@
   "stop_reason": "Policy \u00a76: probability 0.52 remains between 0.15 and 0.85, but the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 1.94
+  "latency_s": 1.93
 }

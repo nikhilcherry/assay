@@ -147,7 +147,7 @@ async def main() -> int:
         # monitor + case memory
         await ev("cap(`Then it went looking on its own: <b>60 investigations nobody asked for</b>. The bank scored MON-041 at 0.03.`)")
         await replay("MON-041", 1.4, tab="#tab-mon", hold=500)
-        await ev("cap(`Case memory: its earlier conclusion on HHG-014 is now a vertex in the graph, and it multiplies these odds by 3.`)")
+        await ev("cap(`Case memory: its earlier verdict on HHG-014 is now a vertex in the graph, and this investigation finds it. Measured, it is worth ×1.11: honest, not dramatic.`)")
         await wait(5500)
 
         # the two charts

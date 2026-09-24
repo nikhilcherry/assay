@@ -1,20 +1,16 @@
 {
   "case_id": "MON-010",
   "case": {
-    "status": "escalated",
-    "verdict": "uncertain",
-    "fraud_probability": 0.59,
-    "pattern": "undocumented",
-    "pattern_description": "Amount structuring: 3 online purchases between $499.91 and $499.98 within 7 minutes, each just under a $500 threshold, from 1 device profiles marked New. The amounts sit just below a $500 authorization threshold, which none of the five documented patterns describes; the same shape recurs on unrelated cardholders in the bank's closed cases. Found by scanning the card's one-hour window for repeated near-threshold online amounts.",
-    "affected_txn_ids": [
-      "3518540",
-      "3518547",
-      "3518549"
-    ],
-    "first_suspicious_txn_id": "3518540",
+    "status": "closed_legitimate",
+    "verdict": "legitimate",
+    "fraud_probability": 0.02,
+    "pattern": "none",
+    "pattern_description": "",
+    "affected_txn_ids": [],
+    "first_suspicious_txn_id": "",
     "connected_card_ids": [],
     "connected_device_profiles": [],
-    "exposure_usd": 1499.84,
+    "exposure_usd": 0.0,
     "evidence": [
       {
         "claim": "Flagged transaction 3518549 ($499.91, product R, online) scores 0.10 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.24.",
@@ -49,7 +45,7 @@
         ]
       },
       {
-        "claim": "Structuring: 3 online purchases between $499.91 and $499.98 within 7 minutes, each just under a $500 threshold, from 1 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+        "claim": "Structuring: 3 online purchases between $499.91 and $499.98 within 7 minutes, each just under a $500 threshold, from 1 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 45; on top of the model score, which already sees much of that, the shape is worth x1.64.",
         "source": "graph",
         "ref": "query:card_window(card_id=C05560-K2, hours_before=168, hours_after=168)",
         "entity_ids": [
@@ -59,21 +55,15 @@
         ]
       },
       {
-        "claim": "Simulated customer validation: No reply within 24 hours. The probability sits near even, so no reply was assumed rather than inventing a decisive answer.",
+        "claim": "Simulated customer validation: Cardholder confirms they made the transaction.",
         "source": "customer",
         "ref": "evidence_request:1",
         "entity_ids": []
       },
       {
-        "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
+        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
         "source": "document",
-        "ref": "document:brief#known-fraud-patterns/undocumented",
-        "entity_ids": []
-      },
-      {
-        "claim": "Policy R4: No reply within 24 hours: MONITOR_CARD and DECLINE_TRANSACTION for pending authorizations; escalate if exposure exceeds $500.",
-        "source": "document",
-        "ref": "document:fraud-policy#R4",
+        "ref": "document:fraud-policy#R3",
         "entity_ids": []
       },
       {
@@ -84,11 +74,10 @@
       }
     ],
     "similar_prior_cases": [
-      "CC-2649",
-      "CC-2971",
-      "CC-2985"
+      "CC-1824",
+      "CC-0582"
     ],
-    "summary": "Undocumented on card C05560-K2: 3 transaction(s) from 2016-12-06 to 2016-12-06 totalling $1,499.84, probability 0.59. The evidence does not settle it, so it is held for a human under R4/R8. No reply within 24 hours. The probability sits near even, so no reply was assumed rather than inventing a decisive answer.",
+    "summary": "Alert on transaction 3518549 ($499.91) on card C05560-K2. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.02. Cardholder confirms they made the transaction. Closed as legitimate; no report.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-MON-010"
   },
@@ -96,25 +85,20 @@
     {
       "type": "customer_validation",
       "asked_after_step": 6,
-      "assumed_response": "No reply within 24 hours. The probability sits near even, so no reply was assumed rather than inventing a decisive answer."
+      "assumed_response": "Cardholder confirms they made the transaction."
     }
   ],
   "next_best_actions": {
     "initial": [
       {
-        "action": "DECLINE_TRANSACTION",
-        "route": "L1",
-        "reason": "\u00a73b: probability 0.59 leans fraud; hold this authorization while the cardholder is asked, rather than block the card."
-      },
-      {
         "action": "VERIFY_WITH_CUSTOMER",
         "route": "auto",
-        "reason": "\u00a75 and \u00a73b: probability 0.59 is between 0.15 and 0.85, so ask the cardholder before deciding."
+        "reason": "\u00a75 and \u00a73b: probability 0.23 is between 0.15 and 0.85, so ask the cardholder before deciding."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: fraud probability 0.59 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "Policy \u00a73a: evidence was requested, so the investigation is recorded as an internal case and written to the graph."
       },
       {
         "action": "ESCALATE_TO_ANALYST",
@@ -124,40 +108,30 @@
     ],
     "final": [
       {
-        "action": "MONITOR_CARD",
+        "action": "CLOSE_NO_FRAUD",
         "route": "auto",
-        "reason": "R4: no reply within 24 hours; raise monitoring sensitivity for 72 hours."
-      },
-      {
-        "action": "DECLINE_TRANSACTION",
-        "route": "L1",
-        "reason": "R4: decline pending authorizations while the verification is outstanding."
-      },
-      {
-        "action": "ESCALATE_TO_ANALYST",
-        "route": "auto",
-        "reason": "R4: exposure $1,499.84 exceeds $500 with no reply, so a human takes it."
+        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: fraud probability 0.59 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "Policy \u00a73a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached."
       }
     ],
-    "what_changed": "No reply within 24 hours. The probability sits near even, so no reply was assumed rather than inventing a decisive answer. Probability moved 0.59 -> 0.59; added MONITOR_CARD, dropped VERIFY_WITH_CUSTOMER."
+    "what_changed": "Cardholder confirms they made the transaction. Probability moved 0.23 -> 0.02; added CLOSE_NO_FRAUD, dropped VERIFY_WITH_CUSTOMER, ESCALATE_TO_ANALYST."
   },
   "sar": {
     "file": false,
-    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is uncertain at probability 0.59.",
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.02.",
     "narrative": "",
     "subjects": [],
     "total_amount_usd": 0,
     "activity_dates": []
   },
-  "stop_reason": "Policy \u00a76: no reply within 24 hours. R4 actions apply and further waiting is unlikely to change the decision.",
+  "stop_reason": "Policy \u00a76: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 0.04,
+  "latency_s": 1.56,
   "monitor": {
     "source": "structure_scan",
     "trigger_text": "Autonomous monitor (structure_scan): 3 online purchases between $400 and $500 within an hour on card C05560-K2. Review transaction 3518549."

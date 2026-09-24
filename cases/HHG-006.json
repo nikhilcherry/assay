@@ -50,7 +50,7 @@
         ]
       },
       {
-        "claim": "Structuring: 4 online purchases between $456.96 and $488.04 within 30 minutes, each just under a $500 threshold, from 2 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 41 (likelihood ratio ~8).",
+        "claim": "Structuring: 4 online purchases between $456.96 and $488.04 within 30 minutes, each just under a $500 threshold, from 2 device profiles marked New. The bank's closed cases record the same shape five times (CC-3748, CC-3841, CC-3907, CC-4086, CC-4124), all confirmed fraud and filed as undocumented. Measured on July-October, such bursts are fraud 9 times in 45; on top of the model score, which already sees much of that, the shape is worth x1.64.",
         "source": "graph",
         "ref": "query:card_window(card_id=C07297-K1, hours_before=168, hours_after=168)",
         "entity_ids": [
