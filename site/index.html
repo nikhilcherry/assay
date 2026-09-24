@@ -104,6 +104,11 @@ canvas#g{position:absolute;inset:0;width:100%;height:100%;display:block;backgrou
 .moves{list-style:none;margin:6px 0 0;padding:0;font:400 12px/1.35 var(--mono)}
 .moves li{display:grid;grid-template-columns:58px minmax(0,1fr) 44px;gap:8px;padding:4px 0;border-top:1px dashed var(--rule);opacity:.25;transition:opacity .35s}
 .moves li.on{opacity:1}
+.moves li.cf{cursor:pointer}
+.moves li.cf:hover span:nth-child(2){text-decoration:underline dotted}
+.moves li.off span{text-decoration:line-through;color:var(--ink-3)}
+.whatif{font:400 12px/1.45 var(--mono);color:var(--ink-2);margin:8px 0 0;min-height:1.45em}
+.whatif b{color:var(--ink)}
 .moves .lr{color:var(--trace);font-weight:700}
 .moves .lr.down{color:var(--legit)}
 .moves .pv{text-align:right;font-variant-numeric:tabular-nums}
@@ -230,9 +235,11 @@ footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--rule);font:40
       <h3><span>Fraud probability</span><span class="big" id="pnow">—</span></h3>
       <svg id="bal" viewBox="0 0 340 78" role="img" aria-label="Probability on a log-odds scale, with the policy thresholds and the bank's score">
         <g id="balstatic"></g>
+        <g id="ghost" style="opacity:0;transition:transform .5s,opacity .3s"><circle cx="0" cy="32" r="6.5" fill="none" stroke-width="1.8" stroke-dasharray="2 2"/></g>
         <g id="needle" style="transform:translateX(-40px)"><path id="needle-tip" d="M0 18 L-6 9 L6 9 Z"/><circle id="needle-dot" cx="0" cy="32" r="6.5" stroke-width="2"/></g>
       </svg>
       <ul class="moves" id="moves"></ul>
+      <p class="whatif" id="whatif"></p>
     </section>
     <section>
       <h3><span>What it just learned</span><span id="stepn"></span></h3>
@@ -536,9 +543,23 @@ function moveNeedle(){ const n=$("#needle"); if(pShown==null){ n.style.opacity=0
   n.style.transform=`translateX(${bx(pShown)}px)`; const c=pShown>=.85?css.fraud:pShown<=.15?css.legit:css.ink;
   $("#needle-tip").setAttribute("fill",c); $("#needle-dot").setAttribute("fill",c); $("#needle-dot").setAttribute("stroke",css.panel); }
 
+/* counterfactual: drop findings from the ledger and see where the probability would land */
+let off=new Set();
+function whatIf(){
+  const t=cur, el=$("#whatif"), g=$("#ghost");
+  [...$("#moves").children].forEach((li,i)=>li.classList.toggle("off",off.has(i)));
+  if(!off.size){ g.style.opacity=0; el.textContent=t.odds.some(o=>o.lr!=null&&o.tag!=="evidence")?"Click a ×LR row to see the probability without that finding.":""; return; }
+  let lo=logit(t.odds[0].p); const names=[];
+  t.odds.forEach((o,i)=>{ if(o.lr==null||o.tag==="evidence"||o.tag==="gate") return; if(off.has(i)) names.push(TAGNAME[o.tag]||o.label); else lo+=Math.log(o.lr); });
+  const p=1/(1+Math.exp(-lo)), gate=t.odds.find(o=>o.tag==="gate").p;
+  g.style.opacity=1; g.style.transform=`translateX(${bx(p)}px)`; g.querySelector("circle").setAttribute("stroke",css.ink);
+  const where=p>=.85?"still at or past the 0.85 act line":p<=.15?"inside the 0.15 clear line":"short of both §6 stop lines";
+  el.innerHTML=`Without ${esc(names.join(" + "))}: <b>${p.toFixed(2)}</b> instead of ${gate.toFixed(2)}, ${where}.`;
+}
 function paintLists(t){
   $("#moves").innerHTML=t.odds.map(o=>{ const lr=o.lr==null?"·":"×"+(o.lr>=1?+o.lr.toFixed(2):+o.lr.toFixed(3));
-    return `<li><span class="lr ${o.lr!=null&&o.lr<1?"down":""}">${lr}</span><span>${esc(TAGNAME[o.tag]||o.label)}</span><span class="pv">${o.p.toFixed(2)}</span></li>`; }).join("");
+    const cf=o.lr!=null&&o.tag!=="evidence";
+    return `<li${cf?' class="cf" tabindex="0" role="switch" aria-checked="true" title="Remove this finding"':""}><span class="lr ${o.lr!=null&&o.lr<1?"down":""}">${lr}</span><span>${esc(TAGNAME[o.tag]||o.label)}</span><span class="pv">${o.p.toFixed(2)}</span></li>`; }).join("");
   $("#log").innerHTML=t.steps.map(s=>{ const a=Object.entries(s.args).map(([k,v])=>{v=String(v); return `${k}=${v.length>30?v.slice(0,28)+"…":v}`;}).join(", ");
     return `<li><span class="q">${s.query}</span>(${esc(a)})${s.n==null?"":` → ${s.n}`}</li>`; }).join("");
 }
@@ -547,7 +568,7 @@ async function load(id,{autoplay=false}={}){
   $("#cid").textContent=t.case_id;
   $("#cmeta").textContent=`${t.flagged.t} · ${fmt$(t.flagged.amt)} · ${t.flagged.card}`;
   $("#trigger").textContent=t.trigger_text||"";
-  paintLists(t); paintBalance();
+  off=new Set(); paintLists(t); paintBalance(); whatIf();
   document.querySelectorAll(".cases button").forEach(b=>b.setAttribute("aria-current", String(b.dataset.id===id)));
   if(autoplay){ renderTo(-1); play(); } else renderTo(beats.length-1);
 }
@@ -587,19 +608,23 @@ function paintCalib(){
     ["≤ .05",".05–.15",".15–.30",".30–.50",".50–.70",".70–.85","> .85"].map((b,i)=>`<tr><td>${b}</td><td>${REL[i][2].toLocaleString("en-US")}</td><td>${REL[i][0].toFixed(3)}</td><td>${REL[i][1].toFixed(3)}</td></tr>`).join("");
 }
 
+const flip=li=>{ if(!li||!li.classList.contains("cf")) return; const i=[...$("#moves").children].indexOf(li);
+  off.has(i)?off.delete(i):off.add(i); li.setAttribute("aria-checked",String(!off.has(i))); whatIf(); };
+$("#moves").addEventListener("click",e=>flip(e.target.closest("li")));
+$("#moves").addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); e.stopPropagation(); flip(e.target.closest("li")); } });
 $("#cases").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) load(b.dataset.id,{autoplay:true}); });
 $("#tab-exam").onclick=()=>paintRail("exam"); $("#tab-mon").onclick=()=>paintRail("monitor");
 $("#b-play").onclick=()=>playing?pause():play();
 $("#b-fwd").onclick=()=>{ pause(); stepTo(stageDone+1); };
 $("#b-back").onclick=()=>{ pause(); renderTo(Math.max(-1,stageDone-1)); };
 $("#speed").onchange=e=>{ speed=+e.target.value; };
-addEventListener("keydown",e=>{ if(e.target.closest&&e.target.closest("input,select,textarea,summary")) return;
+addEventListener("keydown",e=>{ if(e.target.closest&&e.target.closest("input,select,textarea,summary,.moves")) return;
   if(e.code==="Space"){ e.preventDefault(); playing?pause():play(); }
   else if(e.key==="ArrowRight"){ pause(); stepTo(stageDone+1); }
   else if(e.key==="ArrowLeft"){ pause(); renderTo(Math.max(-1,stageDone-1)); } });
 $("#period-svg").addEventListener("click",e=>{ const g=e.target.closest(".pt"); if(!g) return; const id=g.dataset.id;
   paintRail(id.startsWith("MON")?"monitor":"exam"); load(id,{autoplay:true}); $("#bench").scrollIntoView({behavior:"smooth"}); });
-const retheme=()=>{ readCss(); paintBalance(); if(INDEX.length){ paintPeriod(); paintCalib(); paintRail(cur&&cur.case_id.startsWith("MON")?"monitor":"exam"); } if(cur) paintVerdict(stageDone>=verdictBeat); };
+const retheme=()=>{ readCss(); paintBalance(); if(cur) whatIf(); if(INDEX.length){ paintPeriod(); paintCalib(); paintRail(cur&&cur.case_id.startsWith("MON")?"monitor":"exam"); } if(cur) paintVerdict(stageDone>=verdictBeat); };
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",retheme);
 new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 
