@@ -100,6 +100,32 @@ HHG-003 moves to fraud at 0.85, HHG-011 to fraud at 0.65, and HHG-004 (0.52) is
 escalated rather than guessed. Only a recurring-charge match (R7) now overturns a
 denial.
 
+## Does it work? October, replayed blind
+
+[`assay/evaluate.py`](assay/evaluate.py) replays all 1,347 cases the bank closed in
+October through the same agent, with three guards against peeking: every
+transaction is scored by a model that never saw its month
+([`assay/crossfit.py`](assay/crossfit.py)), each investigation sees only closed cases
+that closed before it opened, and fraud cases are investigated as a bank alert
+with the customer's complaint removed (every historical dispute was fraud, so
+leaving it in would grade the agent on its own prior).
+([`docs/EVAL_REPORT.json`](docs/EVAL_REPORT.json))
+
+| October, blind, at 0.5 | catches confirmed fraud | flags alerts the bank's analysts cleared |
+|---|---|---|
+| the bank's risk score | 48.5% | 100% |
+| **assay** | **59.4%** | **4.9%** |
+
+As verdicts: of the 144 alerts the bank cleared, assay clears 136, calls 5
+fraud and holds 3 for a human. Of 1,203 confirmed frauds, with no complaint to
+go on, it catches 689, holds 90 and misses 424. Brier score 0.316 against the
+bank's 0.391.
+
+Stated plainly: on these ordinary cases the agent scores the same as its own
+model (Brier 0.316 vs 0.317). The graph evidence rarely fires on an average
+case. What it adds is the case the model cannot see at all: HHG-014's ring,
+which the model scores 0.06.
+
 ## Two patterns the documented five do not cover
 
 **HHG-014: a device ring.** One handset profile (Samsung SM-G935F, Android 7.0,

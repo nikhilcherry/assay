@@ -1,0 +1,22 @@
+{
+  "month": "2016-10, never seen by the scores used",
+  "cases": 1347,
+  "cleared_by_the_bank": {
+    "n": 144,
+    "fraud": 5,
+    "legitimate": 136,
+    "uncertain": 3
+  },
+  "confirmed_fraud_without_the_customer_complaint": {
+    "n": 1203,
+    "fraud": 689,
+    "legitimate": 424,
+    "uncertain": 90
+  },
+  "accuracy_when_decided": 0.6579,
+  "held_for_a_human": 0.069,
+  "brier_agent": 0.3157,
+  "brier_model_alone": 0.3172,
+  "brier_bank_risk_score": 0.391,
+  "note": "the case mix is the bank's (89% fraud), not the brief's 50/50, so read the two sides separately"
+}

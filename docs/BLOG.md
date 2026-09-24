@@ -152,6 +152,20 @@ transactions where its model and the bank's disagree sharply). It raised 60
 alerts nobody asked for and investigated each with the same agent. 27 ring
 cards, 4 structuring episodes (of 19 it looked at), and 14 frauds the bank's model had rated under 0.30.
 
+## Is it right?
+
+I replayed every case the bank closed in October through the agent, blind:
+scores from a model that never saw October, a closed-case history that ends when
+each alert opens, and the customer's complaint removed from the fraud cases. The
+bank's own score, at 0.5, catches 48.5% of the confirmed fraud and flags 100% of
+the alerts its analysts went on to clear, because those alerts *are* its
+flags. assay catches 59% and flags 4.9%.
+
+And one result I didn't love: on those ordinary cases, the agent's
+probabilities are no better than its model's. The graph evidence rarely fires on
+an average case. Its value is the case the model can't see at all, like a ring
+of 28 cards the model scored 0.06. I'd rather say that than hide it.
+
 ## Watching it think
 
 An agent's answer file is the end of the story, but judges and analysts want to
