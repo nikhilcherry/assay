@@ -506,7 +506,8 @@ function paintPanels(k){
   setPlayLabel();
 }
 function gateText(g,t){ const p=g.p.toFixed(2);
-  if(g.band==="fraud") return `Policy §6: ${p} clears 0.85 on ${t.pro} independent pieces of evidence, or the cardholder's denial is corroborated by the graph. Stop and act.`;
+  if(g.band==="fraud"&&g.p>=.85) return `Policy §6: ${p} clears 0.85 on ${t.pro} independent pieces of evidence. Stop and act.`;
+  if(g.band==="fraud") return `Policy §6 and R2: the cardholder has denied the charge, and at ${p} nothing in the graph contradicts the denial. A verification response settles it: stop and act.`;
   if(g.band==="legit") return `Policy §6: ${p} is under 0.15 on ${t.con} independent pieces of evidence. Stop. Here, blocking the card would be the costly mistake.`;
   return `Policy §6: ${p} sits between the thresholds. The graph alone does not settle it, so the agent asks for one piece of evidence before it acts.`; }
 function resultLine(s,t){ const n=s.n??0;

@@ -14,7 +14,7 @@ next best action before and after the evidence the agent asked for.
 
 > **Watch it think: [nikhilcherry.github.io/assay](https://nikhilcherry.github.io/assay/)**. Every
 > investigation replayed query by query: the graph grows as each query returns, and each
-> likelihood ratio visibly moves the probability. Demo video (2:41):
+> likelihood ratio visibly moves the probability. Demo video (3:02):
 > [`demo.mp4`](https://github.com/nikhilcherry/assay/releases/download/replay-v1/demo.mp4).
 
 - **20 answer files**: [`cases/`](cases/)
