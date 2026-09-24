@@ -57,28 +57,28 @@ When a case file here says 0.30, it means about three in ten.
 
 ## Results on the 20 cases
 
-| Case | Verdict | p | Pattern | Exposure | SAR | Evidence requests | Final actions |
+| Case (click to replay) | Verdict | p | Pattern | Exposure | SAR | Evidence requests | Final actions |
 |---|---|---|---|---|---|---|---|
-| HHG-001 | legitimate | 0.03 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
-| HHG-002 | uncertain | 0.55 | card_not_present_fraud | $292.36 | no | 1 | MONITOR_CARD, DECLINE_TRANSACTION, CREATE_CASE |
-| HHG-003 | legitimate | 0.02 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
-| HHG-004 | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
-| HHG-005 | legitimate | 0.03 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
-| HHG-006 | fraud | 0.98 | undocumented | $1,906.07 | yes | 0 | BLOCK_CARD, CREATE_CASE, FILE_REPORT, ESCALATE_TO_ANALYST |
-| HHG-007 | fraud | 0.97 | account_takeover | $148.89 | no | 1 | BLOCK_CARD, CREATE_CASE |
-| HHG-008 | fraud | 0.88 | card_not_present_fraud | $111.28 | no | 0 | BLOCK_CARD, CREATE_CASE |
-| HHG-009 | fraud | 0.91 | card_not_present_fraud | $30.02 | no | 0 | BLOCK_CARD, CREATE_CASE |
-| HHG-010 | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
-| HHG-011 | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
-| HHG-012 | legitimate | 0.02 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
-| HHG-013 | legitimate | 0.02 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
-| HHG-014 | fraud | 0.85 | undocumented | $439.61 | yes | 0 | BLOCK_CARD, CREATE_CASE, MONITOR_CONNECTED_CARDS, FILE_REPORT, ESCALATE_TO_ANALYST |
-| HHG-015 | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
-| HHG-016 | fraud | 0.71 | card_not_present_new_device | $59.67 | no | 0 | BLOCK_CARD, CREATE_CASE |
-| HHG-017 | legitimate | 0.14 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
-| HHG-018 | fraud | 0.79 | account_takeover | $156.15 | no | 0 | BLOCK_CARD, CREATE_CASE |
-| HHG-019 | fraud | 0.95 | card_not_present_new_device | $99.92 | no | 1 | BLOCK_CARD, CREATE_CASE |
-| HHG-020 | legitimate | 0.01 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
+| [HHG-001](https://nikhilcherry.github.io/assay/#HHG-001) | legitimate | 0.03 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-002](https://nikhilcherry.github.io/assay/#HHG-002) | uncertain | 0.55 | card_not_present_fraud | $292.36 | no | 1 | MONITOR_CARD, DECLINE_TRANSACTION, CREATE_CASE |
+| [HHG-003](https://nikhilcherry.github.io/assay/#HHG-003) | legitimate | 0.02 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-004](https://nikhilcherry.github.io/assay/#HHG-004) | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-005](https://nikhilcherry.github.io/assay/#HHG-005) | legitimate | 0.03 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
+| [HHG-006](https://nikhilcherry.github.io/assay/#HHG-006) | fraud | 0.98 | undocumented | $1,906.07 | yes | 0 | BLOCK_CARD, CREATE_CASE, FILE_REPORT, ESCALATE_TO_ANALYST |
+| [HHG-007](https://nikhilcherry.github.io/assay/#HHG-007) | fraud | 0.97 | account_takeover | $148.89 | no | 1 | BLOCK_CARD, CREATE_CASE |
+| [HHG-008](https://nikhilcherry.github.io/assay/#HHG-008) | fraud | 0.88 | card_not_present_fraud | $111.28 | no | 0 | BLOCK_CARD, CREATE_CASE |
+| [HHG-009](https://nikhilcherry.github.io/assay/#HHG-009) | fraud | 0.91 | card_not_present_fraud | $30.02 | no | 0 | BLOCK_CARD, CREATE_CASE |
+| [HHG-010](https://nikhilcherry.github.io/assay/#HHG-010) | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-011](https://nikhilcherry.github.io/assay/#HHG-011) | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-012](https://nikhilcherry.github.io/assay/#HHG-012) | legitimate | 0.02 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
+| [HHG-013](https://nikhilcherry.github.io/assay/#HHG-013) | legitimate | 0.02 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
+| [HHG-014](https://nikhilcherry.github.io/assay/#HHG-014) | fraud | 0.85 | undocumented | $439.61 | yes | 0 | BLOCK_CARD, CREATE_CASE, MONITOR_CONNECTED_CARDS, FILE_REPORT, ESCALATE_TO_ANALYST |
+| [HHG-015](https://nikhilcherry.github.io/assay/#HHG-015) | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-016](https://nikhilcherry.github.io/assay/#HHG-016) | fraud | 0.71 | card_not_present_new_device | $59.67 | no | 0 | BLOCK_CARD, CREATE_CASE |
+| [HHG-017](https://nikhilcherry.github.io/assay/#HHG-017) | legitimate | 0.14 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
+| [HHG-018](https://nikhilcherry.github.io/assay/#HHG-018) | fraud | 0.79 | account_takeover | $156.15 | no | 0 | BLOCK_CARD, CREATE_CASE |
+| [HHG-019](https://nikhilcherry.github.io/assay/#HHG-019) | fraud | 0.95 | card_not_present_new_device | $99.92 | no | 1 | BLOCK_CARD, CREATE_CASE |
+| [HHG-020](https://nikhilcherry.github.io/assay/#HHG-020) | legitimate | 0.01 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
 
 8 fraud, 11 legitimate, 1 uncertain. Eight alerts carried a bank risk score of
 0.52 or more and closed as legitimate; three customer disputes did too. The
