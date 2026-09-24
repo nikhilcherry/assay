@@ -45,7 +45,7 @@
     ],
     "similar_prior_cases": [
       "CC-1383",
-      "CC-0175"
+      "CC-3991"
     ],
     "summary": "Alert on transaction 3450629 ($100.09) on card C04570-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.14. Closed as legitimate; no report.",
     "written_to_graph": true,
@@ -90,5 +90,5 @@
   "stop_reason": "Policy \u00a76: fraud probability 0.14 is at or below 0.15 on 3 independent pieces of evidence.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 1.55
+  "latency_s": 0.13
 }

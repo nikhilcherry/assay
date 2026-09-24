@@ -63,7 +63,7 @@
     "similar_prior_cases": [
       "CC-3682",
       "CC-4957",
-      "CC-2744"
+      "CC-3718"
     ],
     "summary": "Out of region use on card C08623-K2: 2 transaction(s) from 2016-12-10 to 2016-12-10 totalling $165.93, probability 0.85.",
     "written_to_graph": true,
@@ -108,5 +108,5 @@
   "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 1.61
+  "latency_s": 0.28
 }

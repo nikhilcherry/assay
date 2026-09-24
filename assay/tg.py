@@ -201,6 +201,12 @@ class TigerGraphStore(Store):
                 for r in self._q("prior_fraud_cases", {"card": (card_id,)})], ref
 
     # -- write-back: the case memory ----------------------------------------
+    def reset_memory(self) -> int:
+        """Forget earlier runs' FraudCase vertices (and their edges), so a run's case
+        memory is causal: an investigation only finds cases this run closed before it.
+        The reference store starts empty for the same reason."""
+        return self.conn.delVertices("FraudCase")
+
     def write_case(self, answer: dict, card_id: str = "") -> str:
         c = answer["case"]
         gid = f"ASSAY-{answer['case_id']}"

@@ -33,6 +33,7 @@ def main(argv=None) -> int:
     else:
         from assay.tg import TigerGraphStore
         store = TigerGraphStore()
+        print(f"cleared {store.reset_memory()} FraudCase vertices from earlier runs")
         writer = store.write_case
     inv = Investigator(store, PatternModel(), writer=writer)
 

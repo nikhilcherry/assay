@@ -217,8 +217,11 @@ Txn, DeviceProfile, EmailDomain, BillingRegion, ClosedCase, **FraudCase**, and
   drew on; `prior_fraud_cases` is how the next investigation finds it.
 
 `assay/store.py` has a pandas implementation of the same ten queries, used by
-the tests and the monitor. Both backends produce identical decisions, IDs and
-amounts on all 20 cases; the only difference is the order of tied similar cases.
+the tests and the monitor. The committed answers come from the TigerGraph run.
+Both backends produce identical verdicts, probabilities, IDs, amounts and
+actions on all 20 cases; the only difference is which near-tied precedents fill
+`similar_prior_cases` (5 of 20 cases). Each TigerGraph run starts by clearing
+earlier runs' FraudCase vertices, so case memory stays causal.
 
 ## The monitor (optional, Innovation)
 
