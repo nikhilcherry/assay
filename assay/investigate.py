@@ -23,6 +23,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from assay import detectors as D
+from assay import disputes
 from assay.documents import PATTERNS, RULES, rules_cited
 from assay.detectors import Finding, fmt_usd
 from assay.patterns import PatternModel
@@ -31,7 +32,6 @@ from assay.policy import (Action, CustomerReply, Pattern, Signals, Verdict, deci
 
 EPISODE_HOURS = 24          # tuned on October closed cases (out-of-time): Jaccard 0.80
 EPISODE_MIN_P = 0.30
-LR_DISPUTE = 3.0            # assumption: a cardholder denial triples the odds (see README)
 LR_DENIES = 8.0             # simulated verification: denial
 LR_CONFIRMS = 1 / 15        # simulated verification: confirmation
 MODEL_NOTE = ("calibrated transaction model trained only on the bank's closed cases "
@@ -171,10 +171,16 @@ class Investigator:
 
         # -- 4. the alert itself ----------------------------------------------
         if disputed:
+            p_disp, why = disputes.posterior(p_model)
+            lr = (p_disp / (1 - p_disp)) / (p_model / (1 - p_model)) if 0 < p_model < 1 else 1.0
             findings.append(Finding(
                 f"Cardholder {case.customer_id} reported the {fmt_usd(f.TransactionAmt)} charge as not theirs "
-                f"(case pack trigger, {case.opened_at}).", f"case_pack:{case.case_id}", [fid],
-                source="customer", lr=LR_DISPUTE, tag="dispute"))
+                f"(case pack trigger, {case.opened_at}). Measured on October: all 1,203 disputes the bank "
+                f"investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial "
+                f"({why['p_history']:.2f}). If this is a planted dispute on a legitimate transaction, a score this "
+                f"size is {why['lr_score']:.2f}x as likely on disputed fraud as on a legitimate transaction "
+                f"({why['p_planted']:.2f}). Weighted equally: {p_disp:.2f}.",
+                f"case_pack:{case.case_id}", [fid], source="customer", lr=lr, tag="dispute"))
 
         p1 = D.combine(p_model, findings)
         pro = sum(1 for x in findings if x.independent and (x.lr > 1 or x.tag == "pro"))
@@ -313,12 +319,11 @@ class Investigator:
                                      "stands."})
                     p2 = D.combine(p1, [Finding("", "", lr=LR_DENIES)])
                     reply, verdict = CustomerReply.DENIES, Verdict.FRAUD
-                elif p1 <= 0.4 or recurring_hit:
-                    what = ("the charge as their own recurring subscription" if recurring_hit
-                            else "the purchase once shown the merchant, amount and device/location details")
+                elif recurring_hit:
+                    # R7, the one way the brief lets a denial turn out legitimate.
                     requests.append({"type": "customer_validation", "asked_after_step": step,
-                                     "assumed_response": f"Cardholder recognises {what} and withdraws the "
-                                     "dispute."})
+                                     "assumed_response": "Cardholder recognises the charge as their own recurring "
+                                     "subscription and withdraws the dispute."})
                     p2 = D.combine(p1, [Finding("", "", lr=LR_CONFIRMS)])
                     reply, verdict = CustomerReply.CONFIRMS, Verdict.LEGITIMATE
                 else:
@@ -374,7 +379,8 @@ class Investigator:
         if status is None:
             status = "escalated" if any(r.action is Action.ESCALATE_TO_ANALYST for r in final) else "open"
 
-        prob = round(p2, 2)
+        # A calibrated probability never claims certainty: the held-out month has no bin at 0 or 1.
+        prob = min(max(round(p2, 2), 0.01), 0.99)
         answer = {
             "case_id": case.case_id,
             "case": {

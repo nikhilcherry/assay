@@ -132,7 +132,7 @@
   "stop_reason": "Policy \u00a76: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 0.94,
+  "latency_s": 1.68,
   "monitor": {
     "source": "structure_scan",
     "trigger_text": "Autonomous monitor (structure_scan): 4 online purchases between $400 and $500 within an hour on card C10990-K1. Review transaction 3476008."

@@ -279,7 +279,7 @@
   "stop_reason": "Policy \u00a76: fraud probability 0.97 is at or above 0.85 on 3 independent pieces of evidence.",
   "tool_calls": 10,
   "tokens": 0,
-  "latency_s": 0.02,
+  "latency_s": 0.03,
   "monitor": {
     "source": "ring_scan",
     "trigger_text": "Autonomous monitor (ring_scan): device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080 on 28 cards in 19 days, marked New and behind a proxy on every use. Review transaction 3509581."

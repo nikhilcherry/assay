@@ -151,7 +151,7 @@
   "stop_reason": "Policy \u00a76: no reply within 24 hours. R4 actions apply and further waiting is unlikely to change the decision.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 0.02,
+  "latency_s": 0.04,
   "monitor": {
     "source": "structure_scan",
     "trigger_text": "Autonomous monitor (structure_scan): 4 online purchases between $400 and $500 within an hour on card C12641-K2. Review transaction 3498092."

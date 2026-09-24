@@ -1,0 +1,83 @@
+{
+  "month": "2016-10 (out of time)",
+  "disputes": 1203,
+  "disputes_confirmed_fraud": 1203,
+  "model_alerts": 144,
+  "model_alerts_cleared": 144,
+  "disputed_scored_under_0.05": 0.153,
+  "lr_history": 13807,
+  "lr_history_note": "smallest LR under which the model + dispute reproduces a >= 1 - 3/n fraud rate on 1145 scored October disputes",
+  "score_bins": [
+    {
+      "from": 0,
+      "to": 0.005,
+      "disputed_fraud": 0.0524,
+      "legitimate": 0.7194,
+      "lr": 0.073
+    },
+    {
+      "from": 0.005,
+      "to": 0.01,
+      "disputed_fraud": 0.0314,
+      "legitimate": 0.1145,
+      "lr": 0.275
+    },
+    {
+      "from": 0.01,
+      "to": 0.02,
+      "disputed_fraud": 0.0148,
+      "legitimate": 0.035,
+      "lr": 0.424
+    },
+    {
+      "from": 0.02,
+      "to": 0.05,
+      "disputed_fraud": 0.0541,
+      "legitimate": 0.0644,
+      "lr": 0.84
+    },
+    {
+      "from": 0.05,
+      "to": 0.1,
+      "disputed_fraud": 0.0847,
+      "legitimate": 0.0359,
+      "lr": 2.359
+    },
+    {
+      "from": 0.1,
+      "to": 0.2,
+      "disputed_fraud": 0.0795,
+      "legitimate": 0.0165,
+      "lr": 4.807
+    },
+    {
+      "from": 0.2,
+      "to": 0.4,
+      "disputed_fraud": 0.041,
+      "legitimate": 0.0044,
+      "lr": 9.273
+    },
+    {
+      "from": 0.4,
+      "to": 0.6,
+      "disputed_fraud": 0.0821,
+      "legitimate": 0.0034,
+      "lr": 24.165
+    },
+    {
+      "from": 0.6,
+      "to": 0.8,
+      "disputed_fraud": 0.5528,
+      "legitimate": 0.0063,
+      "lr": 88.324
+    },
+    {
+      "from": 0.8,
+      "to": 1.0,
+      "disputed_fraud": 0.007,
+      "legitimate": 0.0001,
+      "lr": 52.207
+    }
+  ],
+  "w_history": 0.5
+}

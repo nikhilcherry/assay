@@ -1,16 +1,18 @@
 {
   "case_id": "HHG-004",
   "case": {
-    "status": "closed_legitimate",
-    "verdict": "legitimate",
-    "fraud_probability": 0.0,
-    "pattern": "none",
+    "status": "escalated",
+    "verdict": "uncertain",
+    "fraud_probability": 0.52,
+    "pattern": "card_not_present_new_device",
     "pattern_description": "",
-    "affected_txn_ids": [],
-    "first_suspicious_txn_id": "",
+    "affected_txn_ids": [
+      "3583227"
+    ],
+    "first_suspicious_txn_id": "3583227",
     "connected_card_ids": [],
     "connected_device_profiles": [],
-    "exposure_usd": 0.0,
+    "exposure_usd": 128.33,
     "evidence": [
       {
         "claim": "Flagged transaction 3583227 ($128.33, product C, online) scores 0.00 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.34.",
@@ -37,7 +39,7 @@
         ]
       },
       {
-        "claim": "Cardholder C08106 reported the $128.33 charge as not theirs (case pack trigger, 2016-12-29 07:53:54).",
+        "claim": "Cardholder C08106 reported the $128.33 charge as not theirs (case pack trigger, 2016-12-29 07:53:54). Measured on October: all 1,203 disputes the bank investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial (0.98). If this is a planted dispute on a legitimate transaction, a score this size is 0.07x as likely on disputed fraud as on a legitimate transaction (0.07). Weighted equally: 0.52.",
         "source": "customer",
         "ref": "case_pack:HHG-004",
         "entity_ids": [
@@ -45,15 +47,15 @@
         ]
       },
       {
-        "claim": "Simulated customer validation: Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute.",
-        "source": "customer",
+        "claim": "Simulated analyst info: Analyst review is inconclusive: the device and region partly match the cardholder's history and partly do not.",
+        "source": "external",
         "ref": "evidence_request:1",
         "entity_ids": []
       },
       {
-        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "claim": "Card-not-present fraud from a new device: as above, with the identity record marking the device New for this account, sometimes behind a proxy.",
         "source": "document",
-        "ref": "document:fraud-policy#R3",
+        "ref": "document:brief#known-fraud-patterns/card_not_present_new_device",
         "entity_ids": []
       },
       {
@@ -61,21 +63,28 @@
         "source": "document",
         "ref": "document:fraud-policy#\u00a73a",
         "entity_ids": []
+      },
+      {
+        "claim": "Policy R8: Uncertain and exposed (over $500) or conflicting evidence: ESCALATE_TO_ANALYST.",
+        "source": "document",
+        "ref": "document:fraud-policy#R8",
+        "entity_ids": []
       }
     ],
     "similar_prior_cases": [
-      "CC-0696",
-      "CC-1139"
+      "CC-3968",
+      "CC-5541",
+      "CC-1643"
     ],
-    "summary": "Alert on transaction 3583227 ($128.33) on card C08106-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.00. Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute. Closed as legitimate; no report.",
+    "summary": "Card not present new device on card C08106-K1: 1 transaction(s) from 2016-12-29 to 2016-12-29 totalling $128.33, probability 0.52. The evidence does not settle it, so it is held for a human under R4/R8. Analyst review is inconclusive: the device and region partly match the cardholder's history and partly do not.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-HHG-004"
   },
   "evidence_requests": [
     {
-      "type": "customer_validation",
+      "type": "analyst_info",
       "asked_after_step": 6,
-      "assumed_response": "Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute."
+      "assumed_response": "Analyst review is inconclusive: the device and region partly match the cardholder's history and partly do not."
     }
   ],
   "next_best_actions": {
@@ -88,38 +97,53 @@
       {
         "action": "VERIFY_WITH_CUSTOMER",
         "route": "auto",
-        "reason": "\u00a75 and \u00a73b: probability 0.01 is between 0.15 and 0.85, so ask the cardholder before deciding."
+        "reason": "\u00a75 and \u00a73b: probability 0.52 is between 0.15 and 0.85, so ask the cardholder before deciding."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: the customer disputes a charge, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "Policy \u00a73a: fraud probability 0.52 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R8: the verdict is uncertain and the evidence conflicts."
       }
     ],
     "final": [
       {
-        "action": "CLOSE_NO_FRAUD",
+        "action": "STEP_UP_AUTH",
         "route": "auto",
-        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file."
+        "reason": "\u00a75: the cardholder disputes the charge but the graph evidence does not settle it; require step-up authentication on further activity while it is reviewed."
+      },
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.52 is between 0.15 and 0.85, so ask the cardholder before deciding."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached."
+        "reason": "Policy \u00a73a: fraud probability 0.52 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R8: the verdict is uncertain and the evidence conflicts."
       }
     ],
-    "what_changed": "Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute. Probability moved 0.01 -> 0.00; added CLOSE_NO_FRAUD, dropped STEP_UP_AUTH, VERIFY_WITH_CUSTOMER."
+    "what_changed": "The evidence request did not change the recommendation; probability 0.52 -> 0.52."
   },
   "sar": {
     "file": false,
-    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.00.",
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is uncertain at probability 0.52.",
     "narrative": "",
     "subjects": [],
     "total_amount_usd": 0,
     "activity_dates": []
   },
-  "stop_reason": "Policy \u00a76: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
+  "stop_reason": "Policy \u00a76: probability 0.52 remains between 0.15 and 0.85, but the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 0.15
+  "latency_s": 1.94
 }

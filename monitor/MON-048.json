@@ -116,7 +116,7 @@
   "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 1.47,
+  "latency_s": 2.43,
   "monitor": {
     "source": "model_monitor",
     "trigger_text": "Autonomous monitor (model_monitor): assay model 0.78 vs bank risk score 0.26. Review transaction 3418191."

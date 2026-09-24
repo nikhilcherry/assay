@@ -135,8 +135,8 @@
     "case_id": "HHG-003",
     "card_id": "C08623-K2",
     "graph_case_id": "ASSAY-HHG-003",
-    "verdict": "legitimate",
-    "pattern": "none",
+    "verdict": "fraud",
+    "pattern": "out_of_region_use",
     "connected": []
   },
   {
@@ -175,16 +175,16 @@
     "case_id": "HHG-011",
     "card_id": "C11923-K2",
     "graph_case_id": "ASSAY-HHG-011",
-    "verdict": "legitimate",
-    "pattern": "none",
+    "verdict": "fraud",
+    "pattern": "card_not_present_new_device",
     "connected": []
   },
   {
     "case_id": "HHG-004",
     "card_id": "C08106-K1",
     "graph_case_id": "ASSAY-HHG-004",
-    "verdict": "legitimate",
-    "pattern": "none",
+    "verdict": "uncertain",
+    "pattern": "card_not_present_new_device",
     "connected": []
   }
 ]

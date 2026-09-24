@@ -16,7 +16,7 @@ The best part only shows up in the graph: one Samsung handset behind an anonymou
 proxy, "New" on every card, 60 purchases across 28 unrelated cardholders. Every
 purchase scored low on the bank's model. You can only see it by walking device → cards.
 
-8 fraud · 11 legitimate · 1 uncertain across 20 cases. It blocks 8 cards, not 20.
+10 fraud · 8 legitimate · 2 held for a human across 20 cases. It blocks 10 cards, not 20.
 Plus 60 investigations it started on its own.
 
 Watch it think: every investigation replayed query by query, with the graph growing

@@ -3,7 +3,7 @@
   "case": {
     "status": "closed_fraud",
     "verdict": "fraud",
-    "fraud_probability": 1.0,
+    "fraud_probability": 0.99,
     "pattern": "undocumented",
     "pattern_description": "Device-ring fraud: a single Samsung SM-G935F / Android 7.0 / Chrome 62 / 1920x1080 handset behind an anonymous proxy, marked New on every card it touches, used on 28 unrelated cards within a month for a few purchases each, every one scoring low on the bank's model. No single card shows a credential or channel change, so it is not account takeover, and the link that makes it fraud is the shared handset across cardholders. Found by traversing from the flagged transaction's device profile to every other card that used it.",
     "affected_txn_ids": [
@@ -176,7 +176,7 @@
       "CC-2985",
       "CC-3035"
     ],
-    "summary": "Undocumented on card C02910-K1: 3 transaction(s) from 2016-11-18 to 2016-12-04 totalling $531.39, probability 1.00. Linked to 27 other card(s) through device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080.",
+    "summary": "Undocumented on card C02910-K1: 3 transaction(s) from 2016-11-18 to 2016-12-04 totalling $531.39, probability 0.99. Linked to 27 other card(s) through device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-MON-022"
   },
@@ -283,7 +283,7 @@
   "stop_reason": "Policy \u00a76: fraud probability 1.00 is at or above 0.85 on 4 independent pieces of evidence.",
   "tool_calls": 10,
   "tokens": 0,
-  "latency_s": 0.02,
+  "latency_s": 0.04,
   "monitor": {
     "source": "ring_scan",
     "trigger_text": "Autonomous monitor (ring_scan): device profile SM-G935F Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080 on 28 cards in 19 days, marked New and behind a proxy on every use. Review transaction 3512532."

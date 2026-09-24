@@ -1,16 +1,18 @@
 {
   "case_id": "HHG-011",
   "case": {
-    "status": "closed_legitimate",
-    "verdict": "legitimate",
-    "fraud_probability": 0.0,
-    "pattern": "none",
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.65,
+    "pattern": "card_not_present_new_device",
     "pattern_description": "",
-    "affected_txn_ids": [],
-    "first_suspicious_txn_id": "",
+    "affected_txn_ids": [
+      "3583368"
+    ],
+    "first_suspicious_txn_id": "3583368",
     "connected_card_ids": [],
     "connected_device_profiles": [],
-    "exposure_usd": 0.0,
+    "exposure_usd": 131.3,
     "evidence": [
       {
         "claim": "Flagged transaction 3583368 ($131.30, product C, online) scores 0.01 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.39.",
@@ -37,7 +39,7 @@
         ]
       },
       {
-        "claim": "Cardholder C11923 reported the $131.30 charge as not theirs (case pack trigger, 2016-12-29 06:27:44).",
+        "claim": "Cardholder C11923 reported the $131.30 charge as not theirs (case pack trigger, 2016-12-29 06:27:44). Measured on October: all 1,203 disputes the bank investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial (0.99). If this is a planted dispute on a legitimate transaction, a score this size is 0.42x as likely on disputed fraud as on a legitimate transaction (0.30). Weighted equally: 0.65.",
         "source": "customer",
         "ref": "case_pack:HHG-011",
         "entity_ids": [
@@ -45,81 +47,65 @@
         ]
       },
       {
-        "claim": "Simulated customer validation: Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute.",
-        "source": "customer",
-        "ref": "evidence_request:1",
+        "claim": "Card-not-present fraud from a new device: as above, with the identity record marking the device New for this account, sometimes behind a proxy.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/card_not_present_new_device",
         "entity_ids": []
       },
       {
-        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
         "source": "document",
-        "ref": "document:fraud-policy#R3",
-        "entity_ids": []
-      },
-      {
-        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
-        "source": "document",
-        "ref": "document:fraud-policy#\u00a73a",
+        "ref": "document:fraud-policy#R2",
         "entity_ids": []
       }
     ],
     "similar_prior_cases": [
-      "CC-4743",
-      "CC-2742"
+      "CC-3206",
+      "CC-3905",
+      "CC-0496"
     ],
-    "summary": "Alert on transaction 3583368 ($131.30) on card C11923-K2. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.00. Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute. Closed as legitimate; no report.",
+    "summary": "Card not present new device on card C11923-K2: 1 transaction(s) from 2016-12-29 to 2016-12-29 totalling $131.30, probability 0.65.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-HHG-011"
   },
-  "evidence_requests": [
-    {
-      "type": "customer_validation",
-      "asked_after_step": 6,
-      "assumed_response": "Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute."
-    }
-  ],
+  "evidence_requests": [],
   "next_best_actions": {
     "initial": [
       {
-        "action": "STEP_UP_AUTH",
-        "route": "auto",
-        "reason": "\u00a75: the cardholder disputes the charge but the graph evidence does not settle it; require step-up authentication on further activity while it is reviewed."
-      },
-      {
-        "action": "VERIFY_WITH_CUSTOMER",
-        "route": "auto",
-        "reason": "\u00a75 and \u00a73b: probability 0.03 is between 0.15 and 0.85, so ask the cardholder before deciding."
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: the customer disputes a charge, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "R2: a denial requires an internal case with the evidence attached."
       }
     ],
     "final": [
       {
-        "action": "CLOSE_NO_FRAUD",
-        "route": "auto",
-        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file."
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached."
+        "reason": "R2: a denial requires an internal case with the evidence attached."
       }
     ],
-    "what_changed": "Cardholder recognises the purchase once shown the merchant, amount and device/location details and withdraws the dispute. Probability moved 0.03 -> 0.00; added CLOSE_NO_FRAUD, dropped STEP_UP_AUTH, VERIFY_WITH_CUSTOMER."
+    "what_changed": "nothing"
   },
   "sar": {
     "file": false,
-    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.00.",
+    "reason": "Policy \u00a73a: fraud is suspected but no reporting trigger is met -- exposure $131.30 is under $1,000, the activity is isolated to this card, and the pattern is a known one. Case only, no report.",
     "narrative": "",
     "subjects": [],
     "total_amount_usd": 0,
     "activity_dates": []
   },
-  "stop_reason": "Policy \u00a76: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 0.39
+  "latency_s": 1.99
 }

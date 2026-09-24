@@ -60,7 +60,7 @@
     "similar_prior_cases": [
       "CC-2421",
       "CC-3398",
-      "CC-3436"
+      "CC-2548"
     ],
     "summary": "Card not present new device on card C07987-K2: 1 transaction(s) from 2016-12-01 to 2016-12-01 totalling $99.92, probability 0.95. Cardholder states they did not make this transaction and still has the card.",
     "written_to_graph": true,
@@ -116,5 +116,5 @@
   "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 0.14
+  "latency_s": 2.02
 }

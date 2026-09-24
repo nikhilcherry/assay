@@ -59,9 +59,9 @@ agent is a small state machine around it:
    evidence comes back, once after. That's how `initial` and `final` actions
    come out genuinely different, instead of as two copies of one list.
 
-Twenty cases in, the result was 8 fraud, 11 legitimate, 1 uncertain. Eight
-alerts where the bank's model said 0.52 to 0.90 closed as legitimate. The brief
-warns that "an agent that blocks everything scores badly". This one blocks eight cards.
+Twenty cases in, the result was 10 fraud, 8 legitimate, 2 held for a human.
+Eight alerts where the bank's model said 0.52 to 0.90 closed as legitimate. The
+brief warns that "an agent that blocks everything scores badly". This one blocks ten cards.
 
 ## The fraud you can only see in the graph
 
@@ -100,11 +100,30 @@ are fraud. Precision 0.22 against a base rate of 0.034 works out to a likelihood
 ratio of about 8, not 40. The other 32 bursts were ordinary people buying
 ordinary expensive things. The detector now uses 8, and the monitor, which
 sweeps the exam period for these bursts on its own, cleared 7 of the 19 it found
-as legitimate. HHG-006 is still fraud at 0.98, because its strongest transaction
+as legitimate. HHG-006 is still fraud at 0.99, because its strongest transaction
 already scores high and the customer disputed it. Now the number behind that is
 one I can defend.
 
 Every likelihood ratio I couldn't measure is listed in the README as an assumption.
+
+The second one I got wrong was bigger, and I found it on deadline day. The agent
+treated a cardholder's "I never made this purchase" as tripling the odds. So a
+disputed charge the model scored at 0.01 came out at 0.03, and the agent
+simulated the customer recognising the purchase and withdrawing the dispute. It
+cleared three disputes that way. Then I counted again. In October, the month the
+model never saw, the bank investigated 1,203 disputes, and **every one** was
+fraud, including the 15% the model scored under 0.05. A low score does not clear
+a denial, and the customer had already denied it: inventing a retraction
+contradicts the case itself.
+
+But the brief also says half the exam is legitimate, so some disputes may be
+planted on legitimate transactions, which the history can't show. For those the
+model score *is* the evidence, and its two distributions are measurable: under
+0.005 it is 14 times more common on a legitimate transaction than on disputed
+fraud. So the agent now averages the two readings, weighted equally, and says
+that the equal weight is the assumption. Two of the three disputes became fraud.
+The third, at 0.52, goes to a human, which is what the policy says to do with
+evidence that doesn't settle the question.
 
 ## Case memory, in the graph
 
@@ -149,7 +168,7 @@ agent actually ran.
 Replace the simulated customer replies with a proper model of reply behaviour,
 measure the likelihood ratios that are still assumptions, and put the SAR
 narratives through a regulator-style checklist. The code for all of it is at
-the link below: 343 tests, and everything reproduces from the four CSVs.
+the link below: 427 tests, and everything reproduces from the four CSVs.
 
 *Repo: github.com/nikhilcherry/assay · Replay: nikhilcherry.github.io/assay ·
 Demo video: github.com/nikhilcherry/assay/releases/tag/replay-v1*

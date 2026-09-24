@@ -66,7 +66,7 @@ per-transaction model cannot see carry LRs:
 | ring profile in confirmed closed cases | 3 | assumption |
 | card testing (≥3 online < $5 within an hour, then larger) | 20 | assumption; 16/16 such closed cases confirmed |
 | disputed charge matches own monthly recurring charge | 0.1 | assumption (R7) |
-| customer dispute | 3 | assumption |
+| customer dispute | varies with the model score | measured on October: 1,203/1,203 disputes were fraud (LR ≥ 13,807), averaged equally with the score's own disputed-fraud vs legitimate density ratio, in case the dispute is planted (`assay/disputes.py`) |
 | case memory: card named in an earlier fraud verdict | 3 | assumption |
 
 ## 4. The gate and the two recommendations

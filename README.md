@@ -61,29 +61,43 @@ When a case file here says 0.30, it means about three in ten.
 |---|---|---|---|---|---|---|---|
 | [HHG-001](https://nikhilcherry.github.io/assay/#HHG-001) | legitimate | 0.03 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
 | [HHG-002](https://nikhilcherry.github.io/assay/#HHG-002) | uncertain | 0.55 | card_not_present_fraud | $292.36 | no | 1 | MONITOR_CARD, DECLINE_TRANSACTION, CREATE_CASE |
-| [HHG-003](https://nikhilcherry.github.io/assay/#HHG-003) | legitimate | 0.02 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
-| [HHG-004](https://nikhilcherry.github.io/assay/#HHG-004) | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-003](https://nikhilcherry.github.io/assay/#HHG-003) | fraud | 0.85 | out_of_region_use | $165.93 | no | 0 | BLOCK_CARD, CREATE_CASE |
+| [HHG-004](https://nikhilcherry.github.io/assay/#HHG-004) | uncertain | 0.52 | card_not_present_new_device | $128.33 | no | 1 | STEP_UP_AUTH, VERIFY_WITH_CUSTOMER, CREATE_CASE, ESCALATE_TO_ANALYST |
 | [HHG-005](https://nikhilcherry.github.io/assay/#HHG-005) | legitimate | 0.03 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
-| [HHG-006](https://nikhilcherry.github.io/assay/#HHG-006) | fraud | 0.98 | undocumented | $1,906.07 | yes | 0 | BLOCK_CARD, CREATE_CASE, FILE_REPORT, ESCALATE_TO_ANALYST |
+| [HHG-006](https://nikhilcherry.github.io/assay/#HHG-006) | fraud | 0.99 | undocumented | $1,906.07 | yes | 0 | BLOCK_CARD, CREATE_CASE, FILE_REPORT, ESCALATE_TO_ANALYST |
 | [HHG-007](https://nikhilcherry.github.io/assay/#HHG-007) | fraud | 0.97 | account_takeover | $148.89 | no | 1 | BLOCK_CARD, CREATE_CASE |
-| [HHG-008](https://nikhilcherry.github.io/assay/#HHG-008) | fraud | 0.88 | card_not_present_fraud | $111.28 | no | 0 | BLOCK_CARD, CREATE_CASE |
-| [HHG-009](https://nikhilcherry.github.io/assay/#HHG-009) | fraud | 0.91 | card_not_present_fraud | $30.02 | no | 0 | BLOCK_CARD, CREATE_CASE |
-| [HHG-010](https://nikhilcherry.github.io/assay/#HHG-010) | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
-| [HHG-011](https://nikhilcherry.github.io/assay/#HHG-011) | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-008](https://nikhilcherry.github.io/assay/#HHG-008) | fraud | 0.99 | card_not_present_fraud | $111.28 | no | 0 | BLOCK_CARD, CREATE_CASE |
+| [HHG-009](https://nikhilcherry.github.io/assay/#HHG-009) | fraud | 0.99 | card_not_present_fraud | $30.02 | no | 0 | BLOCK_CARD, CREATE_CASE |
+| [HHG-010](https://nikhilcherry.github.io/assay/#HHG-010) | legitimate | 0.01 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-011](https://nikhilcherry.github.io/assay/#HHG-011) | fraud | 0.65 | card_not_present_new_device | $131.30 | no | 0 | BLOCK_CARD, CREATE_CASE |
 | [HHG-012](https://nikhilcherry.github.io/assay/#HHG-012) | legitimate | 0.02 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
 | [HHG-013](https://nikhilcherry.github.io/assay/#HHG-013) | legitimate | 0.02 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
 | [HHG-014](https://nikhilcherry.github.io/assay/#HHG-014) | fraud | 0.85 | undocumented | $439.61 | yes | 0 | BLOCK_CARD, CREATE_CASE, MONITOR_CONNECTED_CARDS, FILE_REPORT, ESCALATE_TO_ANALYST |
-| [HHG-015](https://nikhilcherry.github.io/assay/#HHG-015) | legitimate | 0.00 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
-| [HHG-016](https://nikhilcherry.github.io/assay/#HHG-016) | fraud | 0.71 | card_not_present_new_device | $59.67 | no | 0 | BLOCK_CARD, CREATE_CASE |
+| [HHG-015](https://nikhilcherry.github.io/assay/#HHG-015) | legitimate | 0.01 | none | $0.00 | no | 1 | CLOSE_NO_FRAUD, CREATE_CASE |
+| [HHG-016](https://nikhilcherry.github.io/assay/#HHG-016) | fraud | 0.98 | card_not_present_new_device | $59.67 | no | 0 | BLOCK_CARD, CREATE_CASE |
 | [HHG-017](https://nikhilcherry.github.io/assay/#HHG-017) | legitimate | 0.14 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
-| [HHG-018](https://nikhilcherry.github.io/assay/#HHG-018) | fraud | 0.79 | account_takeover | $156.15 | no | 0 | BLOCK_CARD, CREATE_CASE |
+| [HHG-018](https://nikhilcherry.github.io/assay/#HHG-018) | fraud | 0.98 | account_takeover | $156.15 | no | 0 | BLOCK_CARD, CREATE_CASE |
 | [HHG-019](https://nikhilcherry.github.io/assay/#HHG-019) | fraud | 0.95 | card_not_present_new_device | $99.92 | no | 1 | BLOCK_CARD, CREATE_CASE |
 | [HHG-020](https://nikhilcherry.github.io/assay/#HHG-020) | legitimate | 0.01 | none | $0.00 | no | 0 | ALLOW_TRANSACTION, CLOSE_NO_FRAUD |
 
-8 fraud, 11 legitimate, 1 uncertain. Eight alerts carried a bank risk score of
-0.52 or more and closed as legitimate; three customer disputes did too. The
-brief says half the cases are legitimate and that blocking everything scores
-badly. This agent blocks 8 cards.
+10 fraud, 8 legitimate, 2 uncertain. Eight alerts carried a bank risk score of
+0.52 or more and closed as legitimate. The brief says half the cases are
+legitimate and that blocking everything scores badly. This agent blocks 10 cards
+and holds 2 for a human.
+
+**What a dispute is worth, measured.** An earlier version cleared three customer
+disputes (HHG-003, HHG-004, HHG-011) because the model scored them low, and it
+simulated the customer taking the dispute back. The bank's own October says
+otherwise: all 1,203 disputes it investigated were fraud, and 15% of them scored
+under 0.05. A low score does not clear a denial. But the brief says half the exam
+cases are legitimate, so some disputes may be planted on legitimate transactions,
+and for those the score *is* informative: under 0.005 it is 14 times more common
+on a legitimate transaction than on disputed fraud. assay now averages the two
+readings, weighted equally, and says so
+([`assay/disputes.py`](assay/disputes.py), [`docs/DISPUTE_REPORT.json`](docs/DISPUTE_REPORT.json)).
+HHG-003 moves to fraud at 0.85, HHG-011 to fraud at 0.65, and HHG-004 (0.52) is
+escalated rather than guessed. Only a recurring-charge match (R7) now overturns a
+denial.
 
 ## Two patterns the documented five do not cover
 
@@ -199,11 +213,14 @@ cleared as legitimate, because the scan is a reason to look, not a verdict.
 
 - **Customer and analyst replies are simulated** (the brief allows it). The
   rule: at p ≥ 0.6 the cardholder denies, at p ≤ 0.4 they confirm, and in
-  between they do not reply (R4). A customer's own dispute counts as a
-  denial when the graph agrees with it (p ≥ 0.6), so no second request is made.
+  between they do not reply (R4). A customer's own dispute is a denial (R2):
+  the agent never simulates a disputing customer changing their mind, except on
+  a recurring-charge match (R7).
 - **Likelihood ratios that are not measured are named as assumptions:** a
-  dispute ×3, a simulated denial ×8, a confirmation ÷15, a device ring ×30,
-  case memory of prior fraud ×3. Structuring (×8) is measured.
+  a simulated denial ×8, a confirmation ÷15, a device ring ×30, case memory of
+  prior fraud ×3. Structuring (×8) and customer disputes are measured; the one
+  assumption in the dispute reading is the equal weight between "real dispute"
+  and "planted dispute".
 - **Card IDs are derived.** Transactions carry no card column. Within a
   customer, a card is a distinct `card6`, numbered from least to most used. The
   rule reproduces 99.2% of the 14,975 card IDs the closed cases name, and all 20
@@ -242,6 +259,7 @@ export PYTHONPATH=.
 python -m assay.data                  # stage CSVs to parquet, derive card IDs          (~40 s)
 python -m assay.model                 # train + validate + calibrate                    (~5 min)
 python -m assay.patterns              # pattern classifier                              (~30 s)
+python -m assay.disputes              # what a dispute is worth  -> docs/DISPUTE_REPORT.json
 
 docker run -d --name assay-tg --ulimit nofile=1000000:1000000 -p 14240:14240 \
   -v "$PWD/data:/home/tigergraph/data:ro" -t tigergraph/community:4.2.5
@@ -252,7 +270,7 @@ python -m assay.run                   # the 20 cases, on TigerGraph  -> cases/
 python -m assay.run --local           # same, on the pandas reference store
 python -m assay.monitor               # the autonomous sweep         -> monitor/
 python -m assay.trace                 # replay traces                -> site/data/     (~3 min)
-python -m pytest -q                   # 343 tests
+python -m pytest -q                   # 427 tests
 
 python -m http.server 8731 -d site    # the replay, at localhost:8731
 python scripts/record_demo.py         # the demo video               -> docs/demo.mp4  (needs playwright)
@@ -264,6 +282,7 @@ python scripts/record_demo.py         # the demo video               -> docs/dem
 assay/        data.py (staging, card IDs, holders)   model.py (calibrated model)
               patterns.py   detectors.py   policy.py   documents.py
               investigate.py (the agent)   store.py / tg.py (the two backends)
+              disputes.py (measured dispute evidence)
               run.py   monitor.py   validate.py   trace.py (replay traces)
 graph/        schema.gsql   load.gsql   queries/investigation.gsql
 cases/        the 20 answer files
@@ -271,7 +290,7 @@ monitor/      the autonomous monitor's alerts and investigations
 docs/         BRIEF.md (organizer brief)   ARCHITECTURE.md   MODEL_REPORT.json   BLOG.md
 site/         the replay: index.html + data/ (one trace per investigation)
 scripts/      record_demo.py
-tests/        policy, detectors, answer files, replay traces
+tests/        policy, detectors, disputes, answer files, replay traces
 ```
 
 Data: IEEE-CIS Fraud Detection dataset, Vesta Corporation, via the IEEE

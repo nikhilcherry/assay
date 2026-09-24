@@ -138,6 +138,12 @@ async def main() -> int:
         await ev("cap(`HHG-002: at <i>0.55</i> the evidence doesn't settle it. It asks for evidence, doesn't invent an answer, and holds the case for a human.`)")
         await replay("HHG-002", 1.3, hold=3000)
 
+        # a correction, measured
+        await ev("cap(`HHG-011: disputed, but the model says 0.01. In October all <b>1,203</b> disputes were fraud, 15% of them scored under 0.05. A low score doesn't clear a denial.`)")
+        await replay("HHG-011", 1.3, hold=500)
+        await ev("cap(`Weighed against the chance of a planted dispute on a legitimate transaction: <b>0.65</b>. Blocked under R2, with no invented customer retraction.`)")
+        await wait(5000)
+
         # monitor + case memory
         await ev("cap(`Then it went looking on its own: <b>60 investigations nobody asked for</b>. The bank scored MON-041 at 0.03.`)")
         await replay("MON-041", 1.4, tab="#tab-mon", hold=500)
@@ -153,7 +159,7 @@ async def main() -> int:
         await ev("cap(`Why trust the number? The model learns only from the bank's closed cases and is tested on a month it never saw: <u>AUC 0.964 vs 0.866</u>. When it says 0.30, three in ten were fraud.`)")
         await wait(8500)
         await ev("cap(null)")
-        await ev("""card(`<h1>assay</h1><p>8 fraud · 11 legitimate · 1 held for a human, across 20 cases.<br>60 more that it opened on its own.</p>
+        await ev("""card(`<h1>assay</h1><p>10 fraud · 8 legitimate · 2 held for a human, across 20 cases.<br>60 more that it opened on its own.</p>
           <code>github.com/nikhilcherry/assay</code><code>nikhilcherry.github.io/assay</code>`)""")
         await wait(6000)
 

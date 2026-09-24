@@ -47,7 +47,8 @@ def test_ledger_adds_up_in_log_odds(path):
         lo += math.log(o["lr"])
     gate = next(o for o in odds if o["tag"] == "gate")
     assert abs(1 / (1 + math.exp(-lo)) - gate["p"]) < 2e-3
-    assert round(odds[-1]["p"], 2) == t["answer"]["case"]["fraud_probability"]
+    # the answer file never claims certainty: reported probabilities are clipped to [0.01, 0.99]
+    assert min(max(round(odds[-1]["p"], 2), 0.01), 0.99) == t["answer"]["case"]["fraud_probability"]
 
 
 @pytest.mark.parametrize("path", TRACES, ids=lambda p: p.stem)

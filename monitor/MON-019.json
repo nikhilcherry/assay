@@ -150,7 +150,7 @@
   "stop_reason": "Policy \u00a76: fraud probability 0.97 is at or above 0.85 on 2 independent pieces of evidence.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 0.03,
+  "latency_s": 0.04,
   "monitor": {
     "source": "structure_scan",
     "trigger_text": "Autonomous monitor (structure_scan): 3 online purchases between $400 and $500 within an hour on card C12897-K1. Review transaction 3493541."

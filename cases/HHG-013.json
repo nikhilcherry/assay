@@ -90,5 +90,5 @@
   "stop_reason": "Policy \u00a76: fraud probability 0.02 is at or below 0.15 on 2 independent pieces of evidence.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 0.12
+  "latency_s": 1.62
 }
