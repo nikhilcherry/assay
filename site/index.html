@@ -93,6 +93,16 @@ canvas#g{position:absolute;inset:0;width:100%;height:100%;display:block;backgrou
 .legend{position:absolute;left:10px;bottom:10px;display:flex;gap:6px 12px;flex-wrap:wrap;font:400 10.5px/1 var(--mono);color:var(--ink-3);pointer-events:none;background:var(--canvas);padding:6px 8px;border:1px solid var(--rule);max-width:calc(100% - 20px)}
 .legend i{display:inline-block;width:9px;height:9px;margin-right:5px;vertical-align:-1px}
 .hover{position:absolute;pointer-events:none;background:var(--ink);color:var(--ground);font:400 11.5px/1.45 var(--mono);padding:7px 9px;max-width:340px;white-space:pre-line;z-index:2}
+.story-btn{margin-top:16px;display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:var(--ground);border:0;padding:11px 16px;font:600 15px/1 var(--display);cursor:pointer}
+.story-btn:hover{background:var(--trace)}
+.story-btn small{font:400 12px/1 var(--mono);opacity:.7}
+.story{position:absolute;left:12px;right:12px;bottom:12px;z-index:3;background:var(--ink);color:var(--ground);padding:14px 16px;font:500 17px/1.45 var(--display);display:flex;gap:14px;align-items:flex-start;justify-content:space-between;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.story p{margin:0;max-width:70ch;text-wrap:pretty}
+.story b{color:var(--fraud)} .story i{font-style:normal;color:var(--bank)} .story u{text-decoration:none;color:var(--legit)}
+.story .acts2{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.story button{font:600 13px/1 var(--mono);padding:8px 12px;border:1px solid var(--ground);background:transparent;color:var(--ground);cursor:pointer}
+.story button.go{background:var(--ground);color:var(--ink)}
+.story .x{border:0;opacity:.7;padding:4px 6px}
 .banner{position:absolute;top:12px;left:50%;transform:translateX(-50%);font:600 13px/1.2 var(--display);letter-spacing:.02em;padding:7px 12px;background:var(--ink);color:var(--ground);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;transition:opacity .3s}
 
 .readout{border-left:1px solid var(--rule);display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto}
@@ -186,6 +196,7 @@ footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--rule);font:40
   </div>
   <div>
     <p>assay is a fraud investigator that runs on a TigerGraph graph. This page replays every query it ran on each case, in order. The graph grows as results come back, and each finding moves a probability that is calibrated against the bank's 5,565 closed cases. Nothing here is staged: the traces come from rerunning the agent and match the committed answer files.</p>
+    <button class="story-btn" id="story-btn" type="button">▶ Tell me the story <small>90 seconds, no jargon</small></button>
     <div class="readings">
       <div><b>0.964</b><span>AUC, held-out month<br>bank's own score: 0.866</span></div>
       <div><b>10 of 20</b><span>cards blocked<br>8 cleared, 2 held</span></div>
@@ -218,6 +229,7 @@ footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--rule);font:40
     <div class="canvaswrap">
       <canvas id="g" aria-label="The part of the graph the agent has traversed so far"></canvas>
       <div class="banner" id="banner" hidden></div>
+      <div class="story" id="story" hidden role="status" aria-live="polite"><div><p id="story-text"></p><div class="acts2" id="story-acts"></div></div><button class="x" id="story-x" type="button" aria-label="Leave the story">✕</button></div>
       <div class="legend">
         <span><i style="background:var(--fraud);border-radius:50%"></i>txn, high p</span>
         <span><i style="background:var(--node);border-radius:50%"></i>txn, low p</span>
@@ -475,7 +487,9 @@ function pause(){ playing=false; setPlayLabel(); }
 let pShown=null;
 function currentP(k){ let p=null; for(let i=0;i<=k&&i<beats.length;i++) for(const o of beats[i].odds) p=o.p; return p; }
 function banner(text,color){ const b=$("#banner"); if(!text){b.hidden=true;return;} b.hidden=false; b.textContent=text; b.style.background=color||css.ink; }
+let onBeat=null;
 function paintPanels(k){
+  if(onBeat) try{ onBeat(beats[k]||{kind:"rest"},k); }catch(e){}
   const t=cur, b=beats[k]||{kind:"rest"};
   pShown=currentP(k); moveNeedle();
   $("#pnow").textContent = pShown==null?"—":pShown.toFixed(2);
@@ -633,9 +647,50 @@ async function boot(){
   resize(); requestAnimationFrame(frame);
   INDEX=await (await fetch(DATA+"index.json")).json();
   const h=location.hash.slice(1), start=/^(HHG|MON)-\d{3}$/.test(h)?h:"HHG-014";
+  if(h==="story") setTimeout(()=>story(),600);
   paintRail(start.startsWith("MON")?"monitor":"exam"); paintPeriod(); paintCalib();
   await load(start);
 }
+/* ================= story mode: the 90-second version for people who don't do fraud ================= */
+let storyRun=0;
+function say(html,buttons){ $("#story").hidden=false; $("#story-text").innerHTML=html;
+  const a=$("#story-acts"); a.innerHTML="";
+  return new Promise(res=>{ (buttons||[]).forEach(([label,val,go])=>{ const b=document.createElement("button"); b.type="button"; b.textContent=label; if(go) b.className="go"; b.onclick=()=>res(val); a.appendChild(b); });
+    if(!buttons||!buttons.length) res(); if(buttons&&buttons.length) a.firstChild.focus({preventScroll:true}); }); }
+const nap=ms=>new Promise(r=>setTimeout(r,ms));
+function untilDone(run){ return new Promise(res=>{ const t=setInterval(()=>{ if(run!==storyRun||(!playing&&stageDone>=beats.length-1)){clearInterval(t);res();} },150); }); }
+function endStory(){ storyRun++; onBeat=null; $("#story").hidden=true; }
+async function story(){
+  const run=++storyRun; const live=()=>run===storyRun;
+  $("#bench").scrollIntoView({behavior:"smooth",block:"start"});
+  paintRail("exam"); await load("HHG-014"); renderTo(-1); pause();
+  const guess=await say(`A <i>$74.96</i> online purchase. The bank's fraud computer gave it <i>0.05</i> out of 1: almost certainly fine. <br>What do you think?`,
+    [["Looks fine","fine",true],["Something's off","off"]]); if(!live()) return;
+  await say(guess==="fine"?"So did the bank. Watch what the detective does next.":"Good instinct. The bank's computer didn't agree. Watch the detective check."); await nap(2200); if(!live()) return;
+  onBeat=(b)=>{ if(!live()) return;
+    if(b.kind==="alert") say("It starts where you would: <i>what is this purchase?</i> One card, one phone.");
+    else if(b.kind==="step"&&(b.step.query==="holder_history"||b.step.query==="card_history")) say("What does this person normally buy? Around $56. Nothing here looks strange yet.");
+    else if(b.kind==="step"&&b.step.query==="device_neighbors") say("Now the question the bank's computer never asks: <b>who else used this exact phone?</b> <br>28 different cards. 60 purchases. One phone, hidden behind an anonymous connection.");
+    else if(b.kind==="step"&&b.step.query==="closed_cases_by_device") say("And the bank caught this same phone stealing before, in August and September.");
+    else if(b.kind==="gate") say("The needle on the right has crossed the line. Enough evidence: stop and act.");
+    else if(b.kind==="verdict") say("<b>Fraud.</b> The card is blocked, the other 27 cards are put under watch, and a suspicious-activity report is filed."); };
+  speed=0.85; play(); await untilDone(run); onBeat=null; if(!live()) return;
+  await nap(3500); if(!live()) return;
+  const row=$("#moves").children[1]; if(row) row.click();
+  await say("Was it really the phone? Take that one clue away and the answer drops to <b>0.16</b>, back to 'probably fine'. <br>The connection <u>was</u> the evidence.",[["Next","next",true]]); if(!live()) return;
+  if(row) row.click();
+  await load("HHG-017"); renderTo(-1);
+  await say("Now the opposite. The bank's computer panicked about this $100 purchase: <i>0.57</i>. Most tools would block the card.",[["Watch","go",true]]); if(!live()) return;
+  onBeat=(b)=>{ if(!live()) return; if(b.kind==="verdict") say("<u>Not fraud.</u> It matches how this person always spends. Their card keeps working. Half the cases it looked at were innocent people, and it left them alone."); };
+  speed=1.4; play(); await untilDone(run); onBeat=null; if(!live()) return;
+  await nap(4500); if(!live()) return;
+  await say("That's assay: a detective that connects the dots the bank's computer can't see, shows every step of its reasoning, and doesn't punish innocent customers.",[["Explore the cases","done",true],["Watch again","again"]])
+    .then(v=>{ if(!live()) return; endStory(); if(v==="again") story(); });
+}
+$("#story-btn").onclick=()=>{ endStory(); story(); };
+$("#story-x").onclick=endStory;
+addEventListener("keydown",e=>{ if(e.key==="Escape"&&!$("#story").hidden) endStory(); });
+
 window.assayReplay={ load, play, pause, setSpeed:v=>{speed=v;}, get done(){ return !playing && stageDone>=beats.length-1; } };
 boot().catch(err=>{ $("#claim").textContent=`The traces did not load (${err.message}). Serve this folder over HTTP, for example: python -m http.server -d site`; });
 })();

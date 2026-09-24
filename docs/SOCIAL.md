@@ -22,6 +22,7 @@ Plus 60 investigations it started on its own.
 Watch it think: every investigation replayed query by query, with the graph growing
 and the probability needle moving on each piece of evidence:
 nikhilcherry.github.io/assay
+(or the 90-second no-jargon version: nikhilcherry.github.io/assay/#story)
 
 Repo + write-up: github.com/nikhilcherry/assay
 
