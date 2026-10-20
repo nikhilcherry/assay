@@ -1,5 +1,6 @@
 # assay
 
+[![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![tests](https://github.com/nikhilcherry/assay/actions/workflows/tests.yml/badge.svg)](https://github.com/nikhilcherry/assay/actions/workflows/tests.yml)
 
 **An agentic fraud investigator on TigerGraph, whose probabilities are measured, not guessed.**
@@ -281,6 +282,9 @@ dataset was built, not something fraud looks like at a bank.
   one the ledger holds.
 
 ## The replay
+
+![The replay page after a full run on case HHG-014: the 28-card device ring, the probability bar moving from the bank's 0.05 to 0.85, and each graph query listed beside it](docs/img/site-home.png)
+
 
 [`site/`](site/) is a static page that replays all 80 investigations (20 exam cases
 and 60 monitor cases) from traces of real runs. [`assay/trace.py`](assay/trace.py) reruns the
