@@ -3,12 +3,9 @@
 Splits the canonical set into SOURCE_COLS (27 columns that must be mapped from the
 variant) and DERIVED_COLS (5 columns recomputed after mapping by one shared function
 `recompute_derived_columns()` using the exact `assay.r2.frames.stage()` code path).
-Generates 4 synthetic variants from a 20k-row sample of tx_all() (fixed seed),
-scores recovery on SOURCE_COLS (>=95% required), and verifies that DERIVED_COLS
-are recomputed and equal to what the canonical pipeline computes for those ids.
-Also tests honest marking of `"not recoverable from this variant"` when a variant
-carries neither `TransactionDT` nor resolvable `TransactionID`s, plus the human
-approval gate and confidence floor.
+Tests both the 4 multi-transform synthetic variants AND dedicated red-team attack
+variants from the Red-vs-Blue debate (ATK-08, ATK-09, ATK-10, all-null columns,
+extra junk columns, opaque renames/reorders).
 """
 
 from __future__ import annotations
@@ -23,6 +20,7 @@ from assay.r2.frames import tx_all
 from assay.r2.schema_map import (
     CANONICAL_COLS,
     DERIVED_COLS,
+    IDENTITY_SOURCE_COLS,
     NOT_RECOVERABLE,
     SOURCE_COLS,
     approve,
@@ -244,6 +242,91 @@ def test_four_synthetic_variants_recovery(sample_20k: pd.DataFrame, tmp_path: Pa
             assert len(att_dict["evidence"]["txn_ids"]) == len(choice.sample_ids)
 
 
+def test_debate_red_team_attack_variants(sample_20k: pd.DataFrame, tmp_path: Path) -> None:
+    """Red-vs-Blue debate attack suite: tests each schema-variant attack from Round 6
+    (ATK-08: cents + 0..100 risk_score; ATK-09: missing identity table + split date/time +
+    split card_id; ATK-10: timezone-aware ISO timestamps 'Z' and '+05:30'; plus all-null
+    columns, extra junk columns, and opaque renames)."""
+    rng = np.random.default_rng(606)
+    expected_canonical = recompute_derived_columns(sample_20k[SOURCE_COLS], allow_txid_lookup=True)
+
+    # --- Attack A (ATK-08): Amounts in cents + risk_score on 0..100 scale + all-null column + junk decoys ---
+    df_atk08 = sample_20k[SOURCE_COLS].copy()
+    df_atk08["amount"] = np.round(df_atk08["amount"] * 100).astype("int64")
+    df_atk08["risk_score"] = np.round(df_atk08["risk_score"] * 100.0, 4)
+    df_atk08["all_null_col_1"] = None
+    df_atk08["all_null_col_2"] = np.nan
+    df_atk08 = _add_decoys(df_atk08, rng)
+    atk08_foreign, _ = _shuffle_and_rename(df_atk08, rng, prefix="atk08_c")
+
+    map_08 = infer_mapping(atk08_foreign, proposal_dir=tmp_path)
+    assert Path(map_08.proposal_path).exists()
+    assert len(map_08.all_null_foreign) == 2
+    assert map_08["amount"].expr.endswith(" / 100.0")
+    assert map_08["risk_score"].expr.endswith(" / 100.0")
+    approve(map_08.proposal_id, approver_role="L1")
+    rec_08, rep_08 = apply(map_08, atk08_foreign, require_proposal_approval=True)
+    acc_08 = _evaluate_recovery(expected_canonical, rec_08, SOURCE_COLS + DERIVED_COLS)
+    assert all(acc_08[c] >= 0.999 for c in SOURCE_COLS + DERIVED_COLS)
+    assert float(rec_08["risk_score"].max()) <= 1.0
+    assert len(rep_08.all_null_foreign_cols) == 2
+
+    # --- Attack B (ATK-09): Missing identity table entirely + split card_id + split date & time ---
+    tx_only_cols = [c for c in SOURCE_COLS if c not in IDENTITY_SOURCE_COLS]
+    df_atk09 = sample_20k[tx_only_cols].copy()
+    card_parts = df_atk09["card_id"].str.split("-", expand=True)
+    df_atk09["card_seq"] = card_parts[1]
+    df_atk09 = df_atk09.drop(columns=["card_id"])
+    ts_parts = df_atk09["ts"].astype(str).str.split(" ", expand=True)
+    df_atk09["txn_date"] = ts_parts[0]
+    df_atk09["txn_time"] = ts_parts[1]
+    df_atk09 = df_atk09.drop(columns=["ts"])
+    df_atk09["empty_placeholder"] = None
+    df_atk09 = _add_decoys(df_atk09, rng)
+    atk09_foreign, _ = _shuffle_and_rename(df_atk09, rng, prefix="atk09_x")
+
+    map_09 = infer_mapping(atk09_foreign, proposal_dir=tmp_path)
+    assert Path(map_09.proposal_path).exists()
+    # All 7 missing identity source columns + device_profile are reported as unrecoverable gaps
+    for id_col in IDENTITY_SOURCE_COLS:
+        assert map_09.not_recoverable.get(id_col) == NOT_RECOVERABLE
+    assert map_09.not_recoverable.get("device_profile") == NOT_RECOVERABLE
+    approve(map_09.proposal_id, approver_role="L1")
+    rec_09, rep_09 = apply(map_09, atk09_foreign, require_proposal_approval=True)
+    # All 20 present transaction SOURCE_COLS are recovered 100%
+    acc_09_tx = _evaluate_recovery(expected_canonical, rec_09, tx_only_cols)
+    assert all(acc_09_tx[c] >= 0.999 for c in tx_only_cols)
+    # Critical ATK-09 check: device_profile is "" (empty string) everywhere, never "None | ? | None | ?"
+    assert (rec_09["device_profile"] == "").all()
+    assert set(CANONICAL_COLS) <= set(rec_09.columns)
+
+    # --- Attack C (ATK-10): Timezone-aware ISO timestamps ('Z' and '+05:30') ---
+    df_atk10 = sample_20k[SOURCE_COLS].copy()
+    t_utc = pd.to_datetime(df_atk10["ts"]).dt.tz_localize("UTC")
+    # Half formatted with 'Z', half converted to '+05:30' (IST)
+    half = len(df_atk10) // 2
+    ts_z = t_utc.iloc[:half].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    ts_ist = t_utc.iloc[half:].dt.tz_convert("Asia/Kolkata").dt.strftime("%Y-%m-%dT%H:%M:%S+05:30")
+    df_atk10["ts"] = pd.concat([ts_z, ts_ist]).reindex(df_atk10.index)
+    df_atk10 = _add_decoys(df_atk10, rng)
+    atk10_foreign, _ = _shuffle_and_rename(df_atk10, rng, prefix="atk10_z")
+
+    map_10 = infer_mapping(atk10_foreign, proposal_dir=tmp_path)
+    assert map_10["ts"].expr.startswith("tz_iso_to_ts(")
+    approve(map_10.proposal_id, approver_role="L1")
+    rec_10, rep_10 = apply(map_10, atk10_foreign, require_proposal_approval=True)
+    # Verify `t` is tz-naive UTC datetime64[ns] and matches canonical `t` 100%
+    assert pd.api.types.is_datetime64_any_dtype(rec_10["t"].dtype)
+    assert getattr(rec_10["t"].dt, "tz", None) is None
+    acc_10 = _evaluate_recovery(expected_canonical, rec_10, SOURCE_COLS + DERIVED_COLS)
+    assert all(acc_10[c] >= 0.999 for c in SOURCE_COLS + DERIVED_COLS)
+
+    print("\n=== Debate Red-Team Attack Variants Summary ===")
+    print(f"  ATK-08 (cents + 0..100 risk + all-null): 27/27 source, 5/5 derived, all_null={rep_08.all_null_foreign_cols}")
+    print(f"  ATK-09 (missing identity + split card/ts): 20/20 tx source, gaps={ sorted(rep_09.not_recoverable_cols.keys()) }")
+    print(f"  ATK-10 (tz-aware ISO 'Z' and '+05:30'):  27/27 source, 5/5 derived, t.dtype={rec_10['t'].dtype}")
+
+
 def test_unrecoverable_transaction_dt_marked_honestly(sample_20k: pd.DataFrame, tmp_path: Path) -> None:
     """When a variant has only a timestamp (no TransactionDT column) and TransactionID
     cannot be joined back to tx_all(), TransactionDT and uid are honestly marked as
@@ -261,7 +344,6 @@ def test_unrecoverable_transaction_dt_marked_honestly(sample_20k: pd.DataFrame, 
     assert "uid" in report.not_recoverable_cols
     assert "TransactionDT" not in df_rec.columns
     assert "uid" not in df_rec.columns
-    # t, month_src, and device_profile are still derived accurately
     assert "t" in df_rec.columns
     assert "device_profile" in df_rec.columns
 

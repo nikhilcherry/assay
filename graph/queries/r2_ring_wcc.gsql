@@ -1,0 +1,132 @@
+// N2 -- Weakly Connected Components (WCC) over Cards linked by shared non-generic
+// device_profile, R_emaildomain, or addr1 within a time window as-of `as_of`,
+// with a per-element cardinality cap (`cap`).
+USE GRAPH assay
+
+CREATE OR REPLACE QUERY r2_ring_wcc(
+  VERTEX<Card> seed_card,
+  DATETIME as_of,
+  INT window_days = 30,
+  INT cap = 15,
+  INT max_hops = 6
+) FOR GRAPH assay SYNTAX v2 {
+  DATETIME t_start;
+  t_start = datetime_sub(as_of, INTERVAL window_days DAY);
+
+  SetAccum<STRING> @dev_cards;
+  MapAccum<STRING, SetAccum<STRING>> @@email_cards;
+  MapAccum<INT, SetAccum<STRING>> @@addr_cards;
+
+  SetAccum<STRING> @@valid_devs;
+  SetAccum<STRING> @@valid_emails;
+  SetAccum<INT> @@valid_addrs;
+
+  OrAccum @visited = false;
+  SetAccum<STRING> @@ring_members;
+  SetAccum<STRING> @@shared_elements;
+  SetAccum<STRING> @@txn_ids;
+  SumAccum<DOUBLE> @@total_amount = 0.0;
+  SetAccum<STRING> @@prior_fraud_cards;
+  SetAccum<STRING> @@prior_case_ids;
+
+  // 1. Collect all transactions in the [t_start, as_of] window across the graph
+  AllCards = {Card.*};
+  WinTxns = SELECT t FROM AllCards:c -(MADE>)- Txn:t
+            WHERE t.ts >= t_start AND t.ts <= as_of
+            ACCUM
+              IF t.r_email != "" AND NOT (t.r_email IN ("gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com", "icloud.com", "live.com", "msn.com", "comcast.net", "att.net", "verizon.net", "ymail.com", "me.com", "mac.com", "sbcglobal.net", "bellsouth.net", "cox.net", "earthlink.net", "charter.net", "optonline.net", "frontier.com", "windstream.net")) THEN
+                @@email_cards += (t.r_email -> c.card_id)
+              END,
+              IF t.addr1 > 0 THEN
+                @@addr_cards += (t.addr1 -> c.card_id)
+              END;
+
+  // 2. Collect non-generic DeviceProfiles used in the window and count distinct cards in-window
+  WinDevs = SELECT d FROM WinTxns:t -(FROM_DEVICE>)- DeviceProfile:d
+            WHERE d.profile != ""
+              AND d.profile NOT LIKE "%?%"
+              AND NOT (d.profile LIKE "Windows |%" OR d.profile LIKE "MacOS |%" OR d.profile LIKE "iOS Device |%" OR d.profile LIKE "Trident/7.0 |%" OR d.profile LIKE "Linux |%" OR d.profile LIKE "Android |%")
+            ACCUM d.@dev_cards += t.card_id
+            POST-ACCUM
+              IF d.@dev_cards.size() >= 2 AND d.@dev_cards.size() <= cap THEN
+                @@valid_devs += d.device_id
+              END;
+
+  FOREACH (em, cset) IN @@email_cards DO
+    IF cset.size() >= 2 AND cset.size() <= cap THEN
+      @@valid_emails += em;
+    END;
+  END;
+
+  FOREACH (ad, cset) IN @@addr_cards DO
+    IF cset.size() >= 2 AND cset.size() <= cap THEN
+      @@valid_addrs += ad;
+    END;
+  END;
+
+  // 3. Iterative BFS / WCC label propagation starting from seed_card over capped shared elements
+  Frontier = {seed_card};
+  Frontier = SELECT s FROM Frontier:s
+             POST-ACCUM s.@visited += true, @@ring_members += s.card_id;
+
+  INT step = 0;
+  WHILE Frontier.size() > 0 AND step < max_hops DO
+    FTxns = SELECT t FROM Frontier:c -(MADE>)- Txn:t
+            WHERE t.ts >= t_start AND t.ts <= as_of;
+
+    FDevs = SELECT d FROM FTxns:t -(FROM_DEVICE>)- DeviceProfile:d
+            WHERE @@valid_devs.contains(d.device_id)
+            POST-ACCUM @@shared_elements += ("dev:" + d.profile);
+
+    NextViaDevTxns = SELECT t FROM FDevs:d -(DEVICE_USED_IN>)- Txn:t
+                     WHERE t.ts >= t_start AND t.ts <= as_of;
+
+    NextCardsDev = SELECT c FROM NextViaDevTxns:t -(MADE_ON>)- Card:c
+                   WHERE c.@visited == false;
+
+    SetAccum<STRING> @@frontier_emails;
+    SetAccum<INT> @@frontier_addrs;
+
+    FTxnsCheck = SELECT t FROM FTxns:t
+                 ACCUM
+                   IF @@valid_emails.contains(t.r_email) THEN
+                     @@frontier_emails += t.r_email,
+                     @@shared_elements += ("r_email:" + t.r_email)
+                   END,
+                   IF @@valid_addrs.contains(t.addr1) THEN
+                     @@frontier_addrs += t.addr1,
+                     @@shared_elements += ("addr1:" + to_string(t.addr1))
+                   END;
+
+    NextViaAttrTxns = SELECT t FROM WinTxns:t
+                      WHERE (@@frontier_emails.size() > 0 AND @@frontier_emails.contains(t.r_email))
+                         OR (@@frontier_addrs.size() > 0 AND @@frontier_addrs.contains(t.addr1));
+
+    NextCardsAttr = SELECT c FROM NextViaAttrTxns:t -(MADE_ON>)- Card:c
+                    WHERE c.@visited == false;
+
+    Frontier = NextCardsDev UNION NextCardsAttr;
+    Frontier = SELECT c FROM Frontier:c
+               POST-ACCUM c.@visited += true, @@ring_members += c.card_id;
+
+    step = step + 1;
+  END;
+
+  // 4. Gather ring member transactions in window and prior closed fraud cases (closed_at <= as_of)
+  RingCards = SELECT c FROM AllCards:c WHERE c.@visited == true;
+
+  RingTxns = SELECT t FROM RingCards:c -(MADE>)- Txn:t
+             WHERE t.ts >= t_start AND t.ts <= as_of
+             ACCUM @@txn_ids += t.txn_id, @@total_amount += t.amount;
+
+  PriorCases = SELECT cc FROM RingCards:c -(HAS_CLOSED_CASE>)- ClosedCase:cc
+               WHERE cc.closed_at <= as_of AND cc.outcome == "confirmed_fraud"
+               ACCUM @@prior_fraud_cards += c.card_id, @@prior_case_ids += cc.case_id;
+
+  PRINT @@ring_members AS members,
+        @@shared_elements AS shared_elements,
+        @@txn_ids AS txn_ids,
+        @@total_amount AS total_amount,
+        @@prior_fraud_cards AS prior_fraud_cards,
+        @@prior_case_ids AS prior_case_ids;
+}

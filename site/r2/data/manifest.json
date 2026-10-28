@@ -1,0 +1,39 @@
+{
+  "cases": [
+    {
+      "case_id": "HHF-005",
+      "file": "data/HHF-005.json",
+      "focus_card_id": "C00348-K1",
+      "n_cards": 12,
+      "n_frames": 231,
+      "ring_id": "RING-WCC-c4e13e20",
+      "shared_elements": [
+        "dev:KFTBWI Build/LVY48F | Android 5.1.1 | chrome generic | 1280x800",
+        "dev:LGLS775 Build/NRD90U | Android 7.0 | chrome 61.0 for android | 1280x720",
+        "dev:SM-G950U Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2220x1080",
+        "dev:VS501 Build/NRD90U | Android 7.0 | chrome 62.0 for android | 1280x720",
+        "dev_addr:SM-G950U Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2220x1080:337"
+      ],
+      "total_amount": 29568.99
+    },
+    {
+      "case_id": "HHF-011",
+      "file": "data/HHF-011.json",
+      "focus_card_id": "C09241-K2",
+      "n_cards": 12,
+      "n_frames": 2000,
+      "ring_id": "RING-WCC-faff1b52",
+      "shared_elements": [
+        "dev:Pixel Build/OPM4.171019.016.B1 | Android 8.1.0 | chrome 66.0 for android | 1921x1081",
+        "dev:Pixel XL Build/OPM4.171019.016.B1 | Android 8.1.0 | chrome 66.0 for android | 2562x1442",
+        "dev:SAMSUNG SM-G950U1 Build/NRD90M | Android 7.0 | samsung browser 6.2 | 2220x1080",
+        "dev:SM-G930V Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080",
+        "dev:SM-G935V Build/NRD90M | Android 7.0 | chrome 66.0 for android | 1920x1080",
+        "dev:Z835 Build/NMF26V | Android 7.1.1 | chrome 56.0 for android | 855x480",
+        "dev_addr:SM-G930V Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1920x1080:330",
+        "id23:IP_PROXY:TRANSPARENT:Z835 Build/NMF26V | Android 7.1.1 | chrome 56.0 for android | 855x480"
+      ],
+      "total_amount": 353103.52
+    }
+  ]
+}

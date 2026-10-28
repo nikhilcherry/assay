@@ -58,6 +58,25 @@ class Store:
         self.calls = []
 
 
+class LazyGroups:
+    """Row positions per key, sliced from the parent frame on demand. A dict of
+    per-group DataFrames costs gigabytes and minutes once there are 100k+ holders."""
+
+    def __init__(self, frame: pd.DataFrame, key: str):
+        self.frame = frame
+        self.pos = frame.groupby(key, sort=False).indices
+
+    def get(self, k, default=None):
+        idx = self.pos.get(k)
+        return default if idx is None else self.frame.iloc[idx]
+
+    def __getitem__(self, k):
+        return self.frame.iloc[self.pos[k]]
+
+    def __contains__(self, k) -> bool:
+        return k in self.pos
+
+
 class LocalStore(Store):
     """Reference implementation over the staged parquet files."""
 
@@ -72,10 +91,9 @@ class LocalStore(Store):
         tx["device_profile"] = [
             device_profile(r) for r in tx[["DeviceInfo", "id_30", "id_31", "id_33"]].to_dict("records")]
         self.tx = tx.set_index("TransactionID", drop=False).sort_values("t")
-        self.by_card = {k: v for k, v in self.tx.groupby("card_id")}
-        self.by_uid = {k: v for k, v in self.tx.groupby("uid")}
-        dp = self.tx[self.tx.device_profile != ""]
-        self.by_device = {k: v for k, v in dp.groupby("device_profile")}
+        self.by_card = LazyGroups(self.tx, "card_id")
+        self.by_uid = LazyGroups(self.tx, "uid")
+        self.by_device = LazyGroups(self.tx[self.tx.device_profile != ""], "device_profile")
         self.cc = closed_cases()
 
     # -- queries -------------------------------------------------------------

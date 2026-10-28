@@ -1,10 +1,18 @@
+from __future__ import annotations
+
+import argparse
+import json
 import math
+import time
+from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
 from assay.r2.attest import Attestation, Evidence
-from assay.r2.finding import Detector, CaseCtx, Finding, Backtest
+from assay.r2.finding import Backtest, CaseCtx, Detector, Finding
 
 FREE_MAIL = {
     'gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'anonymous.com',
@@ -16,9 +24,7 @@ GENERIC_DEVICES = {'Windows', 'iOS Device', 'MacOS', 'Android', '', 'None', 'nan
 
 
 def hypergeom_sf(k: int, M: int, n: int, N: int) -> float:
-    """Exact one-sided Fisher exact / hypergeometric survival P(X >= k).
-    M = total population (N_aff + N_ctrl), n = total successes (k_aff + k_ctrl), N = draws (N_aff).
-    """
+    """Exact one-sided Fisher exact / hypergeometric survival P(X >= k)."""
     if k <= 0:
         return 1.0
     if k > min(n, N) or M <= 0:
@@ -69,27 +75,173 @@ def _size_bucket(n: int) -> str | None:
     return None
 
 
+def _is_specific_device(d: str) -> bool:
+    if not d or d in GENERIC_DEVICES:
+        return False
+    return not (d.startswith('Windows | ?') or d.startswith('iOS Device | ?') or d.startswith('MacOS | ?'))
+
+
+@dataclass
+class PrecomputedIndex:
+    """Lightweight, precomputed numpy/dict index over tx_all() to avoid repeated DataFrame scans."""
+    t_ns: np.ndarray
+    tid: np.ndarray
+    card_idx: np.ndarray
+    cards: np.ndarray
+    card_to_idx: dict[str, int]
+    prod: np.ndarray
+    chan: np.ndarray
+    amt: np.ndarray
+    dev_specific: np.ndarray
+    card_first_5th_t_ns: np.ndarray
+    card_first_c250_t_ns: np.ndarray
+    card_dev_first_t_ns: dict[tuple[int, str], int]
+    tid_to_row: dict[int, int]
+    month_card_pools: dict[str, dict[tuple[int, str], np.ndarray]]
+    month_card_decile_prod: dict[str, dict[int, tuple[int, str]]]
+    cap_99: float
+    global_card_counts: dict[str, int]
+
+
 @lru_cache(maxsize=1)
-def _global_cardinality_stats():
-    """Computes bank-wide card cardinality for each candidate origin feature over legit Jul-Oct 2016."""
+def get_precomputed_index() -> PrecomputedIndex:
+    t0_wall = time.perf_counter()
     from assay.r2.frames import tx_all, closed_cases
     tx = tx_all()
     cc = closed_cases()
-    fraud_txns = set()
-    for t_list in cc.txn_list:
-        fraud_txns.update(t_list)
-    tx_jo = tx[(tx.t < pd.Timestamp('2016-11-01')) & (~tx.TransactionID.isin(fraud_txns))]
-    feats_jo = extract_features(tx_jo)
-    card_counts_jo = feats_jo.groupby('feature')['card_id'].nunique()
-    cap = float(card_counts_jo.quantile(0.99)) if not card_counts_jo.empty else 50.0
 
-    feats_all = extract_features(tx)
-    card_counts_all = feats_all.groupby('feature')['card_id'].nunique().to_dict()
-    return cap, card_counts_all
+    t_ns = tx['t'].values.astype('datetime64[ns]').astype(np.int64)
+    tid = tx['TransactionID'].values.astype(np.int64)
+    prod = tx['ProductCD'].astype(str).values
+    chan = tx['channel'].astype(str).values
+    amt = tx['amount'].values.astype(np.float64)
+
+    cards, card_idx = np.unique(tx['card_id'].astype(str).values, return_inverse=True)
+    n_cards = len(cards)
+    card_to_idx = {c: i for i, c in enumerate(cards)}
+    tid_to_row = {int(t_id): i for i, t_id in enumerate(tid)}
+
+    # Specific device strings
+    raw_dev = tx['device_profile'].fillna('').astype(str).values
+    uniq_devs, dev_inv = np.unique(raw_dev, return_inverse=True)
+    uniq_spec = np.array([d if _is_specific_device(d) else '' for d in uniq_devs], dtype=object)
+    dev_specific = uniq_spec[dev_inv]
+
+    # Per-card 5th transaction timestamp (meaning card has >=5 prior txns when t > card_first_5th_t_ns[c])
+    INF_NS = np.iinfo(np.int64).max
+    card_first_5th_t_ns = np.full(n_cards, INF_NS, dtype=np.int64)
+    order = np.argsort(card_idx, kind='mergesort')
+    sorted_c = card_idx[order]
+    sorted_t = t_ns[order]
+    _, start_idx, counts = np.unique(sorted_c, return_index=True, return_counts=True)
+    valid_5 = counts >= 5
+    card_first_5th_t_ns[sorted_c[start_idx[valid_5]]] = sorted_t[start_idx[valid_5] + 4]
+
+    # Per-card first timestamp of ProductCD == 'C' and amount >= 250.0
+    card_first_c250_t_ns = np.full(n_cards, INF_NS, dtype=np.int64)
+    c250_mask = (prod == 'C') & (amt >= 250.0)
+    if c250_mask.any():
+        c_sub = card_idx[c250_mask]
+        t_sub = t_ns[c250_mask]
+        # Since tx is sorted by t, first occurrence per card is minimum t
+        _, first_pos = np.unique(c_sub, return_index=True)
+        card_first_c250_t_ns[c_sub[first_pos]] = t_sub[first_pos]
+
+    # First seen timestamp for (card_idx, specific_device)
+    spec_mask = dev_specific != ''
+    card_dev_first_t_ns: dict[tuple[int, str], int] = {}
+    for c_i, d_s, t_val in zip(card_idx[spec_mask], dev_specific[spec_mask], t_ns[spec_mask]):
+        key = (int(c_i), str(d_s))
+        if key not in card_dev_first_t_ns:
+            card_dev_first_t_ns[key] = int(t_val)
+
+    # Precompute monthly card activity decile and primary ProductCD for fast control matching
+    months = tx['t'].dt.strftime('%Y-%m').values
+    month_card_pools: dict[str, dict[tuple[int, str], np.ndarray]] = {}
+    month_card_decile_prod: dict[str, dict[int, tuple[int, str]]] = {}
+
+    for m_str in np.unique(months):
+        m_mask = months == m_str
+        m_df = pd.DataFrame({'c': card_idx[m_mask], 'p': prod[m_mask]})
+        cnts = m_df.groupby('c').size().rename('cnt')
+        p_cnts = m_df.groupby(['c', 'p']).size().unstack(fill_value=0)
+        p_mode = p_cnts.idxmax(axis=1).rename('p_mode')
+        stats = pd.concat([cnts, p_mode], axis=1).reset_index()
+        try:
+            stats['dec'] = pd.qcut(stats['cnt'].rank(method='first'), 10, labels=False)
+        except ValueError:
+            stats['dec'] = 0
+
+        pools: dict[tuple[int, str], np.ndarray] = {}
+        for (dec, pm), grp in stats.groupby(['dec', 'p_mode']):
+            pools[(int(dec), str(pm))] = grp['c'].values.astype(np.int64)
+        for dec, grp in stats.groupby('dec'):
+            pools[(int(dec), '*')] = grp['c'].values.astype(np.int64)
+
+        month_card_pools[str(m_str)] = pools
+        month_card_decile_prod[str(m_str)] = {
+            int(r.c): (int(r.dec), str(r.p_mode)) for r in stats.itertuples()
+        }
+
+    # Global cardinality stats on ProductCD_amount over legit Jul-Oct 2016 (memory-safe)
+    fraud_txns = {int(x) for t_list in cc.txn_list for x in t_list}
+    jo_cutoff = pd.Timestamp('2016-11-01').value
+    jo_mask = (t_ns < jo_cutoff) & (~np.isin(tid, list(fraud_txns)))
+
+    amt_cents = np.round(amt * 100).astype(np.int64)
+    f1_df = pd.DataFrame({
+        'c': card_idx,
+        'k': pd.Series(prod) + '_' + pd.Series(np.char.mod('%.2f', amt))
+    })
+    jo_counts = f1_df[jo_mask].groupby('k')['c'].nunique()
+    cap_99 = float(jo_counts.quantile(0.99)) if not jo_counts.empty else 45.0
+
+    all_f1_counts = f1_df.groupby('k')['c'].nunique().to_dict()
+    global_card_counts = {f"ProductCD_amount:{k}": int(v) for k, v in all_f1_counts.items()}
+
+    # Add R_emaildomain and P_emaildomain_ProductCD global counts
+    r_col = tx['R_emaildomain'].fillna('').astype(str).values
+    r_valid = (r_col != '') & (r_col != 'None') & (r_col != 'nan') & (~np.isin(r_col, list(FREE_MAIL)))
+    if r_valid.any():
+        r_df = pd.DataFrame({'c': card_idx[r_valid], 'k': r_col[r_valid]})
+        for k, v in r_df.groupby('k')['c'].nunique().items():
+            global_card_counts[f"R_emaildomain:{k}"] = int(v)
+
+    addr1_vals = tx['addr1'].values
+    a_valid = ~np.isnan(addr1_vals)
+    if a_valid.any():
+        a_df = pd.DataFrame({
+            'c': card_idx[a_valid],
+            'k': pd.Series(prod[a_valid]) + '_' + pd.Series(addr1_vals[a_valid].astype(int).astype(str))
+        })
+        for k, v in a_df.groupby('k')['c'].nunique().items():
+            global_card_counts[f"ProductCD_addr1:{k}"] = int(v)
+
+    elapsed = time.perf_counter() - t0_wall
+    print(f"[CPC] Precomputed index built in {elapsed:.2f}s (cap_99={cap_99:.1f})", flush=True)
+    return PrecomputedIndex(
+        t_ns=t_ns,
+        tid=tid,
+        card_idx=card_idx,
+        cards=cards,
+        card_to_idx=card_to_idx,
+        prod=prod,
+        chan=chan,
+        amt=amt,
+        dev_specific=dev_specific,
+        card_first_5th_t_ns=card_first_5th_t_ns,
+        card_first_c250_t_ns=card_first_c250_t_ns,
+        card_dev_first_t_ns=card_dev_first_t_ns,
+        tid_to_row=tid_to_row,
+        month_card_pools=month_card_pools,
+        month_card_decile_prod=month_card_decile_prod,
+        cap_99=cap_99,
+        global_card_counts=global_card_counts,
+    )
 
 
-def extract_features(tx_window: pd.DataFrame) -> pd.DataFrame:
-    """Extracts candidate origin features from a transaction frame."""
+def extract_features_sub(tx_window: pd.DataFrame) -> pd.DataFrame:
+    """Extracts candidate origin features on a small subset of transactions (cohort + matched controls)."""
     if tx_window.empty:
         return pd.DataFrame(columns=['card_id', 'TransactionID', 'feature'])
 
@@ -98,16 +250,14 @@ def extract_features(tx_window: pd.DataFrame) -> pd.DataFrame:
     prod = tx_window['ProductCD'].astype(str).values
     amt = np.char.mod('%.2f', tx_window['amount'].values)
 
-    frames = []
+    frames = [
+        pd.DataFrame({
+            'card_id': c_id,
+            'TransactionID': t_id,
+            'feature': 'ProductCD_amount:' + pd.Series(prod) + '_' + pd.Series(amt)
+        })
+    ]
 
-    # 1. Exact (ProductCD, amount to the cent)
-    frames.append(pd.DataFrame({
-        'card_id': c_id,
-        'TransactionID': t_id,
-        'feature': 'ProductCD_amount:' + pd.Series(prod) + '_' + pd.Series(amt)
-    }))
-
-    # 2. (ProductCD, addr1)
     valid_addr1 = tx_window['addr1'].notna().values
     if valid_addr1.any():
         addr1_str = tx_window['addr1'].values[valid_addr1].astype(int).astype(str)
@@ -117,7 +267,6 @@ def extract_features(tx_window: pd.DataFrame) -> pd.DataFrame:
             'feature': 'ProductCD_addr1:' + pd.Series(prod[valid_addr1]) + '_' + pd.Series(addr1_str)
         }))
 
-    # 3. R_emaildomain (non-free-mail only)
     r_col = tx_window['R_emaildomain']
     valid_r = (r_col.notna() & (~r_col.isin(FREE_MAIL)) & (r_col != 'None') & (r_col != 'nan') & (r_col != '')).values
     if valid_r.any():
@@ -127,7 +276,6 @@ def extract_features(tx_window: pd.DataFrame) -> pd.DataFrame:
             'feature': 'R_emaildomain:' + r_col.values[valid_r].astype(str)
         }))
 
-    # 4. P_emaildomain + ProductCD (non-free-mail)
     p_col = tx_window['P_emaildomain']
     valid_p = (p_col.notna() & (~p_col.isin(FREE_MAIL)) & (p_col != 'None') & (p_col != 'nan') & (p_col != '')).values
     if valid_p.any():
@@ -137,12 +285,11 @@ def extract_features(tx_window: pd.DataFrame) -> pd.DataFrame:
             'feature': 'P_emaildomain_ProductCD:' + pd.Series(p_col.values[valid_p].astype(str)) + '_' + pd.Series(prod[valid_p])
         }))
 
-    # 5. device_profile (non-generic)
     d_col = tx_window['device_profile']
     valid_d = (d_col.notna() & (~d_col.isin(GENERIC_DEVICES))).values
     if valid_d.any():
         d_vals = d_col.values[valid_d].astype(str)
-        non_triv = np.array([not (v.startswith('Windows | ?') or v.startswith('iOS Device | ?') or v.startswith('MacOS | ?')) for v in d_vals])
+        non_triv = np.array([_is_specific_device(v) for v in d_vals], dtype=bool)
         if non_triv.any():
             idx = np.where(valid_d)[0][non_triv]
             frames.append(pd.DataFrame({
@@ -151,7 +298,6 @@ def extract_features(tx_window: pd.DataFrame) -> pd.DataFrame:
                 'feature': 'device_profile:' + d_vals[non_triv]
             }))
 
-    # 6. merchant-like keys (ProductCD + amount + dist1)
     valid_dist = tx_window['dist1'].notna().values
     if valid_dist.any():
         dist_str = tx_window['dist1'].values[valid_dist].astype(int).astype(str)
@@ -164,23 +310,30 @@ def extract_features(tx_window: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
-def get_loss_shape(as_of_tx: pd.DataFrame, flagged_txn_id: int) -> dict | None:
-    """Derives the loss burst shape around the flagged transaction."""
-    flagged_rows = as_of_tx[as_of_tx.TransactionID == flagged_txn_id]
-    if flagged_rows.empty:
-        return None
-    row = flagged_rows.iloc[0]
-    t0 = row.t
-    card = row.card_id
-    prod = row.ProductCD
-    chan = row.channel
+def fast_find_cohort_by_tid(idx: PrecomputedIndex, flagged_txn_id: int, opened_at_ns: int) -> tuple[dict | None, list[str], dict[str, int], dict[str, list[int]]]:
+    """O(log N) binary-search loss-shape cohort finder using precomputed arrays."""
+    row_i = idx.tid_to_row.get(int(flagged_txn_id))
+    if row_i is None:
+        return None, [], {}, {}
 
-    card_tx = as_of_tx[(as_of_tx.card_id == card) & (as_of_tx.ProductCD == prod) & (as_of_tx.channel == chan)]
-    near = card_tx[(card_tx.t >= t0 - pd.Timedelta(days=3)) & (card_tx.t <= t0 + pd.Timedelta(days=3))]
+    t0_ns = int(idx.t_ns[row_i])
+    if t0_ns > opened_at_ns:
+        return None, [], {}, {}
 
-    high_c = near[(near.amount >= 250.0) & (near.amount <= 2200.0)]
-    if prod == 'C' and chan == 'online' and len(high_c) >= 2:
-        return {
+    flagged_c_idx = int(idx.card_idx[row_i])
+    flagged_card = str(idx.cards[flagged_c_idx])
+    prod = str(idx.prod[row_i])
+    chan = str(idx.chan[row_i])
+
+    DAY_NS = 86_400_000_000_000
+    near_lo = int(np.searchsorted(idx.t_ns, t0_ns - 3 * DAY_NS, side='left'))
+    near_hi = int(np.searchsorted(idx.t_ns, min(t0_ns + 3 * DAY_NS, opened_at_ns), side='right'))
+
+    c_mask = (idx.card_idx[near_lo:near_hi] == flagged_c_idx) & (idx.prod[near_lo:near_hi] == prod) & (idx.chan[near_lo:near_hi] == chan)
+    near_amts = idx.amt[near_lo:near_hi][c_mask]
+
+    if prod == 'C' and chan == 'online' and ((near_amts >= 250.0) & (near_amts <= 2200.0)).sum() >= 2:
+        shape = {
             'mode': 'c_online_burst',
             'ProductCD': 'C',
             'channel': 'online',
@@ -189,195 +342,191 @@ def get_loss_shape(as_of_tx: pd.DataFrame, flagged_txn_id: int) -> dict | None:
             'min_count': 2,
             'max_count': 5,
             'prior_cap': 250.0,
-            't0': t0,
-            'flagged_card': card,
+            't0_ns': t0_ns,
+            'flagged_card': flagged_card,
+            'flagged_c_idx': flagged_c_idx,
+        }
+    else:
+        if len(near_amts) < 2:
+            return None, [], {}, {}
+        min_a = float(near_amts.min()) * 0.65
+        max_a = float(near_amts.max()) * 1.5
+        if min_a < 250.0 or prod != 'C' or chan != 'online':
+            return None, [], {}, {}
+        shape = {
+            'mode': 'c_online_burst',
+            'ProductCD': 'C',
+            'channel': 'online',
+            'min_amt': max(250.0, min_a),
+            'max_amt': min(2200.0, max_a),
+            'min_count': 2,
+            'max_count': 5,
+            'prior_cap': 250.0,
+            't0_ns': t0_ns,
+            'flagged_card': flagged_card,
+            'flagged_c_idx': flagged_c_idx,
         }
 
-    if len(near) < 2:
-        return None
-    min_a = float(near.amount.min()) * 0.65
-    max_a = float(near.amount.max()) * 1.5
-    if min_a < 25.0:
-        return None
-    return {
-        'mode': 'general_burst',
-        'ProductCD': prod,
-        'channel': chan,
-        'min_amt': min_a,
-        'max_amt': max_a,
-        'min_count': max(2, len(near) - 1),
-        'max_count': len(near) + 3,
-        'prior_cap': min_a,
-        't0': t0,
-        'flagged_card': card,
-    }
+    # Search [-15d, min(t0 + 10d, opened_at_ns)]
+    w_lo = int(np.searchsorted(idx.t_ns, t0_ns - 15 * DAY_NS, side='left'))
+    w_hi = int(np.searchsorted(idx.t_ns, min(t0_ns + 10 * DAY_NS, opened_at_ns), side='right'))
+    if w_hi <= w_lo:
+        return shape, [], {}, {}
 
+    sub_p = idx.prod[w_lo:w_hi]
+    sub_ch = idx.chan[w_lo:w_hi]
+    sub_a = idx.amt[w_lo:w_hi]
+    m = (sub_p == shape['ProductCD']) & (sub_ch == shape['channel']) & (sub_a >= shape['min_amt']) & (sub_a <= shape['max_amt'])
+    if not m.any():
+        return shape, [], {}, {}
 
-def find_affected_cohort(as_of_tx: pd.DataFrame, shape: dict) -> tuple[list[str], dict[str, pd.Timestamp], dict[str, list[int]]]:
-    """Finds cards sharing the exact loss burst shape within [-15d, opened_at], with novel devices and no shared device."""
-    t0 = shape['t0']
-    w_start = t0 - pd.Timedelta(days=15)
-    w_end = t0 + pd.Timedelta(days=10)
+    hit_rows = np.where(m)[0] + w_lo
+    hit_c = idx.card_idx[hit_rows]
+    uniq_c, c_counts = np.unique(hit_c, return_counts=True)
 
-    cand_mask = (
-        (as_of_tx.t >= w_start) &
-        (as_of_tx.t <= w_end) &
-        (as_of_tx.ProductCD == shape['ProductCD']) &
-        (as_of_tx.channel == shape['channel']) &
-        (as_of_tx.amount >= shape['min_amt']) &
-        (as_of_tx.amount <= shape['max_amt'])
-    )
-    w_tx = as_of_tx[cand_mask]
-    if w_tx.empty:
-        return [], {}, {}
+    cand_c = uniq_c[(c_counts >= shape['min_count']) & (c_counts <= shape['max_count'])].tolist()
+    if flagged_c_idx in uniq_c and flagged_c_idx not in cand_c:
+        if c_counts[uniq_c == flagged_c_idx][0] >= 2:
+            cand_c.append(flagged_c_idx)
 
-    counts = w_tx.groupby('card_id').size()
-    cand_cards = counts[(counts >= shape['min_count']) & (counts <= shape['max_count'])].index.tolist()
-    if shape['flagged_card'] in counts.index and shape['flagged_card'] not in cand_cards:
-        if counts[shape['flagged_card']] >= 2:
-            cand_cards.append(shape['flagged_card'])
+    if len(cand_c) < 3:
+        return shape, [], {}, {}
 
-    if len(cand_cards) < 3:
-        return [], {}, {}
-
-    hist_all = as_of_tx[as_of_tx.card_id.isin(cand_cards)]
-
-    cohort = []
-    first_loss: dict[str, pd.Timestamp] = {}
+    cohort: list[str] = []
+    first_loss_ns: dict[str, int] = {}
     burst_txns: dict[str, list[int]] = {}
-    burst_devices: dict[str, set[str]] = {}
+    burst_devs: dict[str, set[str]] = {}
 
-    for c, c_df in hist_all.groupby('card_id'):
-        c_win = w_tx[w_tx.card_id == c].sort_values('t')
-        if len(c_win) < shape['min_count']:
-            continue
+    SPAN_MAX_NS = int(4.0 * DAY_NS)
 
-        t_vals = c_win.t.values
-        span_days = (t_vals[-1] - t_vals[0]) / np.timedelta64(1, 'D')
-        if span_days > 4.0:
+    for c_i in cand_c:
+        c_rows = hit_rows[hit_c == c_i]
+        c_ts = idx.t_ns[c_rows]
+        if c_ts[-1] - c_ts[0] > SPAN_MAX_NS:
             found_sub = False
-            for i in range(len(c_win) - shape['min_count'] + 1):
-                sub = c_win.iloc[i:i + shape['min_count']]
-                if (sub.t.iloc[-1] - sub.t.iloc[0]).total_seconds() <= 4.0 * 86400:
-                    c_win = sub
+            for j in range(len(c_rows) - shape['min_count'] + 1):
+                sub_rows = c_rows[j:j + shape['min_count']]
+                if idx.t_ns[sub_rows[-1]] - idx.t_ns[sub_rows[0]] <= SPAN_MAX_NS:
+                    c_rows = sub_rows
+                    c_ts = idx.t_ns[c_rows]
                     found_sub = True
                     break
             if not found_sub:
                 continue
 
-        t_burst_start = c_win.t.min()
-        prior_df = c_df[c_df.t < t_burst_start]
+        t_burst_start = int(c_ts[0])
 
-        if len(prior_df) < 5:
+        # Must have >= 5 prior transactions (so 5th transaction timestamp < t_burst_start)
+        if idx.card_first_5th_t_ns[c_i] >= t_burst_start:
             continue
 
-        prior_same_prod = prior_df[(prior_df.ProductCD == shape['ProductCD']) & (prior_df.amount >= shape['prior_cap'])]
-        if not prior_same_prod.empty:
+        # Must have NO prior C charges >= $250 before t_burst_start
+        if idx.card_first_c250_t_ns[c_i] < t_burst_start:
             continue
 
-        prior_devs = set(prior_df['device_profile'].dropna().unique()) - GENERIC_DEVICES
-        win_devs = set(c_win['device_profile'].dropna().unique()) - GENERIC_DEVICES
-        if win_devs and (win_devs & prior_devs):
+        # Check novel device: none of the specific devices in c_rows were seen on c_i before t_burst_start
+        devs_in_burst = {str(d) for d in idx.dev_specific[c_rows] if d != ''}
+        used_before = False
+        for d in devs_in_burst:
+            first_seen = idx.card_dev_first_t_ns.get((int(c_i), d))
+            if first_seen is not None and first_seen < t_burst_start:
+                used_before = True
+                break
+        if used_before:
             continue
 
-        cohort.append(c)
-        first_loss[c] = t_burst_start
-        burst_txns[c] = [int(x) for x in c_win.TransactionID.tolist()]
-        burst_devices[c] = win_devs
+        c_str = str(idx.cards[c_i])
+        cohort.append(c_str)
+        first_loss_ns[c_str] = t_burst_start
+        burst_txns[c_str] = [int(x) for x in idx.tid[c_rows]]
+        burst_devs[c_str] = devs_in_burst
 
+    # Prune shared devices across cohort
     dev_to_cards: dict[str, list[str]] = {}
-    for c in cohort:
-        for d in burst_devices.get(c, set()):
-            if not (d.startswith('Windows | ?') or d.startswith('iOS Device | ?') or d.startswith('MacOS | ?')):
-                dev_to_cards.setdefault(d, []).append(c)
+    for c_str in cohort:
+        for d in burst_devs.get(c_str, set()):
+            dev_to_cards.setdefault(d, []).append(c_str)
 
-    shared_dev_cards = set()
+    shared_cards = set()
     for d, cs in dev_to_cards.items():
         if len(cs) > 1:
-            for c in cs:
-                if c != shape['flagged_card']:
-                    shared_dev_cards.add(c)
+            for c_str in cs:
+                if c_str != flagged_card:
+                    shared_cards.add(c_str)
 
-    cohort = [c for c in cohort if c not in shared_dev_cards]
-    cohort.sort()
-    first_loss = {c: first_loss[c] for c in cohort}
-    burst_txns = {c: burst_txns[c] for c in cohort}
-    return cohort, first_loss, burst_txns
+    cohort = sorted([c_str for c_str in cohort if c_str not in shared_cards])
+    first_loss_ns = {c_str: first_loss_ns[c_str] for c_str in cohort}
+    burst_txns = {c_str: burst_txns[c_str] for c_str in cohort}
+    return shape, cohort, first_loss_ns, burst_txns
 
 
-def get_matched_controls(as_of_tx: pd.DataFrame, affected_cards: list[str], t0: pd.Timestamp, rng_seed: int = 42) -> dict[str, list[str]]:
-    """Selects 20 activity-matched control cards per affected card (same 30d txn-count decile & primary ProductCD)."""
+def fast_matched_controls(idx: PrecomputedIndex, affected_cards: list[str], t0_ns: int, rng_seed: int = 42) -> dict[str, list[str]]:
+    """Fast lookup of 20 activity-matched control cards per affected card using precomputed monthly decile pools."""
     rng = np.random.default_rng(rng_seed)
-    recent_tx = as_of_tx[(as_of_tx.t >= t0 - pd.Timedelta(days=30)) & (as_of_tx.t <= t0)]
-    if recent_tx.empty:
-        return {}
+    m_str = pd.Timestamp(t0_ns).strftime('%Y-%m')
+    if m_str not in idx.month_card_pools:
+        m_str = sorted(idx.month_card_pools.keys())[-1]
 
-    counts = recent_tx.groupby('card_id').size().rename('txn_count')
-    prod_counts = recent_tx.groupby(['card_id', 'ProductCD']).size().unstack(fill_value=0)
-    primary_prod = prod_counts.idxmax(axis=1).rename('primary_prod')
+    pools = idx.month_card_pools[m_str]
+    dec_map = idx.month_card_decile_prod[m_str]
 
-    card_stats = pd.concat([counts, primary_prod], axis=1).reset_index()
-    try:
-        card_stats['decile'] = pd.qcut(card_stats['txn_count'].rank(method='first'), 10, labels=False)
-    except ValueError:
-        card_stats['decile'] = 0
-
-    aff_set = set(affected_cards)
-    pool = card_stats[~card_stats.card_id.isin(aff_set)]
-
+    aff_indices = {idx.card_to_idx[c] for c in affected_cards if c in idx.card_to_idx}
+    used = set(aff_indices)
     controls: dict[str, list[str]] = {}
-    used_controls: set[str] = set()
 
-    for c in affected_cards:
-        c_row = card_stats[card_stats.card_id == c]
-        if c_row.empty:
-            c_pool = pool[~pool.card_id.isin(used_controls)]
-        else:
-            dec = c_row['decile'].iloc[0]
-            prod = c_row['primary_prod'].iloc[0]
-            c_pool = pool[(pool.decile == dec) & (pool.primary_prod == prod) & (~pool.card_id.isin(used_controls))]
-            if len(c_pool) < 20:
-                c_pool = pool[(pool.decile == dec) & (~pool.card_id.isin(used_controls))]
-
-        avail = c_pool.card_id.values
+    for c_str in affected_cards:
+        c_i = idx.card_to_idx.get(c_str, -1)
+        dec, pm = dec_map.get(c_i, (5, 'W'))
+        cand = pools.get((dec, pm), np.array([], dtype=np.int64))
+        avail = [int(x) for x in cand if int(x) not in used]
+        if len(avail) < 20:
+            cand2 = pools.get((dec, '*'), np.array([], dtype=np.int64))
+            avail = [int(x) for x in cand2 if int(x) not in used]
         if len(avail) >= 20:
-            sampled = rng.choice(avail, 20, replace=False).tolist()
+            chosen = rng.choice(avail, size=20, replace=False).tolist()
         else:
-            sampled = avail.tolist()
-        controls[c] = sampled
-        used_controls.update(sampled)
+            chosen = avail
+        used.update(chosen)
+        controls[c_str] = [str(idx.cards[x]) for x in chosen]
 
     return controls
 
 
 def compute_origin_lifts(
+    idx: PrecomputedIndex,
     affected_cards: list[str],
-    first_loss: dict[str, pd.Timestamp],
+    first_loss_ns: dict[str, int],
     controls: dict[str, list[str]],
     as_of_tx: pd.DataFrame,
-    lookback_days: int = 210
+    lookback_days: int = 60,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Computes matched control lift and Fisher exact p-value for candidate origins prior to each card's first loss."""
-    _, card_counts_all = _global_cardinality_stats()
+    all_ctrl_cards = {ctrl_c for c_list in controls.values() for ctrl_c in c_list}
+    target_cards = set(affected_cards) | all_ctrl_cards
+    sub_tx = as_of_tx[as_of_tx.card_id.isin(target_cards)]
+    if sub_tx.empty:
+        return pd.DataFrame(), pd.DataFrame(columns=['card_id', 'TransactionID', 'feature'])
+
+    feats_all = extract_features_sub(sub_tx)
+    # Attach transaction timestamp for per-card [t_loss - lookback, t_loss) filtering
+    tid_to_t = sub_tx.set_index('TransactionID')['t']
+    feats_all['t'] = feats_all['TransactionID'].map(tid_to_t)
 
     aff_frames = []
     ctrl_frames = []
 
-    all_ctrl_cards = {ctrl_c for c_list in controls.values() for ctrl_c in c_list}
-    sub_tx = as_of_tx[as_of_tx.card_id.isin(set(affected_cards) | all_ctrl_cards)]
-
     for c in affected_cards:
-        t_loss = first_loss[c]
+        t_loss = pd.Timestamp(first_loss_ns[c])
         w_start = t_loss - pd.Timedelta(days=lookback_days)
-        c_tx = sub_tx[(sub_tx.card_id == c) & (sub_tx.t >= w_start) & (sub_tx.t < t_loss)]
-        if not c_tx.empty:
-            aff_frames.append(extract_features(c_tx))
+        c_f = feats_all[(feats_all.card_id == c) & (feats_all.t >= w_start) & (feats_all.t < t_loss)]
+        if not c_f.empty:
+            aff_frames.append(c_f[['card_id', 'TransactionID', 'feature']])
 
         c_ctrls = controls.get(c, [])
         if c_ctrls:
-            ctrl_tx = sub_tx[(sub_tx.card_id.isin(c_ctrls)) & (sub_tx.t >= w_start) & (sub_tx.t < t_loss)]
-            if not ctrl_tx.empty:
-                ctrl_frames.append(extract_features(ctrl_tx))
+            ctrl_f = feats_all[(feats_all.card_id.isin(c_ctrls)) & (feats_all.t >= w_start) & (feats_all.t < t_loss)]
+            if not ctrl_f.empty:
+                ctrl_frames.append(ctrl_f[['card_id', 'TransactionID', 'feature']])
 
     aff_feats = pd.concat(aff_frames, ignore_index=True) if aff_frames else pd.DataFrame(columns=['card_id', 'TransactionID', 'feature'])
     ctrl_feats = pd.concat(ctrl_frames, ignore_index=True) if ctrl_frames else pd.DataFrame(columns=['card_id', 'TransactionID', 'feature'])
@@ -400,7 +549,7 @@ def compute_origin_lifts(
         share_ctrl = max(k_ctrl, 0.5) / N_ctrl
         lift = share_aff / share_ctrl
         pval = hypergeom_sf(int(k_aff), N_aff + N_ctrl, int(k_aff) + k_ctrl, N_aff)
-        card_glob = int(card_counts_all.get(feat, k_aff + k_ctrl))
+        card_glob = int(idx.global_card_counts.get(feat, k_aff + k_ctrl))
         rows.append({
             'feature': feat,
             'k_aff': int(k_aff),
@@ -431,8 +580,11 @@ class CommonPointOfCompromise(Detector):
         return CommonPointOfCompromise._cached_stratified_lr or {}
 
     def run(self, ctx: CaseCtx) -> list[Finding]:
-        # Never use trigger_text to lower thresholds; detect solely from behavioral data
-        shape = get_loss_shape(ctx.tx, ctx.flagged_txn_id)
+        t0_run = time.perf_counter()
+        idx = get_precomputed_index()
+        opened_ns = int(pd.Timestamp(ctx.opened_at).value)
+
+        shape, affected_cards, first_loss_ns, burst_txns = fast_find_cohort_by_tid(idx, int(ctx.flagged_txn_id), opened_ns)
         if shape is None:
             CommonPointOfCompromise.last_diagnostics[ctx.case_id] = {
                 "status": "no_loss_shape",
@@ -440,23 +592,21 @@ class CommonPointOfCompromise(Detector):
                 "cohort_cards": [],
             }
             if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-                print(f"\n[{ctx.case_id}] No loss burst shape on card {ctx.card_id}; affected set size: 0")
+                print(f"\n[{ctx.case_id}] No C-online burst shape on card {ctx.card_id}; affected set size: 0 ({time.perf_counter() - t0_run:.2f}s)", flush=True)
             return []
 
-        affected_cards, first_loss, burst_txns = find_affected_cohort(ctx.tx, shape)
         cohort_size = len(affected_cards)
         bucket = _size_bucket(cohort_size)
 
         if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-            print(f"\n[{ctx.case_id}] Affected set size: {cohort_size}")
-            print(f"[{ctx.case_id}] Affected cards: {affected_cards}")
+            print(f"\n[{ctx.case_id}] Affected set size: {cohort_size} (found in {time.perf_counter() - t0_run:.2f}s)", flush=True)
+            print(f"[{ctx.case_id}] Affected cards: {affected_cards}", flush=True)
 
         strat_table = self.get_stratified_lr_table()
         bucket_stats = strat_table.get(bucket, {}) if bucket else {}
         lr_val = float(bucket_stats.get("lr", 1.0))
         ci_low = float(bucket_stats.get("ci_low", 0.0))
 
-        # Check size eligibility: allow size 3 only when its measured LR lower 95% CI > 2.0
         size_3_allowed = strat_table.get("3", {}).get("ci_low", 0.0) > 2.0
         min_allowed_size = 3 if size_3_allowed else 4
 
@@ -472,35 +622,36 @@ class CommonPointOfCompromise(Detector):
             if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
                 print(
                     f"[{ctx.case_id}] Verdict: cohort size {cohort_size} < min_allowed_size {min_allowed_size} "
-                    f"(size-3 LR={strat_table.get('3', {}).get('lr', 0.0):.2f}, 95% CI low={strat_table.get('3', {}).get('ci_low', 0.0):.2f}) -> cohort too small."
+                    f"(size-3 LR={strat_table.get('3', {}).get('lr', 0.0):.2f}, 95% CI low={strat_table.get('3', {}).get('ci_low', 0.0):.2f}) -> cohort too small.",
+                    flush=True
                 )
             return []
 
-        controls = get_matched_controls(ctx.tx, affected_cards, shape['t0'], rng_seed=42)
-        res_60, aff_feats_60 = compute_origin_lifts(affected_cards, first_loss, controls, ctx.tx, lookback_days=60)
-        res_full, _ = compute_origin_lifts(affected_cards, first_loss, controls, ctx.tx, lookback_days=210)
+        controls = fast_matched_controls(idx, affected_cards, shape['t0_ns'], rng_seed=42)
+        res_60, aff_feats_60 = compute_origin_lifts(idx, affected_cards, first_loss_ns, controls, ctx.tx, lookback_days=60)
+        res_full, _ = compute_origin_lifts(idx, affected_cards, first_loss_ns, controls, ctx.tx, lookback_days=210)
 
-        cap, _ = _global_cardinality_stats()
+        cap = idx.cap_99
 
         if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-            print(f"[{ctx.case_id}] Stratified bucket '{bucket}': LR={lr_val:.2f} (95% CI [{ci_low:.2f}, {bucket_stats.get('ci_high', 0.0):.2f}])")
-            print(f"[{ctx.case_id}] Cardinality 99th-pct cap: {cap:.1f}")
+            print(f"[{ctx.case_id}] Stratified bucket '{bucket}': LR={lr_val:.2f} (95% CI [{ci_low:.2f}, {bucket_stats.get('ci_high', 0.0):.2f}])", flush=True)
+            print(f"[{ctx.case_id}] Cardinality 99th-pct cap: {cap:.1f}", flush=True)
             for lead_feat in ('ProductCD_amount:R_99.93', 'ProductCD_amount:R_100.09'):
                 r60 = res_60[res_60.feature == lead_feat] if not res_60.empty else pd.DataFrame()
                 rfull = res_full[res_full.feature == lead_feat] if not res_full.empty else pd.DataFrame()
                 if not r60.empty:
                     r = r60.iloc[0]
-                    print(f"[{ctx.case_id}] Lead test (60d) {lead_feat}: k_aff={r.k_aff}/{cohort_size}, k_ctrl={r.k_ctrl}, matched_lift={r.lift:.2f}x, fisher_p={r.pval:.2e}, cardinality={r.cardinality}")
+                    print(f"[{ctx.case_id}] Lead test (60d) {lead_feat}: k_aff={r.k_aff}/{cohort_size}, k_ctrl={r.k_ctrl}, matched_lift={r.lift:.2f}x, fisher_p={r.pval:.2e}, cardinality={r.cardinality}", flush=True)
                 elif not rfull.empty:
                     r = rfull.iloc[0]
-                    print(f"[{ctx.case_id}] Lead test (full-hist) {lead_feat}: k_aff={r.k_aff}/{cohort_size}, k_ctrl={r.k_ctrl}, matched_lift={r.lift:.2f}x, fisher_p={r.pval:.2e}, cardinality={r.cardinality}")
+                    print(f"[{ctx.case_id}] Lead test (full-hist) {lead_feat}: k_aff={r.k_aff}/{cohort_size}, k_ctrl={r.k_ctrl}, matched_lift={r.lift:.2f}x, fisher_p={r.pval:.2e}, cardinality={r.cardinality}", flush=True)
                 else:
-                    print(f"[{ctx.case_id}] Lead test {lead_feat}: not present in cohort")
+                    print(f"[{ctx.case_id}] Lead test {lead_feat}: not present in cohort", flush=True)
 
             if not res_60.empty:
-                print(f"[{ctx.case_id}] Top 5 candidate origins (60d lookback):")
+                print(f"[{ctx.case_id}] Top 5 candidate origins (60d lookback):", flush=True)
                 for _, r in res_60.head(5).iterrows():
-                    print(f"  - {r.feature}: k_aff={r.k_aff}/{cohort_size}, k_ctrl={r.k_ctrl}, lift={r.lift:.2f}x, p={r.pval:.2e}, cardinality={r.cardinality}")
+                    print(f"  - {r.feature}: k_aff={r.k_aff}/{cohort_size}, k_ctrl={r.k_ctrl}, lift={r.lift:.2f}x, p={r.pval:.2e}, cardinality={r.cardinality}", flush=True)
 
         min_k_origin = min(4, cohort_size) if cohort_size >= 3 else 4
         valid = pd.DataFrame()
@@ -530,7 +681,7 @@ class CommonPointOfCompromise(Detector):
                 "best_candidate": best_desc,
             }
             if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-                print(f"[{ctx.case_id}] Verdict: no common origin passed matched-control test; emitting coordinated loss-shape cohort finding (LR={lr_val:.2f}).")
+                print(f"[{ctx.case_id}] Verdict: no common origin passed matched-control test; emitting coordinated loss-shape cohort finding (LR={lr_val:.2f}, total {time.perf_counter() - t0_run:.2f}s).", flush=True)
 
             claim = Attestation(
                 what=(
@@ -559,7 +710,7 @@ class CommonPointOfCompromise(Detector):
                 detector=self.name,
                 pattern="undocumented:coordinated_cnp_burst_no_shared_device",
                 claim=claim,
-                lr=lr_val,
+                lr=ci_low,  # weigh by the 95% CI lower bound: the point LR rests on very few positive clusters
                 affected_txn_ids=flagged_burst_txns,
                 connected_card_ids=[c for c in affected_cards if c != ctx.card_id],
             )]
@@ -579,7 +730,7 @@ class CommonPointOfCompromise(Detector):
             "origin": best_feat,
         }
         if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-            print(f"[{ctx.case_id}] Verdict: common origin found -> {best_feat} (lift={best.lift:.2f}x, p={best.pval:.2e}, LR={lr_val:.2f})")
+            print(f"[{ctx.case_id}] Verdict: common origin found -> {best_feat} (lift={best.lift:.2f}x, p={best.pval:.2e}, LR={lr_val:.2f}, total {time.perf_counter() - t0_run:.2f}s)", flush=True)
 
         claim = Attestation(
             what=(
@@ -604,49 +755,43 @@ class CommonPointOfCompromise(Detector):
             detector=self.name,
             pattern=self.pattern,
             claim=claim,
-            lr=lr_val,
+            lr=ci_low,  # weigh by the 95% CI lower bound: the point LR rests on very few positive clusters
             affected_txn_ids=flagged_burst_txns,
             connected_card_ids=[c for c in affected_cards if c != ctx.card_id],
         )]
 
-    def backtest(self, cc: pd.DataFrame, tx: pd.DataFrame) -> Backtest:
-        """Backtests coordinated loss-shape / CPC detection stratified by cohort size ('3', '4-5', '6+')
-        over confirmed-fraud episodes vs 5,000 legitimate Jul-Oct 2016 card-days."""
-        if CommonPointOfCompromise._cached_bt is not None and CommonPointOfCompromise._cached_stratified_lr is not None:
+    def backtest(self, cc: pd.DataFrame, tx: pd.DataFrame, max_samples: int = 300) -> Backtest:
+        """Fast backtest stratified by cohort size ('3', '4-5', '6+') using precomputed binary-search index."""
+        if max_samples == 300 and CommonPointOfCompromise._cached_bt is not None and CommonPointOfCompromise._cached_stratified_lr is not None:
             return CommonPointOfCompromise._cached_bt
 
-        tx_jo = tx[(tx.t >= pd.Timestamp('2016-07-01')) & (tx.t < pd.Timestamp('2016-11-01'))]
-        fraud_txns = set()
-        for t_list in cc.txn_list:
-            fraud_txns.update(t_list)
+        t0_bt = time.perf_counter()
+        idx = get_precomputed_index()
 
-        tx_by_id = tx.set_index('TransactionID')
-        fraud_cc = cc[cc.outcome == 'confirmed_fraud'].copy()
-
-        # Positive episodes: confirmed fraud cases in Jul-Oct where the card has >=2 online C charges >= $250 in the case
+        # Positive episodes: confirmed fraud cases where the card has >=2 online C charges >= $250 in the case
+        fraud_cc = cc[cc.outcome == 'confirmed_fraud']
         pos_cases = []
         for row in fraud_cc.itertuples():
-            if not row.txn_list:
+            if len(row.txn_list) < 2:
                 continue
-            valid_tids = [tid for tid in row.txn_list if tid in tx_by_id.index]
-            if len(valid_tids) < 2:
+            r_indices = [idx.tid_to_row[tid] for tid in row.txn_list if tid in idx.tid_to_row]
+            if len(r_indices) < 2:
                 continue
-            sub = tx_by_id.loc[valid_tids]
-            if (sub.ProductCD == 'C').all() and (sub.channel == 'online').all() and (sub.amount >= 250.0).sum() >= 2:
-                pos_cases.append((row.case_id, int(valid_tids[-1]), pd.to_datetime(row.opened_at)))
+            c_hits = sum(1 for r_i in r_indices if idx.prod[r_i] == 'C' and idx.chan[r_i] == 'online' and idx.amt[r_i] >= 250.0)
+            if c_hits >= 2:
+                pos_cases.append((str(row.case_id), int(row.txn_list[-1]), int(pd.Timestamp(row.opened_at).value)))
 
-        # Evaluate cohort size on each positive episode
+        rng = np.random.default_rng(42)
+        if len(pos_cases) > max_samples:
+            chosen_idx = rng.choice(len(pos_cases), size=max_samples, replace=False)
+            pos_cases = [pos_cases[i] for i in sorted(chosen_idx)]
+
         pos_bucket_hits: dict[str, list[str]] = {"3": [], "4-5": [], "6+": []}
         pos_cohort_sizes: dict[str, int] = {}
 
-        for case_id, f_tid, opened_dt in pos_cases:
-            as_of = tx[tx.t <= opened_dt]
-            shape = get_loss_shape(as_of, f_tid)
-            if shape is None:
-                pos_cohort_sizes[case_id] = 0
-                continue
-            cohort, _, _ = find_affected_cohort(as_of, shape)
-            if shape['flagged_card'] not in cohort:
+        for case_id, f_tid, opened_ns in pos_cases:
+            shape, cohort, _, _ = fast_find_cohort_by_tid(idx, f_tid, opened_ns)
+            if shape is None or shape['flagged_card'] not in cohort:
                 pos_cohort_sizes[case_id] = 0
                 continue
             c_size = len(cohort)
@@ -655,31 +800,29 @@ class CommonPointOfCompromise(Detector):
             if b is not None:
                 pos_bucket_hits[b].append(case_id)
 
-        # Negative population: 5,000 legitimate card-days from Jul-Oct 2016
-        legit_tx = tx_jo[~tx_jo.TransactionID.isin(fraud_txns)]
-        neg_sample = legit_tx.sample(n=min(5000, len(legit_tx)), random_state=42)
+        # Negative population: fixed-seed sample of legitimate Jul-Oct 2016 card-days (default 5,000, fast via precomputed index)
+        fraud_txns = {int(x) for t_list in cc.txn_list for x in t_list}
+        jo_cutoff = pd.Timestamp('2016-11-01').value
+        legit_rows = np.where((idx.t_ns < jo_cutoff) & (~np.isin(idx.tid, list(fraud_txns))))[0]
+        n_neg_target = 5000 if max_samples >= 300 else max_samples
+        sampled_neg_rows = rng.choice(legit_rows, size=min(n_neg_target, len(legit_rows)), replace=False)
 
         neg_bucket_hits: dict[str, list[str]] = {"3": [], "4-5": [], "6+": []}
 
-        # Pre-filter negative sample to those with amount >= 250 on online C or general burst candidates
-        cand_neg = neg_sample[neg_sample.amount >= 25.0]
-        for row in cand_neg.itertuples():
-            c_tx = tx_jo[(tx_jo.card_id == row.card_id) & (tx_jo.t >= row.t - pd.Timedelta(days=3)) & (tx_jo.t <= row.t)]
-            if len(c_tx) < 2:
+        for r_i in sampled_neg_rows:
+            if idx.prod[r_i] != 'C' or idx.chan[r_i] != 'online' or idx.amt[r_i] < 250.0:
                 continue
-            as_of = tx_jo[tx_jo.t <= row.t]
-            shape = get_loss_shape(as_of, int(row.TransactionID))
-            if shape is None:
-                continue
-            cohort, _, _ = find_affected_cohort(as_of, shape)
-            if shape['flagged_card'] not in cohort:
+            f_tid = int(idx.tid[r_i])
+            opened_ns = int(idx.t_ns[r_i])
+            shape, cohort, _, _ = fast_find_cohort_by_tid(idx, f_tid, opened_ns)
+            if shape is None or shape['flagged_card'] not in cohort:
                 continue
             b = _size_bucket(len(cohort))
             if b is not None:
-                neg_bucket_hits[b].append(str(row.TransactionID))
+                neg_bucket_hits[b].append(str(f_tid))
 
         n_pos = max(len(pos_cases), 1)
-        n_neg = len(neg_sample)
+        n_neg = len(sampled_neg_rows)
 
         strat_table: dict[str, dict[str, float]] = {}
         for b in ("3", "4-5", "6+"):
@@ -687,7 +830,6 @@ class CommonPointOfCompromise(Detector):
 
         CommonPointOfCompromise._cached_stratified_lr = strat_table
 
-        # Determine which buckets are active (size 3 is active if its 95% CI lower bound > 2.0)
         size_3_active = strat_table["3"]["ci_low"] > 2.0
         active_buckets = ("3", "4-5", "6+") if size_3_active else ("4-5", "6+")
 
@@ -714,5 +856,26 @@ class CommonPointOfCompromise(Detector):
             legit_acted_against=legit_acted,
             lr_measured=overall_stats["lr"],
         )
-        CommonPointOfCompromise._cached_bt = bt
+        if max_samples == 300:
+            CommonPointOfCompromise._cached_bt = bt
+        print(f"[CPC] Backtest completed in {time.perf_counter() - t0_bt:.2f}s (n_pos={n_pos}, n_neg={n_neg}, LR={bt.lr_measured:.2f})", flush=True)
         return bt
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run CPC detector backtest")
+    parser.add_argument("--full", action="store_true", help="Run full backtest over all closed cases")
+    args = parser.parse_args()
+
+    from assay.r2.frames import closed_cases, tx_all
+    det = CommonPointOfCompromise()
+    bt_res = det.backtest(closed_cases(), tx_all(), max_samples=10000 if args.full else 300)
+    out = {
+        "n_cases": bt_res.n_cases,
+        "caught": len(bt_res.caught),
+        "missed": len(bt_res.missed),
+        "legit_acted_against": len(bt_res.legit_acted_against),
+        "lr_measured": bt_res.lr_measured,
+        "stratified": det.get_stratified_lr_table(),
+    }
+    print(json.dumps(out, indent=2), flush=True)

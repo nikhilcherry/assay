@@ -87,8 +87,8 @@
     "total_amount_usd": 0,
     "activity_dates": []
   },
-  "stop_reason": "Policy \u00a76: fraud probability 0.00 is at or below 0.15 on 3 independent pieces of evidence.",
+  "stop_reason": "Policy \u00a76: fraud probability 0.00 is at or below 0.15 on 2 independent pieces of evidence.",
   "tool_calls": 8,
   "tokens": 0,
-  "latency_s": 14.63
+  "latency_s": 23.83
 }

@@ -10,14 +10,14 @@ CREATE OR REPLACE QUERY similar_cases_vec(
   LIST<FLOAT> qv,
   INT k = 5,
   DATETIME as_of = to_datetime("2099-01-01 00:00:00")
-) FOR GRAPH assay {
+) FOR GRAPH assay SYNTAX v2 {
   SetAccum<STRING> @shared_cards;
   SetAccum<STRING> @shared_devices;
 
   AllCases = {ClosedCase.*};
   Eligible = SELECT cc FROM AllCases:cc WHERE cc.closed_at <= as_of;
 
-  Hits = vectorSearch({ClosedCase.behaviour}, qv, k, filter=Eligible);
+  Hits = vectorSearch({ClosedCase.behaviour}, qv, k, {candidate_set: Eligible});
 
   // 1-2 hop traversal from vector hits to shared Cards and DeviceProfiles
   HitCards = SELECT c FROM Hits:cc -(ON_CARD>|CONNECTED_TO>)- Card:c
@@ -46,7 +46,7 @@ CREATE OR REPLACE QUERY similar_cases_fused(
   INT k = 5,
   INT hops = 2,
   DATETIME as_of = to_datetime("2099-01-01 00:00:00")
-) FOR GRAPH assay {
+) FOR GRAPH assay SYNTAX v2 {
   MinAccum<STRING> @connecting_path;
   SetAccum<STRING> @shared_cards;
   SetAccum<STRING> @shared_devices;
@@ -84,7 +84,7 @@ CREATE OR REPLACE QUERY similar_cases_fused(
   CandidateSet = DirectCases UNION ReachableCases;
 
   // Fused vector search restricted to the reachable as-of candidate set
-  R = vectorSearch({ClosedCase.behaviour}, qv, k, filter=CandidateSet);
+  R = vectorSearch({ClosedCase.behaviour}, qv, k, {candidate_set: CandidateSet});
 
   // 1-2 hop traversal from the top-k vector hits to shared Cards and DeviceProfiles
   HitCards = SELECT k_card FROM R:cc -(ON_CARD>|CONNECTED_TO>)- Card:k_card

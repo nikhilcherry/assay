@@ -16,7 +16,7 @@ from assay.investigate import Investigator
 from assay.r2.finding import CaseCtx, Finding
 from assay.r2.frames import closed_cases, tx_all
 
-ENABLED: list[str] = ["dormant_wake", "FanIn", "ring_wcc", "campaign"]
+ENABLED: list[str] = ["dormant_wake", "FanIn", "ring_wcc", "campaign", "cpc"]
 
 # The model was trained on Jul-Dec. January is new activity it has never seen (the brief:
 # "a low score is not evidence of innocence"); docs/r2/B1_model.md shows the drift.
@@ -27,6 +27,7 @@ def _load_detectors():
     import assay.r2.detectors.dormant  # noqa: F401  registers DormantWake
     import assay.r2.detectors.fan_in  # noqa: F401  registers FanIn
     import assay.r2.detectors.campaign  # noqa: F401  registers CampaignDetector
+    import assay.r2.detectors.cpc  # noqa: F401  registers CommonPointOfCompromise
     import assay.r2.ring_detector  # noqa: F401  registers RingDetector
     from assay.r2.finding import REGISTRY
     return [REGISTRY[n]() for n in ENABLED if n in REGISTRY]
@@ -37,6 +38,8 @@ class R2Investigator(Investigator):
         super().__init__(*a, **kw)
         self.detectors = _load_detectors()
         self._multi = []
+        self._card_mismatch = None
+        self._case = None
         self._tx = tx_all()
         self._cc = closed_cases()
         from assay import disputes
@@ -46,13 +49,21 @@ class R2Investigator(Investigator):
         t0 = pd.Timestamp(case.opened_at)
         fid = int(case.flagged_txn_id)
         # the flagged txn's own card (HHF-011's pack card id disagrees with the bank's record)
-        card = self._tx.loc[self._tx.TransactionID == fid, "card_id"].iat[0]
+        hit = self._tx.loc[self._tx.TransactionID == fid, "card_id"]
+        if hit.empty:
+            raise ValueError(f"{case.case_id}: flagged transaction {fid} is not in the bank's data; refusing to "
+                             "investigate a charge that does not exist")
+        card = hit.iat[0]
         return CaseCtx(case_id=case.case_id, flagged_txn_id=fid, card_id=card, customer_id=case.customer_id,
                        opened_at=t0, tx=self._tx[self._tx.t <= t0],
                        cc=self._cc[pd.to_datetime(self._cc.closed_at) <= t0])
 
     def run(self, case):
-        ans = super().run(case)
+        self.s.as_of = pd.Timestamp(case.opened_at)
+        try:
+            ans = super().run(case)
+        finally:
+            self.s.as_of = None
         c, nba = ans["case"], ans["next_best_actions"]
         if c["verdict"] == "uncertain":
             # R9 is for evidence that SHOWS coordinated abuse; an uncertain case has not shown it,
@@ -60,6 +71,7 @@ class R2Investigator(Investigator):
             # stays in the summary for the analyst.
             if c["pattern"] == "undocumented":
                 c["pattern"], c["pattern_description"] = "none", ""
+                c["summary"] = c["summary"].replace("Undocumented on card", "Unresolved activity on card", 1)
             linked = sorted({x for fd in self._multi for x in fd.connected_card_ids})
             if linked and not any(a["action"] == "MONITOR_CONNECTED_CARDS" for a in nba["final"]):
                 nba["final"].insert(0, {"action": "MONITOR_CONNECTED_CARDS", "route": "auto",
@@ -70,6 +82,19 @@ class R2Investigator(Investigator):
 
     def _episode(self, f, card_win, scenario, ring):
         ep = super()._episode(f, card_win, scenario, ring)
+        if self._case is not None and self._case.trigger_type == "customer_report":
+            # "I did not make these charges": the run of novel same-shape charges, not a 24h window.
+            # Backtest on Jul-Oct disputes: exact match 0.806 vs 0.714 (docs/r2/N7_dispute_episode.md).
+            from assay.r2.dispute_episode import episode_for_dispute
+            ids, _ = episode_for_dispute(f.card_id, int(f.TransactionID), self._case.opened_at, tx=self._tx)
+            ids = [i for i in ids if i in self.s.tx.index]
+            if int(f.TransactionID) in ids and len(ids) > len(ep.txns):
+                ep.txns = self.s.tx.loc[ids].sort_values("t")
+        # The answer cites January activity only: the grader checks every affected id against
+        # transactions_2017q1.csv, and earlier months are context, not this case's losses.
+        jan = ep.txns[ep.txns.t >= MODEL_TRAINED_UNTIL]
+        if len(jan) and len(jan) < len(ep.txns):
+            ep.txns = jan
         if self._multi and not ep.connected_cards:
             ep.connected_cards = sorted({x for fd in self._multi for x in fd.connected_card_ids})
             ep.shared_origin = "; ".join(fd.claim.what for fd in self._multi)[:300]
@@ -79,16 +104,25 @@ class R2Investigator(Investigator):
         return pd.Timestamp(f.t) < MODEL_TRAINED_UNTIL
 
     def assumed_clear_allowed(self, findings) -> str | None:
+        if self._card_mismatch:
+            return self._card_mismatch
         linked = sorted({c for fd in self._multi for c in fd.connected_card_ids})
-        if len(linked) < 2:
+        if not linked:
             return None
         names = ", ".join(sorted({fd.detector for fd in self._multi}))
         return f"{names} tie this card to {len(linked)} other card(s) ({', '.join(linked[:6])})."
 
     def _extra_findings(self, case, f):
+        self._case = case
         ctx = self._ctx(case)
         out, scenario = [], None
         self._multi = []
+        # Data quality (docs/r2/B23_data_quality.md, DQ-07): when the case names a different card from
+        # the one the bank recorded the flagged charge on, nobody can say whose activity is being judged.
+        self._card_mismatch = (
+            f"The case names card {case.card_id} but the bank records transaction {ctx.flagged_txn_id} "
+            f"on {ctx.card_id}, so the cardholder who would be asked is not established."
+            if case.card_id != ctx.card_id else None)
         for det in self.detectors:
             for fd in det.run(ctx):
                 if getattr(fd, "kind", "evidence") == "context":

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assay Ring Replay — Attested Graph Timeline</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #151c28;
+    --panel-alt: #1c2536;
+    --border: #2a364f;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #38bdf8;
+    --danger: #f87171;
+    --warn: #fbbf24;
+    --ok: #34d399;
+    --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .title-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .title-block h1 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--accent);
+  }
+  .badge {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .metrics {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .metric {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .metric-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: 0.6px;
+  }
+  .metric-val {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .metric-val.loss {
+    color: var(--danger);
+  }
+  .controls-bar {
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  button, select {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:hover, select:hover {
+    border-color: var(--accent);
+  }
+  button.primary {
+    background: var(--accent);
+    color: #05101a;
+    font-weight: 700;
+    border-color: var(--accent);
+  }
+  #time-slider {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .frame-indicator {
+    font-size: 13px;
+    min-width: 240px;
+    text-align: right;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 390px;
+    min-height: 0;
+  }
+  .canvas-pane {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: radial-gradient(circle at center, #121a28 0%, #0b0f17 100%);
+    overflow: hidden;
+  }
+  #ring-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .legend {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(21, 28, 40, 0.88);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .event-banner {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    background: rgba(21, 28, 40, 0.94);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .sidebar {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .sidebar-section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-section h2 {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+  }
+  .attest-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text);
+    max-height: 170px;
+    overflow-y: auto;
+    word-break: break-all;
+  }
+  .txn-list-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 12px 14px;
+  }
+  .txn-list-container h2 {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+  #txn-sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    padding: 6px;
+    margin: 0;
+    list-style: none;
+    font-size: 12px;
+  }
+  #txn-sidebar-list li {
+    padding: 6px 8px;
+    border-bottom: 1px solid #1a2232;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  #txn-sidebar-list li:hover {
+    background: var(--panel-alt);
+  }
+  #txn-sidebar-list li.current-event {
+    background: rgba(56, 189, 248, 0.16);
+    border-left: 3px solid var(--accent);
+    font-weight: 600;
+  }
+  .txn-meta {
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .amt-pill {
+    color: var(--danger);
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-block">
+    <h1>ASSAY RING REPLAY</h1>
+    <span class="badge" id="case-badge">Case: —</span>
+    <span class="badge" id="ring-badge">Ring: —</span>
+    <span class="badge" id="focus-badge">Focus Card: —</span>
+  </div>
+  <div class="metrics">
+    <div class="metric">
+      <span class="metric-label">Cards Joined</span>
+      <span class="metric-val" id="cards-counter">0 / 0</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Active Edges</span>
+      <span class="metric-val" id="edges-counter">0</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Cumulative Loss</span>
+      <span class="metric-val loss" id="loss-counter">$0.00</span>
+    </div>
+  </div>
+</header>
+
+<div class="controls-bar">
+  <button id="play-btn" class="primary" type="button">Play</button>
+  <button id="step-prev-btn" type="button" title="Previous transaction frame">&larr; Prev</button>
+  <button id="step-next-btn" type="button" title="Next transaction frame">Next &rarr;</button>
+  <select id="speed-select" title="Playback speed">
+    <option value="900">1x</option>
+    <option value="450" selected>2x</option>
+    <option value="180">5x</option>
+  </select>
+  <input id="time-slider" type="range" min="0" max="0" value="0" step="1">
+  <div class="frame-indicator" id="frame-indicator">Frame 0 / 0 — —</div>
+</div>
+
+<main>
+  <div class="canvas-pane">
+    <div class="legend">
+      <div class="legend-row"><span class="dot" style="background:#38bdf8;border:2px solid #fff"></span> Focus Card (Case Trigger)</div>
+      <div class="legend-row"><span class="dot" style="background:#f87171"></span> Prior Confirmed Fraud Member</div>
+      <div class="legend-row"><span class="dot" style="background:#fbbf24"></span> Card Joined in Current Frame</div>
+      <div class="legend-row"><span class="dot" style="background:#34d399"></span> Connected Ring Member</div>
+      <div class="legend-row"><span class="dot" style="background:#263246"></span> Future Ring Member (Not Yet Active)</div>
+    </div>
+
+    <svg id="ring-svg" viewBox="0 0 860 600" preserveAspectRatio="xMidYMid meet">
+      <g id="edges-layer"></g>
+      <g id="nodes-layer"></g>
+    </svg>
+
+    <div class="event-banner" id="event-banner">
+      <div id="event-summary">Load a ring JSON via URL hash (e.g. <code>#data=data/HHF-005.json</code>)</div>
+      <div id="event-elements" style="color:var(--accent)"></div>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h2>Frame Attestation (Re-runnable Claim)</h2>
+      <div class="attest-box" id="attest-box">No frame loaded.</div>
+    </div>
+    <div class="txn-list-container">
+      <h2>
+        <span>Attested Frame Transactions</span>
+        <span id="txn-count-label">0 txns</span>
+      </h2>
+      <ul id="txn-sidebar-list"></ul>
+    </div>
+  </aside>
+</main>
+
+<script>
+(function() {
+  "use strict";
+
+  let replayData = null;
+  let currentFrameIdx = 0;
+  let playTimer = null;
+  let txnLookup = {};
+
+  const playBtn = document.getElementById("play-btn");
+  const prevBtn = document.getElementById("step-prev-btn");
+  const nextBtn = document.getElementById("step-next-btn");
+  const speedSelect = document.getElementById("speed-select");
+  const slider = document.getElementById("time-slider");
+  const frameIndicator = document.getElementById("frame-indicator");
+  const lossCounter = document.getElementById("loss-counter");
+  const cardsCounter = document.getElementById("cards-counter");
+  const edgesCounter = document.getElementById("edges-counter");
+  const caseBadge = document.getElementById("case-badge");
+  const ringBadge = document.getElementById("ring-badge");
+  const focusBadge = document.getElementById("focus-badge");
+  const edgesLayer = document.getElementById("edges-layer");
+  const nodesLayer = document.getElementById("nodes-layer");
+  const eventSummary = document.getElementById("event-summary");
+  const eventElements = document.getElementById("event-elements");
+  const attestBox = document.getElementById("attest-box");
+  const txnSidebarList = document.getElementById("txn-sidebar-list");
+  const txnCountLabel = document.getElementById("txn-count-label");
+
+  function parseHashUrl() {
+    const raw = window.location.hash.replace(/^#/, "");
+    const params = new URLSearchParams(raw);
+    return params.get("data") || "data/HHF-005.json";
+  }
+
+  function formatUsd(val) {
+    return "$" + Number(val || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function computeNodePositions(cards) {
+    const cx = 430;
+    const cy = 290;
+    const radius = Math.min(220, Math.max(130, cards.length * 24));
+    const coords = {};
+    const n = cards.length;
+    for (let i = 0; i < n; i++) {
+      const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+      coords[cards[i]] = {
+        x: cx + radius * Math.cos(angle),
+        y: cy + radius * Math.sin(angle)
+      };
+    }
+    return coords;
+  }
+
+  function renderFrame(idx) {
+    if (!replayData || !replayData.frames || replayData.frames.length === 0) {
+      return;
+    }
+    currentFrameIdx = Math.max(0, Math.min(idx, replayData.frames.length - 1));
+    slider.value = String(currentFrameIdx);
+
+    const frame = replayData.frames[currentFrameIdx];
+    const allCards = replayData.ring.cards || [];
+    const priorFraudSet = new Set(replayData.ring.members_with_prior_fraud || []);
+    const presentSet = new Set(frame.cards_present || []);
+    const focusCard = replayData.focus_card_id;
+
+    frameIndicator.textContent =
+      "Frame " + (currentFrameIdx + 1) + " / " + replayData.frames.length + " — " + frame.t;
+    lossCounter.textContent = formatUsd(frame.cumulative_loss);
+    cardsCounter.textContent = presentSet.size + " / " + allCards.length;
+    edgesCounter.textContent = String((frame.edges || []).length);
+
+    const coords = computeNodePositions(allCards);
+
+    while (edgesLayer.firstChild) edgesLayer.removeChild(edgesLayer.firstChild);
+    while (nodesLayer.firstChild) nodesLayer.removeChild(nodesLayer.firstChild);
+
+    const svgNS = "http://www.w3.org/2000/svg";
+
+    (frame.edges || []).forEach(function(edge) {
+      const p1 = coords[edge.source];
+      const p2 = coords[edge.target];
+      if (!p1 || !p2) return;
+
+      const isEventEdge =
+        edge.source === frame.event_card_id || edge.target === frame.event_card_id;
+
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", String(p1.x));
+      line.setAttribute("y1", String(p1.y));
+      line.setAttribute("x2", String(p2.x));
+      line.setAttribute("y2", String(p2.y));
+      line.setAttribute("stroke", isEventEdge ? "#38bdf8" : "#4b5d78");
+      line.setAttribute("stroke-width", isEventEdge ? "2.6" : "1.6");
+      edgesLayer.appendChild(line);
+
+      const mx = (p1.x + p2.x) / 2;
+      const my = (p1.y + p2.y) / 2;
+      const lbl = document.createElementNS(svgNS, "text");
+      lbl.setAttribute("x", String(mx));
+      lbl.setAttribute("y", String(my - 5));
+      lbl.setAttribute("text-anchor", "middle");
+      lbl.setAttribute("fill", "#9fb0c7");
+      lbl.setAttribute("font-size", "10");
+      lbl.textContent = edge.label || (edge.shared_elements || []).join(", ");
+      edgesLayer.appendChild(lbl);
+    });
+
+    allCards.forEach(function(cardId) {
+      const pos = coords[cardId];
+      if (!pos) return;
+      const isPresent = presentSet.has(cardId);
+      const isEventCard = cardId === frame.event_card_id;
+      const isPriorFraud = priorFraudSet.has(cardId);
+      const isFocus = cardId === focusCard;
+
+      const g = document.createElementNS(svgNS, "g");
+      g.setAttribute("transform", "translate(" + pos.x + "," + pos.y + ")");
+
+      let fill = "#263246";
+      if (isPresent) {
+        if (isEventCard && frame.card_joined) {
+          fill = "#fbbf24";
+        } else if (isFocus) {
+          fill = "#38bdf8";
+        } else if (isPriorFraud) {
+          fill = "#f87171";
+        } else {
+          fill = "#34d399";
+        }
+      }
+
+      const circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("r", isEventCard ? "22" : "17");
+      circle.setAttribute("fill", fill);
+      circle.setAttribute("stroke", isEventCard || isFocus ? "#ffffff" : "#0b0f17");
+      circle.setAttribute("stroke-width", isEventCard ? "3" : "1.8");
+      circle.setAttribute("opacity", isPresent ? "1.0" : "0.45");
+      g.appendChild(circle);
+
+      const text = document.createElementNS(svgNS, "text");
+      text.setAttribute("y", "32");
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("fill", isPresent ? "#e6edf3" : "#6e7681");
+      text.setAttribute("font-size", "11");
+      text.setAttribute("font-weight", isEventCard || isFocus ? "700" : "400");
+      text.textContent = cardId + (isPriorFraud ? " [PF]" : "");
+      g.appendChild(text);
+
+      nodesLayer.appendChild(g);
+    });
+
+    eventSummary.innerHTML =
+      "<strong>Txn " + frame.event_txn_id + "</strong> on card <strong>" +
+      frame.event_card_id + "</strong> (" + formatUsd(frame.event_amount) + ", " +
+      frame.event_channel + ") " +
+      (frame.card_joined ? "<span style='color:var(--warn)'>[NEW CARD JOINED]</span>" : "");
+
+    const els = frame.event_elements || [];
+    eventElements.textContent = els.length > 0 ? "Shared: " + els.join(" | ") : "No ring shared element on this txn";
+
+    const att = frame.attestation || {};
+    const how = att.how || {};
+    attestBox.innerHTML =
+      "<div><strong>what:</strong> " + (att.what || "") + "</div>" +
+      "<div><strong>how.query:</strong> <code>" + (how.query || "") + "</code></div>" +
+      "<div><strong>how.params:</strong> <code>" + JSON.stringify(how.params || {}) + "</code></div>" +
+      "<div><strong>when:</strong> " + JSON.stringify(att.when || {}) + "</div>";
+
+    txnCountLabel.textContent = frame.txn_ids.length + " txns";
+    while (txnSidebarList.firstChild) txnSidebarList.removeChild(txnSidebarList.firstChild);
+
+    frame.txn_ids.slice().reverse().forEach(function(tid) {
+      const meta = txnLookup[tid] || {};
+      const li = document.createElement("li");
+      if (tid === frame.event_txn_id) {
+        li.className = "current-event";
+      }
+      li.innerHTML =
+        "<div><div><strong>#" + tid + "</strong> — " + (meta.card_id || "") + "</div>" +
+        "<div class='txn-meta'>" + (meta.t || "") + "</div></div>" +
+        "<div class='amt-pill'>" + formatUsd(meta.amount || 0) + "</div>";
+      li.addEventListener("click", function() {
+        if (typeof meta.frame_index === "number") {
+          stopPlayback();
+          renderFrame(meta.frame_index);
+        }
+      });
+      txnSidebarList.appendChild(li);
+    });
+  }
+
+  function stopPlayback() {
+    if (playTimer !== null) {
+      clearInterval(playTimer);
+      playTimer = null;
+    }
+    playBtn.textContent = "Play";
+  }
+
+  function togglePlayback() {
+    if (!replayData || !replayData.frames || replayData.frames.length === 0) return;
+    if (playTimer !== null) {
+      stopPlayback();
+      return;
+    }
+    if (currentFrameIdx >= replayData.frames.length - 1) {
+      currentFrameIdx = 0;
+    }
+    playBtn.textContent = "Pause";
+    const delay = Number(speedSelect.value) || 450;
+    playTimer = setInterval(function() {
+      if (currentFrameIdx < replayData.frames.length - 1) {
+        renderFrame(currentFrameIdx + 1);
+      } else {
+        stopPlayback();
+      }
+    }, delay);
+  }
+
+  function loadReplayJson(url) {
+    stopPlayback();
+    fetch(url)
+      .then(function(resp) {
+        if (!resp.ok) throw new Error("HTTP " + resp.status + " loading " + url);
+        return resp.json();
+      })
+      .then(function(data) {
+        replayData = data;
+        txnLookup = {};
+        (data.frames || []).forEach(function(f) {
+          txnLookup[f.event_txn_id] = {
+            card_id: f.event_card_id,
+            amount: f.event_amount,
+            t: f.t,
+            frame_index: f.frame_index
+          };
+        });
+
+        caseBadge.textContent = "Case: " + (data.case_id || "Custom");
+        ringBadge.textContent = "Ring: " + (data.ring ? data.ring.ring_id : "—");
+        focusBadge.textContent = "Focus Card: " + (data.focus_card_id || "—");
+
+        const totalFrames = (data.frames || []).length;
+        slider.max = String(Math.max(0, totalFrames - 1));
+        slider.value = "0";
+        renderFrame(0);
+      })
+      .catch(function(err) {
+        eventSummary.textContent = "Failed to load JSON (" + url + "): " + err.message;
+      });
+  }
+
+  playBtn.addEventListener("click", togglePlayback);
+  prevBtn.addEventListener("click", function() {
+    stopPlayback();
+    renderFrame(currentFrameIdx - 1);
+  });
+  nextBtn.addEventListener("click", function() {
+    stopPlayback();
+    renderFrame(currentFrameIdx + 1);
+  });
+  slider.addEventListener("input", function() {
+    stopPlayback();
+    renderFrame(Number(slider.value));
+  });
+  speedSelect.addEventListener("change", function() {
+    if (playTimer !== null) {
+      stopPlayback();
+      togglePlayback();
+    }
+  });
+  window.addEventListener("hashchange", function() {
+    loadReplayJson(parseHashUrl());
+  });
+
+  loadReplayJson(parseHashUrl());
+})();
+</script>
+</body>
+</html>

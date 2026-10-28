@@ -1,16 +1,35 @@
 {
   "case_id": "HHF-002",
   "case": {
-    "status": "closed_legitimate",
-    "verdict": "legitimate",
-    "fraud_probability": 0.01,
-    "pattern": "none",
-    "pattern_description": "",
-    "affected_txn_ids": [],
-    "first_suspicious_txn_id": "",
-    "connected_card_ids": [],
-    "connected_device_profiles": [],
-    "exposure_usd": 0.0,
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.94,
+    "pattern": "undocumented",
+    "pattern_description": "Device-ring fraud: Affected loss-shape cohort (12 cards, bucket '6+', measured LR=357.29) shares common origin ProductCD_addr1:W_122 within 60 days before loss (matched lift=14.3x, Fisher p=6.51e-05, cardinality=142)., used on 12 unrelated cards within a month for a few purchases each, every one scoring low on the bank's model. No single card shows a credential or channel change, so it is not account takeover, and the link that makes it fraud is the shared handset across cardholders. Found by traversing from the flagged transaction's device profile to every other card that used it.",
+    "affected_txn_ids": [
+      "3660125",
+      "3660126",
+      "3660127"
+    ],
+    "first_suspicious_txn_id": "3660125",
+    "connected_card_ids": [
+      "C01727-K2",
+      "C02167-K2",
+      "C02342-K1",
+      "C05061-K1",
+      "C05770-K1",
+      "C06962-K2",
+      "C07212-K2",
+      "C07925-K1",
+      "C10553-K1",
+      "C11309-K1",
+      "C11543-K2"
+    ],
+    "connected_device_profiles": [
+      "SM-J700T1 | iOS 11.1.1 | mobile safari 11.0 | 2048x1536",
+      "SM-J700T1 | iOS 11.1.2 | mobile safari 11.0 | 2048x1536"
+    ],
+    "exposure_usd": 2166.71,
     "evidence": [
       {
         "claim": "Flagged transaction 3660127 ($770.78, product C, online) scores 0.07 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.07.",
@@ -37,15 +56,46 @@
         ]
       },
       {
-        "claim": "Simulated customer validation: Cardholder confirms they made the transaction.",
+        "claim": "Affected loss-shape cohort (12 cards, bucket '6+', measured LR=357.29) shares common origin ProductCD_addr1:W_122 within 60 days before loss (matched lift=14.3x, Fisher p=6.51e-05, cardinality=142).",
+        "source": "graph",
+        "ref": "query:cpc_origin_search(card_id=C06220-K1, cohort_size_bucket=6+, flagged_txn_id=3660127, lookback_days=60, origin_key=ProductCD_addr1:W_122)",
+        "entity_ids": [
+          "3475888",
+          "3476836",
+          "3479091",
+          "3489074",
+          "3517256",
+          "3528324",
+          "3544753",
+          "3557019",
+          "3564471",
+          "3660125",
+          "3660126",
+          "3660127"
+        ]
+      },
+      {
+        "claim": "Simulated customer validation: Cardholder states they did not make this transaction and still has the card.",
         "source": "customer",
         "ref": "evidence_request:1",
         "entity_ids": []
       },
       {
-        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
         "source": "document",
-        "ref": "document:fraud-policy#R3",
+        "ref": "document:brief#known-fraud-patterns/undocumented",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
+        "source": "document",
+        "ref": "document:fraud-policy#R2",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R6: Shared origin: name the shared element, CREATE_CASE, FILE_REPORT, and MONITOR_CONNECTED_CARDS for every card that shares it.",
+        "source": "document",
+        "ref": "document:fraud-policy#R6",
         "entity_ids": []
       },
       {
@@ -56,62 +106,103 @@
       }
     ],
     "similar_prior_cases": [
-      "CC-0815",
-      "CC-0594"
+      "CC-4124",
+      "CC-3907",
+      "CC-3748"
     ],
-    "summary": "Alert on transaction 3660127 ($770.78) on card C06220-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.01. Cardholder confirms they made the transaction. Closed as legitimate; no report.",
+    "summary": "Undocumented on card C06220-K1: 3 transaction(s) from 2017-01-17 to 2017-01-19 totalling $2,166.71, probability 0.94. Linked to 11 other card(s) through Affected loss-shape cohort (12 cards, bucket '6+', measured LR=357.29) shares common origin ProductCD_addr1:W_122 within 60 days before loss (matched lift=14.3x, Fisher p=6.51e-05, cardinality=142).. Cardholder states they did not make this transaction and still has the card.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-HHF-002"
   },
   "evidence_requests": [
     {
       "type": "customer_validation",
-      "asked_after_step": 6,
-      "assumed_response": "Cardholder confirms they made the transaction."
+      "asked_after_step": 7,
+      "assumed_response": "Cardholder states they did not make this transaction and still has the card."
     }
   ],
   "next_best_actions": {
     "initial": [
       {
+        "action": "DECLINE_TRANSACTION",
+        "route": "L1",
+        "reason": "\u00a73b: probability 0.64 leans fraud; hold this authorization while the cardholder is asked, rather than block the card."
+      },
+      {
         "action": "VERIFY_WITH_CUSTOMER",
         "route": "auto",
-        "reason": "\u00a75 and \u00a73b: probability 0.07 is between 0.15 and 0.85, so ask the cardholder before deciding."
+        "reason": "\u00a75 and \u00a73b: probability 0.64 is between 0.15 and 0.85, so ask the cardholder before deciding."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: evidence was requested, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "Policy \u00a73a: fraud probability 0.64 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
       },
       {
         "action": "ESCALATE_TO_ANALYST",
         "route": "auto",
-        "reason": "R8: the verdict is uncertain and exposure $770.78 exceeds $500."
+        "reason": "R8: the verdict is uncertain and exposure $2,166.71 exceeds $500."
       }
     ],
     "final": [
       {
-        "action": "CLOSE_NO_FRAUD",
-        "route": "auto",
-        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file."
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached."
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      },
+      {
+        "action": "MONITOR_CONNECTED_CARDS",
+        "route": "auto",
+        "reason": "R6: every card sharing Affected loss-shape cohort (12 cards, bucket '6+', measured LR=357.29) shares common origin ProductCD_addr1:W_122 within 60 days before loss (matched lift=14.3x, Fisher p=6.51e-05, cardinality=142). goes under monitoring (11 card(s))."
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "Policy \u00a73a: fraud is suspected and exposure $2,166.71 exceeds $1,000; activity connects to Affected loss-shape cohort (12 cards, bucket '6+', measured LR=357.29) shares common origin ProductCD_addr1:W_122 within 60 days before loss (matched lift=14.3x, Fisher p=6.51e-05, cardinality=142).; the pattern is coordinated or undocumented (R9)."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
       }
     ],
-    "what_changed": "Cardholder confirms they made the transaction. Probability moved 0.07 -> 0.01; added CLOSE_NO_FRAUD, dropped VERIFY_WITH_CUSTOMER, ESCALATE_TO_ANALYST."
+    "what_changed": "Cardholder states they did not make this transaction and still has the card. Probability moved 0.64 -> 0.94; added BLOCK_CARD, MONITOR_CONNECTED_CARDS, FILE_REPORT, dropped DECLINE_TRANSACTION, VERIFY_WITH_CUSTOMER."
   },
   "sar": {
-    "file": false,
-    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.01.",
-    "narrative": "",
-    "subjects": [],
-    "total_amount_usd": 0,
-    "activity_dates": []
+    "file": true,
+    "reason": "Policy \u00a73a: fraud is suspected and exposure $2,166.71 exceeds $1,000; activity connects to Affected loss-shape cohort (12 cards, bucket '6+', measured LR=357.29) shares common origin ProductCD_addr1:W_122 within 60 days before loss (matched lift=14.3x, Fisher p=6.51e-05, cardinality=142).; the pattern is coordinated or undocumented (R9).",
+    "narrative": "Between 2017-01-17 and 2017-01-19, card C06220-K1 held by customer C06220 was used for 3 transaction(s) totalling $2,166.71 that the bank has determined were not authorised by the cardholder (transaction IDs 3660125, 3660126, 3660127). The activity was online, from device profile(s) SM-J700T1 | ? | ? | ?; SM-J700T1 | iOS 11.1.1 | mobile safari 11.0 | 2048x1536; SM-J700T1 | iOS 11.1.2 | mobile safari 11.0 | 2048x1536, billed to region code(s) 126, 330, 384. The alert was raised on 2017-01-19 23:18:58 by analyst request on transaction 3660127 ($770.78). The same device profile was used on 11 other cards in the same period (C01727-K2, C02167-K2, C02342-K1, C05061-K1, C05770-K1, C06962-K2, C07212-K2, C07925-K1, C10553-K1, C11309-K1, C11543-K2), each time marked as a new device behind an anonymous proxy, indicating a single actor operating across multiple unrelated cardholders. The bank's closed cases from August and September record confirmed fraud from this same device profile on other cardholders, which analysts could not match to a documented typology. The activity was identified by the bank's transaction monitoring and confirmed by investigation. The card has been blocked pending reissue and the connected cards placed under monitoring; this report is filed because fraud is suspected and exposure $2,166.71 exceeds $1,000; activity connects to Affected loss-shape cohort (12 cards, bucket '6+', measured LR=357.29) shares common origin ProductCD_addr1:W_122 within 60 days before loss (matched lift=14.3x, Fisher p=6.51e-05, cardinality=142).; the pattern is coordinated or undocumented (R9).",
+    "subjects": [
+      "C06220",
+      "C06220-K1",
+      "C01727-K2",
+      "C02167-K2",
+      "C02342-K1",
+      "C05061-K1",
+      "C05770-K1",
+      "C06962-K2",
+      "C07212-K2",
+      "C07925-K1",
+      "C10553-K1",
+      "C11309-K1",
+      "C11543-K2",
+      "SM-J700T1 | ? | ? | ?",
+      "SM-J700T1 | iOS 11.1.1 | mobile safari 11.0 | 2048x1536",
+      "SM-J700T1 | iOS 11.1.2 | mobile safari 11.0 | 2048x1536"
+    ],
+    "total_amount_usd": 2166.71,
+    "activity_dates": [
+      "2017-01-17",
+      "2017-01-19"
+    ]
   },
-  "stop_reason": "Policy \u00a76: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
-  "tool_calls": 8,
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 9,
   "tokens": 0,
-  "latency_s": 14.15
+  "latency_s": 3.26
 }

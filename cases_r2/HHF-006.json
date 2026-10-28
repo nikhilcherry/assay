@@ -1,16 +1,20 @@
 {
   "case_id": "HHF-006",
   "case": {
-    "status": "closed_legitimate",
-    "verdict": "legitimate",
-    "fraud_probability": 0.01,
+    "status": "escalated",
+    "verdict": "uncertain",
+    "fraud_probability": 0.37,
     "pattern": "none",
     "pattern_description": "",
-    "affected_txn_ids": [],
-    "first_suspicious_txn_id": "",
+    "affected_txn_ids": [
+      "3660261",
+      "3660262",
+      "3660263"
+    ],
+    "first_suspicious_txn_id": "3660261",
     "connected_card_ids": [],
     "connected_device_profiles": [],
-    "exposure_usd": 0.0,
+    "exposure_usd": 967.68,
     "evidence": [
       {
         "claim": "Flagged transaction 3660263 ($295.92, product C, online) scores 0.15 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.15.",
@@ -29,15 +33,33 @@
         ]
       },
       {
-        "claim": "Simulated customer validation: Cardholder confirms they made the transaction.",
-        "source": "customer",
+        "claim": "Case memory: this card is named in 1 earlier investigation(s) by this agent (ASSAY-HHF-002), 1 of them concluded as fraud (undocumented).",
+        "source": "graph",
+        "ref": "query:prior_fraud_cases(card_id=C01727-K2)",
+        "entity_ids": [
+          "ASSAY-HHF-002"
+        ]
+      },
+      {
+        "claim": "Recipient burst on R_emaildomain=sc.rr.com: 15 distinct cards used it for the first time in 21d before 2017-01-28 10:59:42 (Jul-Dec baseline mean=0.78, max=5, Poisson p=8.55e-15); flagged episode on C01727-K2 pays this recipient ([305.41, 366.35, 295.92]); LR=3.00 [ASSUMPTION: fallback LR=3.0 used because Jul-Dec history has 0 recipient bursts]",
+        "source": "graph",
+        "ref": "query:rerun_recipient_fan_in_burst(baseline_max=5, baseline_mean=0.7778, card_id=C01727-K2, flagged_txn_id=3660263, k_now=15, kind=evidence, linking_value=R_emaildomain=sc.rr.com, lr_assumption=True, opened_at=2017-01-28 10:59:42, p_value=8.5487e-15, window_days=21)",
+        "entity_ids": [
+          "3660261",
+          "3660262",
+          "3660263"
+        ]
+      },
+      {
+        "claim": "Simulated analyst info: Escalated for analyst review: FanIn tie this card to 14 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards.",
+        "source": "external",
         "ref": "evidence_request:1",
         "entity_ids": []
       },
       {
-        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
         "source": "document",
-        "ref": "document:fraud-policy#R3",
+        "ref": "document:brief#known-fraud-patterns/undocumented",
         "entity_ids": []
       },
       {
@@ -45,21 +67,28 @@
         "source": "document",
         "ref": "document:fraud-policy#\u00a73a",
         "entity_ids": []
+      },
+      {
+        "claim": "Policy R8: Uncertain and exposed (over $500) or conflicting evidence: ESCALATE_TO_ANALYST.",
+        "source": "document",
+        "ref": "document:fraud-policy#R8",
+        "entity_ids": []
       }
     ],
     "similar_prior_cases": [
-      "CC-4442",
-      "CC-0893"
+      "CC-5579",
+      "CC-2985",
+      "CC-2649"
     ],
-    "summary": "Alert on transaction 3660263 ($295.92) on card C01727-K2. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.01. Cardholder confirms they made the transaction. Closed as legitimate; no report.",
+    "summary": "Unresolved activity on card C01727-K2: 3 transaction(s) from 2017-01-17 to 2017-01-28 totalling $967.68, probability 0.37. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: FanIn tie this card to 14 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards.",
     "written_to_graph": true,
     "graph_case_id": "ASSAY-HHF-006"
   },
   "evidence_requests": [
     {
-      "type": "customer_validation",
-      "asked_after_step": 6,
-      "assumed_response": "Cardholder confirms they made the transaction."
+      "type": "analyst_info",
+      "asked_after_step": 7,
+      "assumed_response": "Escalated for analyst review: FanIn tie this card to 14 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards."
     }
   ],
   "next_best_actions": {
@@ -67,43 +96,53 @@
       {
         "action": "VERIFY_WITH_CUSTOMER",
         "route": "auto",
-        "reason": "R1: the case rests on a single signal at probability 0.15, below 0.70. Blocking a legitimate customer on one signal is a policy breach."
-      },
-      {
-        "action": "STEP_UP_AUTH",
-        "route": "auto",
-        "reason": "R1: require step-up authentication while the verification is outstanding."
+        "reason": "\u00a75 and \u00a73b: probability 0.37 is between 0.15 and 0.85, so ask the cardholder before deciding."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: evidence was requested, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "Policy \u00a73a: fraud probability 0.37 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R8: the verdict is uncertain and exposure $967.68 exceeds $500."
       }
     ],
     "final": [
       {
-        "action": "CLOSE_NO_FRAUD",
+        "action": "MONITOR_CONNECTED_CARDS",
         "route": "auto",
-        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file."
+        "reason": "Linked by FanIn to 14 card(s); monitoring costs the customers nothing while an analyst decides."
+      },
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "route": "auto",
+        "reason": "\u00a75 and \u00a73b: probability 0.37 is between 0.15 and 0.85, so ask the cardholder before deciding."
       },
       {
         "action": "CREATE_CASE",
         "route": "auto",
-        "reason": "Policy \u00a73a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached."
+        "reason": "Policy \u00a73a: fraud probability 0.37 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R8: the verdict is uncertain and exposure $967.68 exceeds $500."
       }
     ],
-    "what_changed": "Cardholder confirms they made the transaction. Probability moved 0.15 -> 0.01; added CLOSE_NO_FRAUD, dropped VERIFY_WITH_CUSTOMER, STEP_UP_AUTH."
+    "what_changed": "The evidence request did not change the recommendation; probability 0.37 -> 0.37."
   },
   "sar": {
     "file": false,
-    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.01.",
+    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is uncertain at probability 0.37.",
     "narrative": "",
     "subjects": [],
     "total_amount_usd": 0,
     "activity_dates": []
   },
-  "stop_reason": "Policy \u00a76: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
-  "tool_calls": 8,
+  "stop_reason": "Policy \u00a76: probability 0.37 remains between 0.15 and 0.85, but the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
+  "tool_calls": 9,
   "tokens": 0,
-  "latency_s": 16.68
+  "latency_s": 0.61
 }

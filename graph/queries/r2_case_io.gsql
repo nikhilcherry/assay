@@ -1,0 +1,109 @@
+// N2 -- Case write-back and read-back in TigerGraph (FraudCase + ClosedCase precedent)
+USE GRAPH assay
+
+CREATE OR REPLACE QUERY r2_upsert_case(
+  STRING case_id,
+  STRING alert_id,
+  STRING card_id,
+  STRING status,
+  STRING verdict,
+  DOUBLE fraud_probability,
+  STRING pattern,
+  STRING pattern_description,
+  DOUBLE exposure_usd,
+  STRING summary,
+  STRING stop_reason,
+  BOOL sar_filed,
+  STRING final_actions,
+  DATETIME written_at,
+  SET<STRING> txn_ids,
+  SET<STRING> connected_cards,
+  SET<STRING> device_ids,
+  SET<STRING> prior_cases
+) FOR GRAPH assay SYNTAX v2 {
+  INSERT INTO FraudCase (
+    PRIMARY_ID, alert_id, status, verdict, fraud_probability,
+    pattern, pattern_description, exposure_usd, summary, stop_reason,
+    sar_filed, final_actions, written_at
+  ) VALUES (
+    case_id, alert_id, status, verdict, fraud_probability,
+    pattern, pattern_description, exposure_usd, summary, stop_reason,
+    sar_filed, final_actions, written_at
+  );
+
+  IF card_id != "" THEN
+    INSERT INTO ABOUT_CARD (FROM, TO) VALUES (case_id FraudCase, card_id Card);
+  END;
+
+  FOREACH tid IN txn_ids DO
+    IF tid != "" THEN
+      INSERT INTO CITES (FROM, TO) VALUES (case_id FraudCase, tid Txn);
+    END;
+  END;
+
+  FOREACH cid IN connected_cards DO
+    IF cid != "" THEN
+      INSERT INTO LINKS_CARD (FROM, TO) VALUES (case_id FraudCase, cid Card);
+    END;
+  END;
+
+  FOREACH did IN device_ids DO
+    IF did != "" THEN
+      INSERT INTO IMPLICATES (FROM, TO) VALUES (case_id FraudCase, did DeviceProfile);
+    END;
+  END;
+
+  FOREACH pcid IN prior_cases DO
+    IF pcid != "" THEN
+      INSERT INTO DREW_ON (FROM, TO) VALUES (case_id FraudCase, pcid ClosedCase);
+    END;
+  END;
+
+  PRINT case_id AS written_case_id;
+}
+
+CREATE OR REPLACE QUERY r2_read_cases(VERTEX<Card> card) FOR GRAPH assay SYNTAX v2 {
+  SetAccum<STRING> @cited_txns;
+  SetAccum<STRING> @linked_cards;
+  SetAccum<STRING> @implicated_devices;
+  SetAccum<STRING> @drew_on_cases;
+
+  C = {card};
+  F1 = SELECT f FROM C:c -(HAS_FRAUD_CASE>)- FraudCase:f;
+  F2 = SELECT f FROM C:c -(LINKED_IN_CASE>)- FraudCase:f;
+  FraudCases = F1 UNION F2;
+
+  T = SELECT t FROM FraudCases:f -(CITES>)- Txn:t
+      ACCUM f.@cited_txns += t.txn_id;
+  LC = SELECT k FROM FraudCases:f -(LINKS_CARD>)- Card:k
+       ACCUM f.@linked_cards += k.card_id;
+  DV = SELECT d FROM FraudCases:f -(IMPLICATES>)- DeviceProfile:d
+       ACCUM f.@implicated_devices += d.device_id;
+  PC = SELECT cc FROM FraudCases:f -(DREW_ON>)- ClosedCase:cc
+       ACCUM f.@drew_on_cases += cc.case_id;
+
+  CC1 = SELECT cc FROM C:c -(HAS_CLOSED_CASE>)- ClosedCase:cc;
+  CC2 = SELECT cc FROM C:c -(CONNECTED_IN_CASE>)- ClosedCase:cc;
+  ClosedCases = CC1 UNION CC2;
+
+  PRINT FraudCases[
+    FraudCases.case_id,
+    FraudCases.alert_id,
+    FraudCases.status,
+    FraudCases.verdict,
+    FraudCases.fraud_probability,
+    FraudCases.pattern,
+    FraudCases.pattern_description,
+    FraudCases.exposure_usd,
+    FraudCases.summary,
+    FraudCases.stop_reason,
+    FraudCases.sar_filed,
+    FraudCases.final_actions,
+    FraudCases.written_at,
+    FraudCases.@cited_txns AS cited_txns,
+    FraudCases.@linked_cards AS linked_cards,
+    FraudCases.@implicated_devices AS implicated_devices,
+    FraudCases.@drew_on_cases AS drew_on_cases
+  ];
+  PRINT ClosedCases;
+}

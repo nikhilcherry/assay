@@ -13,7 +13,7 @@ import pandas as pd
 
 from assay.data import STAGE
 from assay.r2.frames import R2_STAGE, closed_cases, tx_all
-from assay.store import TXN_COLS, LocalStore, Store
+from assay.store import TXN_COLS, LazyGroups, LocalStore, Store
 
 
 class MissingScore(RuntimeError):
@@ -32,11 +32,42 @@ class R2LocalStore(LocalStore):
         sc = pd.concat([old[~old.TransactionID.isin(new.TransactionID)], new])
         tx = tx.merge(sc, on="TransactionID", how="left")
         self.tx = tx.set_index("TransactionID", drop=False).sort_values("t", kind="stable")
-        self.by_card = {k: v for k, v in self.tx.groupby("card_id")}
-        self.by_uid = {k: v for k, v in self.tx.groupby("uid")}
-        dp = self.tx[self.tx.device_profile != ""]
-        self.by_device = {k: v for k, v in dp.groupby("device_profile")}
+        self.by_card = LazyGroups(self.tx, "card_id")
+        self.by_uid = LazyGroups(self.tx, "uid")
+        self.by_device = LazyGroups(self.tx[self.tx.device_profile != ""], "device_profile")
         self.cc = closed_cases()
+
+    # -- as-of view ---------------------------------------------------------------
+    # An investigation opened at T sees only transactions up to T and cases closed by T.
+    # Round 1's windows also looked forward from the flagged charge; in January that would
+    # read activity that had not happened yet when the case was opened.
+    as_of: pd.Timestamp | None = None
+
+    def _tx_asof(self, d: pd.DataFrame) -> pd.DataFrame:
+        return d if self.as_of is None else d[d.t <= self.as_of]
+
+    def _cc_asof(self, cc: pd.DataFrame) -> pd.DataFrame:
+        return cc if self.as_of is None else cc[pd.to_datetime(cc.closed_at) <= self.as_of]
+
+    def card_window(self, card_id, t0, hours_before, hours_after):
+        w, ref = super().card_window(card_id, t0, hours_before, hours_after)
+        return self._tx_asof(w), ref
+
+    def holder_history(self, uid):
+        w, ref = super().holder_history(uid)
+        return self._tx_asof(w), ref
+
+    def device_neighbors(self, profile, t0, days):
+        w, ref = super().device_neighbors(profile, t0, days)
+        return self._tx_asof(w), ref
+
+    def closed_cases_for_card(self, card_id):
+        cc, ref = super().closed_cases_for_card(card_id)
+        return self._cc_asof(cc), ref
+
+    def closed_cases_by_device(self, profile):
+        cc, ref = super().closed_cases_by_device(profile)
+        return self._cc_asof(cc), ref
 
     def get_transaction(self, txn_id: int):
         row, ref = super().get_transaction(txn_id)
@@ -58,5 +89,10 @@ def r2_pattern_model():
     old = load_transactions()
     jan = _jan()
     jan["card_id"] = jan.TransactionID.map(tx_all().set_index("TransactionID").card_id)
-    pm.tx = novelty(pd.concat([old, jan[[c for c in old.columns if c in jan.columns]]], ignore_index=True)).set_index("TransactionID")
+    # Only the columns the classifier and its novelty features read: all 397 cost ~8 GB.
+    from assay.patterns import CATS, NUM
+    keep = ["TransactionID", "ts", "card_id", "addr1", "DeviceInfo"] + [c for c in CATS + NUM if c in old.columns]
+    keep = list(dict.fromkeys(keep))
+    old = old[keep]
+    pm.tx = novelty(pd.concat([old, jan[[c for c in keep if c in jan.columns]]], ignore_index=True)).set_index("TransactionID")
     return pm

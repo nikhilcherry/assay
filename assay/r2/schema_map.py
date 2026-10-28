@@ -3,11 +3,12 @@ matching with Hungarian assignment, explicit separation of SOURCE vs DERIVED
 canonical columns (recomputed via the exact `assay.r2.frames.stage()` code path
 with `assay.store.device_profile` and `TransactionDT` resolved from the variant
 or joined back through `TransactionID` on `frames.tx_all()`, or marked honestly
-as `not recoverable from this variant`), structural reshape recovery (splits,
-merges, date+time splits, one-hot channels, cents/epoch transforms, separate
-identity tables), proposal-file persistence, role-enforced human approval
-(`approve(proposal_id, approver_role)`), confidence floor refusal, and attested
-sample-record justifications."""
+as `not recoverable from this variant`), structural reshape & red-team attack
+recovery (splits, merges, date+time splits, timezone-aware ISO timestamps with
+`Z` / `+05:30` normalized to tz-naive UTC, 0..100 risk_score scaling, cents/epoch
+transforms, missing identity tables, all-null columns, extra junk columns),
+proposal-file persistence, role-enforced human approval (`approve(proposal_id,
+approver_role)`), confidence floor refusal, and attested sample-record justifications."""
 
 from __future__ import annotations
 
@@ -50,6 +51,10 @@ CANONICAL_COLS: list[str] = [
     "device_profile", "uid",
 ]
 
+IDENTITY_SOURCE_COLS: tuple[str, ...] = (
+    "DeviceType", "DeviceInfo", "id_30", "id_31", "id_33", "id_15", "id_23",
+)
+
 NOT_RECOVERABLE: str = "not recoverable from this variant"
 
 CONFIDENCE_FLOOR: float = 0.55
@@ -66,8 +71,9 @@ _RE_CARD_SUFFIX = re.compile(r"^-?K\d+$")
 _RE_RES = re.compile(r"^\d{3,4}x\d{3,4}$")
 _RE_UID = re.compile(r"^C\d{4,6}-K\d+\|(?:na|-?\d+)\|(?:na|-?\d+)$")
 _RE_ISO_DT = re.compile(r"^201[67]-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}")
+_RE_ISO_TZ = re.compile(r"^201[67]-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$")
 _RE_DATE_ONLY = re.compile(r"^201[67]-\d{2}-\d{2}$")
-_RE_TIME_ONLY = re.compile(r"^\d{2}:\d{2}:\d{2}$")
+_RE_TIME_ONLY = re.compile(r"^\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$")
 _OS_PREFIXES = ("android", "ios ", "windows", "mac os", "linux", "func")
 _BROWSER_TOKENS = ("chrome", "safari", "firefox", "ie ", "edge", "samsung", "opera", "webview", "android browser")
 
@@ -77,6 +83,21 @@ def _canonical_tx_lookup() -> pd.DataFrame:
     """Cached lookup of TransactionID -> (TransactionDT, month_src) from frames.tx_all()."""
     tx = tx_all()
     return tx.set_index("TransactionID")[["TransactionDT", "month_src"]]
+
+
+def normalize_timestamp_series(s: pd.Series) -> pd.Series:
+    """Parse any timestamp series (naive ISO, timezone-aware ISO with 'Z' or '+05:30',
+    or datetime64) into tz-naive UTC `datetime64[ns]` so downstream comparisons
+    (`self._tx.t <= t0`) never raise `TypeError` on tz-aware vs tz-naive."""
+    if pd.api.types.is_datetime64tz_dtype(s.dtype):
+        return s.dt.tz_convert("UTC").dt.tz_localize(None)
+    if pd.api.types.is_datetime64_any_dtype(s.dtype):
+        return s
+    str_s = s.astype(str)
+    sample = str_s.iloc[:500]
+    if bool(sample.str.contains(r"(?:Z|[+-]\d{2}:?\d{2})$", regex=True).any()):
+        return pd.to_datetime(str_s, utc=True, format="ISO8601").dt.tz_localize(None)
+    return pd.to_datetime(str_s, format="ISO8601")
 
 
 @dataclass
@@ -144,6 +165,7 @@ class SchemaMapping(Mapping[str, MappingChoice]):
     choices: dict[str, MappingChoice] = field(default_factory=dict)
     join_info: dict[str, Any] = field(default_factory=dict)
     unmapped_foreign: list[str] = field(default_factory=list)
+    all_null_foreign: list[str] = field(default_factory=list)
     refused_below_floor: dict[str, tuple[str, float]] = field(default_factory=dict)
     not_recoverable: dict[str, str] = field(default_factory=dict)
     proposal_id: str = ""
@@ -181,7 +203,7 @@ class SchemaMapping(Mapping[str, MappingChoice]):
         targets = canonical_cols if canonical_cols is not None else list(self.choices.keys())
         now_s = datetime.now(timezone.utc).isoformat(timespec="seconds")
         for col in targets:
-            if col in self.choices:
+            if col in self.choices and self.choices[col].expr != NOT_RECOVERABLE:
                 self.choices[col].approved = True
                 self.choices[col].notes = f"Approved by {role} at {now_s}"
         if canonical_cols is None or not self.flagged_for_approval():
@@ -199,6 +221,7 @@ class SchemaMapping(Mapping[str, MappingChoice]):
             "approved_at": self.approved_at,
             "join_info": self.join_info,
             "unmapped_foreign": self.unmapped_foreign,
+            "all_null_foreign": self.all_null_foreign,
             "not_recoverable": self.not_recoverable,
             "refused_below_floor": {
                 k: {"candidate": v[0], "confidence": v[1]} for k, v in self.refused_below_floor.items()
@@ -228,6 +251,7 @@ class ValidationReport:
     flagged_low_confidence: list[str]
     skipped_unapproved: list[str]
     unmapped_foreign_cols: list[str]
+    all_null_foreign_cols: list[str]
     refused_below_floor: dict[str, tuple[str, float]]
     null_rate_deltas: dict[str, float]
     domain_warnings: dict[str, str]
@@ -277,7 +301,7 @@ def approve(
     data["approved_by_role"] = role
     data["approved_at"] = now_s
     for c_key, c_val in data.get("choices", {}).items():
-        if canonical_cols is None or c_key in canonical_cols:
+        if (canonical_cols is None or c_key in canonical_cols) and c_val.get("expr") != NOT_RECOVERABLE:
             c_val["approved"] = True
             c_val["notes"] = f"Approved by {role} at {now_s}"
     prop_path.write_text(json.dumps(data, indent=2, sort_keys=True))
@@ -292,8 +316,9 @@ def recompute_derived_columns(
     (`t`, `TransactionDT`, `month_src`, `device_profile`, `uid`) from a DataFrame
     of mapped SOURCE columns using the exact code path from `assay.r2.frames.stage()`:
 
-    - `both["t"] = pd.to_datetime(both.ts)`
+    - `both["t"] = normalize_timestamp_series(both.ts)` (tz-naive UTC `datetime64[ns]`)
     - `both["device_profile"] = [device_profile(r) for r in both[["DeviceInfo", "id_30", "id_31", "id_33"]].to_dict("records")]`
+      (if identity columns are missing or all null, produces `""` so null devices never link unrelated cards)
     - `TransactionDT`: if not already present in `df`, joins back through `TransactionID`
       against `frames.tx_all()` when `allow_txid_lookup=True` and IDs match; if impossible,
       leaves `TransactionDT` (and `uid` which depends on `TransactionDT // 86400`) absent
@@ -303,9 +328,10 @@ def recompute_derived_columns(
     """
     out = df.copy()
 
-    # 1. Exact frames.stage() derivation for `t`: both["t"] = pd.to_datetime(both.ts)
+    # 1. Exact frames.stage() derivation for `t` (always tz-naive UTC datetime64[ns])
     if "ts" in out.columns:
-        out["t"] = pd.to_datetime(out["ts"])
+        out["t"] = normalize_timestamp_series(out["ts"])
+        out["ts"] = out["t"].dt.strftime("%Y-%m-%d %H:%M:%S")
 
     # 2. Resolve `TransactionDT` and `month_src`
     if "TransactionDT" not in out.columns and allow_txid_lookup and "TransactionID" in out.columns:
@@ -327,11 +353,15 @@ def recompute_derived_columns(
     # 3. Exact frames.stage() derivation for `device_profile` using imported assay.store.device_profile
     # Sanitize raw identity components first: if any component accidentally contains pipe-delimited
     # strings (e.g., from a pre-composed field), extract only its corresponding raw component slot
-    # so device_profile is never composed twice.
+    # so device_profile is never composed twice. When identity columns are missing (ATK-09),
+    # set device_profile = "" (empty string) so null devices never link unrelated cards.
     dev_cols = ["DeviceInfo", "id_30", "id_31", "id_33"]
-    if all(c in out.columns for c in dev_cols):
+    if any(c in out.columns for c in dev_cols):
         clean_dev = pd.DataFrame(index=out.index)
         for slot_idx, c in enumerate(dev_cols):
+            if c not in out.columns:
+                clean_dev[c] = pd.Series([None] * len(out), index=out.index, dtype=object)
+                continue
             col_s = out[c]
             has_pipe = col_s.dropna().astype(str).str.contains(r"\|", regex=True)
             if len(has_pipe) > 0 and bool(has_pipe.any()):
@@ -345,6 +375,8 @@ def recompute_derived_columns(
         out["device_profile"] = [
             device_profile(r) for r in clean_dev[dev_cols].to_dict("records")
         ]
+    else:
+        out["device_profile"] = pd.Series("", index=out.index, dtype=object)
 
     # 4. Exact frames.stage() derivation for `uid`
     if all(c in out.columns for c in ("card_id", "addr1", "TransactionDT", "D1")) and out["TransactionDT"].notna().all():
@@ -441,6 +473,7 @@ def _compute_profile(s: pd.Series, name: str, max_sample: int = 10000) -> Column
     regex_rates: dict[str, float] = {
         "is_dt_dtype": 1.0 if is_dt else 0.0,
         "iso_dt": float(str_sample.str.match(_RE_ISO_DT).mean()) if not is_num else 0.0,
+        "iso_tz": float(str_sample.str.match(_RE_ISO_TZ).mean()) if not is_num else 0.0,
         "date_only": float(str_sample.str.match(_RE_DATE_ONLY).mean()) if (not is_num and not is_dt) else 0.0,
         "time_only": float(str_sample.str.match(_RE_TIME_ONLY).mean()) if (not is_num and not is_dt) else 0.0,
         "card_id": float(str_sample.str.match(_RE_CARD_ID).mean()) if not is_num else 0.0,
@@ -510,6 +543,10 @@ def _score_candidate(
 ) -> tuple[float, str | None]:
     """Score a foreign ColumnProfile against a canonical SOURCE column profile.
     Returns (similarity_score_in_0_1, optional_transform_tag)."""
+    # All-null or near-100%-null columns never match any canonical column
+    if fp.null_rate >= 0.999 or fp.n_unique == 0:
+        return 0.0, None
+
     ns = _null_sim(rp.null_rate, fp.null_rate, tol=0.25)
 
     # Never map a pipe-composed column (like device_profile or uid) directly onto
@@ -527,6 +564,9 @@ def _score_candidate(
     if canon == "ts":
         if fp.null_rate > 0.01:
             return 0.0, None
+        # Timezone-aware ISO strings (e.g. '2016-08-14T16:47:09Z' or '+05:30')
+        if fp.regex_rates.get("iso_tz", 0.0) > 0.80:
+            return 0.96, "tz_iso_to_ts"
         if fp.regex_rates.get("iso_dt", 0.0) > 0.90 and fp.regex_rates.get("is_dt_dtype", 0.0) < 0.5:
             return 0.97, None
         if fp.regex_rates.get("is_dt_dtype", 0.0) > 0.5:
@@ -638,10 +678,14 @@ def _score_candidate(
         return 0.0, None
 
     if canon == "risk_score":
-        if not fp.is_numeric or fp.is_int_like or fp.null_rate > 0.05:
+        if not fp.is_numeric or fp.null_rate > 0.05:
             return 0.0, None
-        if 0.0 <= fp.p0 <= 0.05 and 0.50 <= fp.p100 <= 1.0001 and 0.03 <= fp.p50 <= 0.25:
+        # Direct 0..1 scale
+        if not fp.is_int_like and 0.0 <= fp.p0 <= 0.05 and 0.50 <= fp.p100 <= 1.0001 and 0.03 <= fp.p50 <= 0.25:
             return 0.96, None
+        # ATK-08: 0..100 percentage scale (q50 / ref_q50 in [80..120], range in [0..100])
+        if 0.0 <= fp.p0 <= 5.0 and 50.0 <= fp.p100 <= 100.01 and 3.0 <= fp.p50 <= 25.0:
+            return 0.94, "pct_to_unit"
         return 0.0, None
 
     if canon == "amount":
@@ -650,7 +694,7 @@ def _score_candidate(
         # Direct dollars: float with cents decimals, median ~50-90, p95 ~300-600
         if not fp.is_int_like and fp.frac_2dec > 0.30 and 20.0 <= fp.p50 <= 150.0 and 150.0 <= fp.p95 <= 1200.0:
             return 0.96, None
-        # Cents: integer-like, median ~5000-9000, p95 ~30000-60000
+        # ATK-08: Cents (x100): integer-like, median ~5000-9000, p95 ~30000-60000
         if fp.is_int_like and 2000.0 <= fp.p50 <= 15000.0 and 15000.0 <= fp.p95 <= 120000.0 and fp.p100 < 2_500_000:
             return 0.94, "cents_to_usd"
         return 0.0, None
@@ -913,7 +957,7 @@ def _identify_redundant_derived_foreign_cols(
     so they are not misreported as unmapped foreign decoys."""
     redundant: set[str] = set()
     for col, fp in raw_profiles.items():
-        if col in used_raw_cols:
+        if col in used_raw_cols or fp.null_rate >= 0.999:
             continue
         if fp.regex_rates.get("uid", 0.0) > 0.80:
             redundant.add(col)
@@ -937,18 +981,16 @@ def infer_mapping(
 ) -> SchemaMapping:
     """Infer mapping from foreign DataFrame(s) to our canonical schema.
 
-    1. Matches the 27 SOURCE_COLS against foreign columns (and composite candidates)
+    1. Detects and isolates any 100%-null foreign columns (`all_null_foreign`) so they
+       are never guessed onto sparse canonical columns.
+    2. Matches the 27 SOURCE_COLS against foreign columns (and composite candidates)
        via distributional/regex fingerprints and Hungarian assignment.
-    2. Refuses to guess any SOURCE column whose best match is below `confidence_floor`.
-    3. Schedules the 5 DERIVED_COLS (`t`, `TransactionDT`, `month_src`, `device_profile`,
-       `uid`) using the exact `assay.r2.frames.stage()` code path:
-       - If the variant carries a `TransactionDT` column, maps it directly.
-       - Otherwise, if `TransactionID` is mapped and `allow_txid_lookup=True`, joins
-         `TransactionDT` back through `TransactionID` against `frames.tx_all()`.
-       - If neither is possible (e.g., unknown/anonymized TransactionIDs and no
-         TransactionDT column), marks `TransactionDT` (and `uid`) in the proposal as
-         `"not recoverable from this variant"` (honest gap) rather than guessing.
-    4. Persists a proposal JSON file to disk and returns a `SchemaMapping` with
+    3. Refuses to guess any SOURCE column whose best match is below `confidence_floor`,
+       and marks any missing SOURCE columns (e.g. when the identity table is missing)
+       as `"not recoverable from this variant"` in `not_recoverable`.
+    4. Schedules the 5 DERIVED_COLS (`t`, `TransactionDT`, `month_src`, `device_profile`,
+       `uid`) using the exact `assay.r2.frames.stage()` code path.
+    5. Persists a proposal JSON file to disk and returns a `SchemaMapping` with
        attested sample record IDs on every choice.
     """
     joined_df, col_origins, join_info = _join_foreign_tables(foreign)
@@ -957,6 +999,10 @@ def infer_mapping(
     raw_profiles: dict[str, ColumnProfile] = {
         col: _compute_profile(joined_df[col], col) for col in joined_df.columns
     }
+    all_null_foreign: list[str] = [
+        col for col, fp in raw_profiles.items() if fp.null_rate >= 0.999 or fp.n_unique == 0
+    ]
+
     synth_cands = _discover_composite_candidates(joined_df, raw_profiles)
 
     cand_names: list[str] = list(joined_df.columns) + [sc.expr for sc in synth_cands]
@@ -1021,6 +1067,11 @@ def infer_mapping(
         if 0.95 >= confidence_floor:
             prelim_assigned["customer_id"] = (f"split_card_cust({c_expr})", 0.95, None, False)
 
+    # Any SOURCE_COL still not in prelim_assigned and not in refused_below_floor is an unrecoverable gap
+    for s_col in source_list:
+        if s_col not in prelim_assigned and s_col not in refused_below_floor:
+            not_recoverable[s_col] = NOT_RECOVERABLE
+
     # Locate TransactionID series for sample record justification IDs and TransactionDT join-back
     txn_id_series: pd.Series | None = None
     if "TransactionID" in prelim_assigned:
@@ -1071,6 +1122,11 @@ def infer_mapping(
             None,
             True,
         )
+    else:
+        # ATK-09: Identity table missing -> device_profile is set to "" (empty string) in frames
+        # and noted as a gap in not_recoverable so null devices never link unrelated cards
+        not_recoverable["device_profile"] = NOT_RECOVERABLE
+        prelim_assigned["device_profile"] = ("empty_device_profile()", 1.0, None, True)
 
     uid_src_parts = ["card_id", "addr1", "D1"]
     if txdt_recoverable and all(p in prelim_assigned for p in uid_src_parts):
@@ -1092,9 +1148,9 @@ def infer_mapping(
         if c_col not in prelim_assigned:
             continue
         f_name, conf, tfm, is_der = prelim_assigned[c_col]
-        if tfm == "cents_to_usd":
+        if tfm in ("cents_to_usd", "pct_to_unit"):
             full_expr = f"{f_name} / 100.0"
-        elif tfm in ("epoch_to_ts", "epoch_ms_to_ts", "dt_to_ts"):
+        elif tfm in ("epoch_to_ts", "epoch_ms_to_ts", "dt_to_ts", "tz_iso_to_ts"):
             full_expr = f"{tfm}({f_name})"
         else:
             full_expr = f_name
@@ -1142,6 +1198,7 @@ def infer_mapping(
         choices=choices,
         join_info=join_info,
         unmapped_foreign=unmapped,
+        all_null_foreign=all_null_foreign,
         refused_below_floor=refused_below_floor,
         not_recoverable=not_recoverable,
         proposal_id=prop_id,
@@ -1177,7 +1234,8 @@ def _eval_source_expr(
 
     if fn == "concat_date_time":
         c1, c2 = [x.strip() for x in arg_str.split(",", 1)]
-        return df[c1].astype(str).str.strip() + " " + df[c2].astype(str).str.strip()
+        raw_dt = df[c1].astype(str).str.strip() + " " + df[c2].astype(str).str.strip()
+        return normalize_timestamp_series(raw_dt).dt.strftime("%Y-%m-%d %H:%M:%S")
 
     if fn == "split_card_cust":
         if arg_str in df.columns:
@@ -1202,9 +1260,9 @@ def _eval_source_expr(
         onl_col = kv["online"]
         return pd.Series(np.where(df[onl_col].astype(bool), "online", "in_person"), index=df.index)
 
-    if fn == "dt_to_ts":
+    if fn in ("dt_to_ts", "tz_iso_to_ts"):
         s = df[arg_str] if arg_str in df.columns else _eval_source_expr(arg_str, df, out_so_far)
-        return pd.to_datetime(s).dt.strftime("%Y-%m-%d %H:%M:%S")
+        return normalize_timestamp_series(s).dt.strftime("%Y-%m-%d %H:%M:%S")
 
     if fn in ("epoch_to_ts", "epoch_ms_to_ts"):
         unit = "ms" if "ms" in fn else "s"
@@ -1225,6 +1283,10 @@ def apply(
     2. Recomputes all recoverable DERIVED_COLS (`t`, `TransactionDT`, `month_src`,
        `device_profile`, `uid`) using `recompute_derived_columns()` (which shares
        the exact `frames.stage()` code path and `assay.store.device_profile`).
+    3. Ensures any missing identity SOURCE columns (`DeviceType`, `DeviceInfo`,
+       `id_30`, `id_31`, `id_33`, `id_15`, `id_23`) are present as `None` and
+       `device_profile` is `""` so downstream `assay.r2.frames` consumers run
+       without `KeyError` while report.not_recoverable_cols records the honest gaps.
     """
     if require_proposal_approval and not mapping.proposal_approved:
         raise PermissionError(
@@ -1301,8 +1363,17 @@ def apply(
             f_null = float(recomputed_df[d_col].isna().mean())
             null_deltas[d_col] = round(f_null - ref_profs[d_col].null_rate, 4)
 
+    # Populate missing optional identity columns as None (frame-compatible with frames.tx_all())
+    # while keeping them in report.not_recoverable_cols / report.missing_cols
+    for id_col in IDENTITY_SOURCE_COLS:
+        if id_col not in out_cols and id_col in mapping.not_recoverable:
+            out_cols[id_col] = pd.Series([None] * len(joined_df), index=joined_df.index, dtype=object)
+
     canonical_df = pd.DataFrame({c: out_cols[c] for c in CANONICAL_COLS if c in out_cols}, index=joined_df.index)
-    missing = [c for c in CANONICAL_COLS if c not in canonical_df.columns]
+    missing = [
+        c for c in CANONICAL_COLS
+        if c not in canonical_df.columns or c in mapping.not_recoverable
+    ]
 
     report = ValidationReport(
         proposal_id=mapping.proposal_id,
@@ -1313,6 +1384,7 @@ def apply(
         flagged_low_confidence=flagged,
         skipped_unapproved=skipped,
         unmapped_foreign_cols=list(mapping.unmapped_foreign),
+        all_null_foreign_cols=list(mapping.all_null_foreign),
         refused_below_floor=dict(mapping.refused_below_floor),
         null_rate_deltas=null_deltas,
         domain_warnings=domain_warnings,
