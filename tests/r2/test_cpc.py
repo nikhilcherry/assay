@@ -77,7 +77,7 @@ def test_cpc_stratified_backtest_and_exam_cases():
                 print(f"  Connected Cards ({len(f.connected_card_ids)}): {f.connected_card_ids}", flush=True)
                 print(f"  Affected Txns: {f.affected_txn_ids}", flush=True)
                 print(f"  LR (size-3 stratified): {f.lr:.2f}", flush=True)
-                assert abs(f.lr - strat_table["3"]["lr"]) < 1e-6
+                assert abs(f.lr - strat_table["3"]["ci_low"]) < 1e-6   # weighed at the 95% CI lower bound
                 assert all(tid in tx_ids for tid in f.affected_txn_ids)
                 assert all(int(tid) in tx_ids for tid in f.claim.evidence.txn_ids)
             else:

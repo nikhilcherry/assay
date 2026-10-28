@@ -163,10 +163,10 @@ def test_gsql_files_syntax():
 
     query_gsql = (ROOT / "graph" / "queries" / "r2_vector.gsql").read_text(encoding="utf-8")
     assert "CREATE OR REPLACE QUERY similar_cases_vec" in query_gsql
-    assert "vectorSearch({ClosedCase.behaviour}, qv, k, filter=Eligible)" in query_gsql
+    assert "vectorSearch({ClosedCase.behaviour}, qv, k, {candidate_set: Eligible})" in query_gsql
     assert "WHERE cc.closed_at <= as_of" in query_gsql
     assert "CREATE OR REPLACE QUERY similar_cases_fused" in query_gsql
-    assert "filter=CandidateSet" in query_gsql
+    assert "{candidate_set: CandidateSet}" in query_gsql
 
 
 @pytest.mark.skipif(os.environ.get("ASSAY_TG") != "1", reason="ASSAY_TG!=1; skipping live TigerGraph vector test")
