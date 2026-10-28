@@ -2,8 +2,9 @@
 
 A deterministic, zero-LLM compiler from written policy rules and regulator
 advisories into executable, vectorised `RuleSpec` detectors over `tx_all()` and
-`closed_cases()`, with as-of backtesting and attested agreement/disagreement
-comparisons against Round 1 agent verdicts (`cases/HHG-*.json`).
+`closed_cases()`, with precomputed as-of case indices, fast backtesting, and
+attested agreement/disagreement comparisons against Round 1 agent verdicts
+(`cases/HHG-*.json`).
 """
 
 from __future__ import annotations
@@ -88,6 +89,14 @@ KNOWN_ACTIONS: tuple[str, ...] = (
 )
 
 GENERIC_DEVICES = frozenset({"", "none", "nan", "? | ? | ? | ?"})
+
+# High-volume generic webmail domains excluded when matching "same recipient email"
+# (`R_emaildomain` stores domain only; sharing gmail.com across thousands of cards is not a shared recipient)
+GENERIC_EMAIL_DOMAINS = frozenset({
+    "", "none", "nan", "gmail.com", "yahoo.com", "hotmail.com", "aol.com",
+    "outlook.com", "icloud.com", "live.com", "msn.com", "comcast.net",
+    "att.net", "verizon.net", "sbcglobal.net", "ymail.com", "me.com", "mac.com",
+})
 
 
 @dataclass
@@ -208,7 +217,7 @@ _BOILERPLATE_RE = re.compile(
 
 
 def compile_rule(prose: str, rule_id: str | None = None) -> RuleSpec:
-    """ deterministically compile rule prose into a typed `RuleSpec`."""
+    """Deterministically compile rule prose into a typed `RuleSpec`."""
     t0 = time.perf_counter()
     clean = prose.replace("**", "").replace("`", "").strip()
 
@@ -267,7 +276,7 @@ def compile_rule(prose: str, rule_id: str | None = None) -> RuleSpec:
         elif unit.startswith("day"):
             spec.window_seconds = n_val * 86400
         elif unit.startswith("window"):
-            # In policy R6 ("in one window"), episodes are evaluated within a 7-day operational window
+            # Operational window for shared origin rules ("in one window")
             spec.window_seconds = 7 * 86400
 
     # 5. Sequence / larger follow-up
@@ -326,12 +335,11 @@ def compile_rule(prose: str, rule_id: str | None = None) -> RuleSpec:
     else:
         spec.kind = "card_velocity"
 
-    # 9. Identify unparsed clauses (anything that isn't covered by our grammar or connective boilerplate)
+    # 9. Identify unparsed clauses (anything not covered by our grammar or connective boilerplate)
     clauses = _split_clauses(body)
     for clause in clauses:
         if not clause or _BOILERPLATE_RE.match(clause):
             continue
-        # Check if clause matches any grammar regex or action
         matched_any = any(
             rx.search(clause)
             for rx in (
@@ -349,231 +357,223 @@ def compile_rule(prose: str, rule_id: str | None = None) -> RuleSpec:
 
 
 # ---------------------------------------------------------------------------
-# Vectorised execution over tx_all() and closed_cases()
+# Precomputed, low-memory as-of index & vectorised evaluators
 # ---------------------------------------------------------------------------
 
-def _eval_card_sequence_or_velocity(
+_PREP_CACHE: dict[tuple[int, int, int, int], dict] = {}
+
+
+def _get_precomputed_index(cc: pd.DataFrame, tx: pd.DataFrame) -> dict:
+    """Precompute slim numpy arrays and per-card slices once per `(cc, tx)` pair.
+
+    Avoids copying `tx` (650k rows) or creating massive pandas indexes per rule.
+    Memory footprint < 80 MB, build time ~0.4 s.
+    """
+    key = (id(cc), len(cc), id(tx), len(tx))
+    if key in _PREP_CACHE:
+        return _PREP_CACHE[key]
+
+    # Map timestamps to epoch seconds (int64) for fast comparison with TransactionDT / t
+    tx_t_sec = tx["t"].to_numpy(dtype="datetime64[s]").astype(np.int64)
+    cc_open_sec = pd.to_datetime(cc["opened_at"]).to_numpy(dtype="datetime64[s]").astype(np.int64)
+
+    # 1. Slim per-card arrays restricted to cards present in `cc`
+    cc_cards = set(cc["card_id"].dropna().astype(str))
+    card_mask = tx["card_id"].isin(cc_cards).to_numpy()
+
+    c_df = pd.DataFrame({
+        "card_id": tx["card_id"].to_numpy()[card_mask],
+        "customer_id": tx["customer_id"].to_numpy()[card_mask],
+        "t_sec": tx_t_sec[card_mask],
+        "dt": tx["TransactionDT"].to_numpy(dtype=np.int64)[card_mask],
+        "amount": tx["amount"].to_numpy(dtype=np.float64)[card_mask],
+        "tid": tx["TransactionID"].to_numpy(dtype=np.int64)[card_mask],
+        "is_online": (tx["channel"].to_numpy()[card_mask] == "online"),
+    }).sort_values(["card_id", "t_sec"], kind="stable")
+
+    c_cards = c_df["card_id"].to_numpy()
+    c_custs = c_df["customer_id"].to_numpy()
+    c_t_sec = c_df["t_sec"].to_numpy(dtype=np.int64)
+    c_dt = c_df["dt"].to_numpy(dtype=np.int64)
+    c_amt = c_df["amount"].to_numpy(dtype=np.float64)
+    c_tid = c_df["tid"].to_numpy(dtype=np.int64)
+    c_online = c_df["is_online"].to_numpy(dtype=bool)
+
+    card_slices: dict[str, tuple[int, int]] = {}
+    if len(c_cards) > 0:
+        b = np.flatnonzero(c_cards[1:] != c_cards[:-1]) + 1
+        starts = np.concatenate(([0], b))
+        ends = np.concatenate((b, [len(c_cards)]))
+        for s, e in zip(starts, ends):
+            card_slices[str(c_cards[s])] = (int(s), int(e))
+
+    # Map card_id -> list of (case_id, open_sec, customer_id, outcome)
+    card_to_cases: dict[str, list[tuple[str, int, str, str]]] = {}
+    for cid, card_id, open_s, cust_id, outcome in zip(
+        cc["case_id"].astype(str),
+        cc["card_id"].astype(str),
+        cc_open_sec,
+        cc["customer_id"].astype(str),
+        cc["outcome"].astype(str),
+    ):
+        card_to_cases.setdefault(card_id, []).append((cid, int(open_s), cust_id, outcome))
+
+    # 2. Precompute slim entity groups for `device_profile` and non-generic `R_emaildomain`
+    entity_groups: dict[str, dict] = {}
+
+    for col in ("device_profile", "R_emaildomain"):
+        if col not in tx.columns:
+            continue
+        s_col = tx[col]
+        valid = s_col.notna().to_numpy().copy()
+        vals_str = s_col.fillna("").astype(str)
+        if col == "device_profile":
+            low = vals_str.str.lower()
+            valid &= ~low.isin(GENERIC_DEVICES).to_numpy()
+            # Exclude per-card fallback strings like "C11709-K2|191|43"
+            valid &= ~vals_str.str.contains("|", regex=False).to_numpy() | vals_str.str.contains(" | ", regex=False).to_numpy()
+        elif col == "R_emaildomain":
+            low = vals_str.str.lower()
+            valid &= ~low.isin(GENERIC_EMAIL_DOMAINS).to_numpy()
+
+        idx_valid = np.flatnonzero(valid)
+        if len(idx_valid) == 0:
+            continue
+
+        e_df = pd.DataFrame({
+            "ent": vals_str.to_numpy()[idx_valid],
+            "card_id": tx["card_id"].to_numpy()[idx_valid],
+            "customer_id": tx["customer_id"].to_numpy()[idx_valid],
+            "t_sec": tx_t_sec[idx_valid],
+            "dt": tx["TransactionDT"].to_numpy(dtype=np.int64)[idx_valid],
+            "amount": tx["amount"].to_numpy(dtype=np.float64)[idx_valid],
+            "tid": tx["TransactionID"].to_numpy(dtype=np.int64)[idx_valid],
+            "region": tx["addr1"].fillna(-1.0).to_numpy(dtype=np.float64)[idx_valid],
+            "is_online": (tx["channel"].to_numpy()[idx_valid] == "online"),
+        })
+
+        # Keep only entities that ever touch at least one card in `cc_cards` and >= 2 cards overall
+        ent_has_cc = e_df[e_df["card_id"].isin(cc_cards)]["ent"].unique()
+        e_df = e_df[e_df["ent"].isin(ent_has_cc)]
+        if e_df.empty:
+            continue
+
+        vc = e_df.groupby("ent")["card_id"].nunique()
+        # Cap at <= 150 distinct cards to exclude any remaining generic browser/OS buckets
+        keep_ents = vc[(vc >= 2) & (vc <= 150)].index
+        e_df = e_df[e_df["ent"].isin(keep_ents)].sort_values(["ent", "t_sec"], kind="stable")
+        if e_df.empty:
+            continue
+
+        e_ent = e_df["ent"].to_numpy()
+        b = np.flatnonzero(e_ent[1:] != e_ent[:-1]) + 1
+        starts = np.concatenate(([0], b))
+        ends = np.concatenate((b, [len(e_ent)]))
+
+        entity_groups[col] = {
+            "ent": e_ent,
+            "card_id": e_df["card_id"].to_numpy(),
+            "customer_id": e_df["customer_id"].to_numpy(),
+            "t_sec": e_df["t_sec"].to_numpy(dtype=np.int64),
+            "dt": e_df["dt"].to_numpy(dtype=np.int64),
+            "amount": e_df["amount"].to_numpy(dtype=np.float64),
+            "tid": e_df["tid"].to_numpy(dtype=np.int64),
+            "region": e_df["region"].to_numpy(dtype=np.float64),
+            "is_online": e_df["is_online"].to_numpy(dtype=bool),
+            "Bounds": list(zip(starts.tolist(), ends.tolist())),
+        }
+
+    prep = {
+        "c_cards": c_cards,
+        "c_custs": c_custs,
+        "c_t_sec": c_t_sec,
+        "c_dt": c_dt,
+        "c_amt": c_amt,
+        "c_tid": c_tid,
+        "c_online": c_online,
+        "card_slices": card_slices,
+        "card_to_cases": card_to_cases,
+        "entity_groups": entity_groups,
+    }
+    if len(_PREP_CACHE) >= 8:
+        _PREP_CACHE.clear()
+    _PREP_CACHE[key] = prep
+    return prep
+
+
+def _eval_card_slice_sequence_or_velocity(
     spec: RuleSpec,
-    tx: pd.DataFrame,
-    target_cards: set[str] | None = None,
-) -> dict[str, dict]:
-    """Vectorised per-card sliding window evaluator for R5 (card_sequence) and ADV-3 (card_velocity)."""
-    df = tx
-    if target_cards is not None:
-        df = df[df["card_id"].isin(target_cards)]
-    if spec.channel is not None:
-        df = df[df["channel"] == spec.channel]
-    if df.empty:
-        return {}
+    c_t: np.ndarray,
+    c_a: np.ndarray,
+    c_tid: np.ndarray,
+    c_online: np.ndarray,
+) -> tuple[list[int], float, float] | None:
+    """Evaluate a single card's as-of transaction slice `[0:k]`."""
+    if spec.channel == "online":
+        m = c_online
+        c_t, c_a, c_tid = c_t[m], c_a[m], c_tid[m]
+    elif spec.channel == "in_person":
+        m = ~c_online
+        c_t, c_a, c_tid = c_t[m], c_a[m], c_tid[m]
 
-    df = df.sort_values(["card_id", "TransactionDT"], kind="stable")
-    cards = df["card_id"].to_numpy()
-    t_sec = df["TransactionDT"].to_numpy(dtype=np.int64)
-    amts = df["amount"].to_numpy(dtype=np.float64)
-    tids = df["TransactionID"].to_numpy(dtype=np.int64)
-    custs = df["customer_id"].to_numpy()
-
-    # Pre-filter candidate cards that have at least min_txns
-    card_s = pd.Series(cards)
-    vc = card_s.value_counts()
     need_n = spec.min_txns + (1 if spec.followup_larger else 0)
-    keep_cards = set(vc[vc >= need_n].index)
-    if not keep_cards:
-        return {}
+    n = len(c_t)
+    if n < need_n:
+        return None
 
-    mask = card_s.isin(keep_cards).to_numpy()
-    cards, t_sec, amts, tids, custs = cards[mask], t_sec[mask], amts[mask], tids[mask], custs[mask]
-
-    # Split arrays by card boundaries
-    boundaries = np.flatnonzero(cards[1:] != cards[:-1]) + 1
-    idx_splits = np.split(np.arange(len(cards)), boundaries)
-
-    hits: dict[str, dict] = {}
     win = int(spec.window_seconds)
-    small_max = spec.small_amt_max if spec.small_amt_max is not None else float("inf")
     min_k = int(spec.min_txns)
 
-    for idxs in idx_splits:
-        cid = str(cards[idxs[0]])
-        c_t = t_sec[idxs]
-        c_a = amts[idxs]
-        c_tid = tids[idxs]
-        cust_id = str(custs[idxs[0]])
+    if spec.kind == "card_sequence":
+        small_max = spec.small_amt_max if spec.small_amt_max is not None else 25.0
+        small_mask = c_a <= small_max
+        if int(small_mask.sum()) < min_k:
+            return None
 
-        if spec.kind == "card_sequence":
-            # Find runs of >= min_k small txns within `win`, followed by a larger purchase within `win`
-            small_mask = c_a <= small_max
-            if small_mask.sum() < min_k:
+        # Check from most recent windows backwards so we capture the episode closest to opened_at
+        small_idxs = np.flatnonzero(small_mask)
+        for i in small_idxs:
+            j = int(np.searchsorted(c_t, c_t[i] + win, side="right"))
+            if int(small_mask[i:j].sum()) < min_k:
                 continue
-            n = len(c_t)
-            matched_tids: list[int] = []
-            max_Purchase = 0.0
-            for i in range(n):
-                if not small_mask[i]:
+            if spec.followup_larger:
+                j_follow = int(np.searchsorted(c_t, c_t[i] + win * 2, side="right"))
+                small_pos = np.flatnonzero(small_mask[i:j_follow])
+                if len(small_pos) < min_k:
                     continue
-                # Window [c_t[i], c_t[i] + win]
-                j = int(np.searchsorted(c_t, c_t[i] + win, side="right"))
-                win_a = c_a[i:j]
-                win_small = small_mask[i:j]
-                if win_small.sum() < min_k:
+                kth_idx = i + int(small_pos[min_k - 1])
+                max_small = float(np.max(c_a[i : kth_idx + 1][small_mask[i : kth_idx + 1]]))
+                after_a = c_a[kth_idx + 1 : j_follow]
+                larger_rel = np.flatnonzero((after_a > max_small) & (after_a > small_max))
+                if len(larger_rel) == 0:
                     continue
-                if spec.followup_larger:
-                    # Need at least min_k small txns before a larger txn in [i, i + win_ext]
-                    j_follow = int(np.searchsorted(c_t, c_t[i] + win * 2, side="right"))
-                    small_positions = np.flatnonzero(small_mask[i:j_follow])
-                    if len(small_positions) < min_k:
-                        continue
-                    kth_small_idx = i + int(small_positions[min_k - 1])
-                    max_small_amt = float(np.max(c_a[i : kth_small_idx + 1][small_mask[i : kth_small_idx + 1]]))
-                    after_slice_a = c_a[kth_small_idx + 1 : j_follow]
-                    larger_rel = np.flatnonzero((after_slice_a > max_small_amt) & (after_slice_a > small_max))
-                    if len(larger_rel) == 0:
-                        continue
-                    end_idx = kth_small_idx + 1 + int(larger_rel[-1])
-                    ep_tids = [int(x) for x in c_tid[i : end_idx + 1]]
-                    ep_max = float(np.max(c_a[i : end_idx + 1]))
-                    matched_tids = ep_tids
-                    max_purchase = ep_max
-                    break
-                else:
-                    matched_tids = [int(x) for x in c_tid[i:j]]
-                    max_purchase = float(np.max(win_a))
-                    break
+                end_idx = kth_idx + 1 + int(larger_rel[-1])
+                ep_tids = [int(x) for x in c_tid[i : end_idx + 1]]
+                ep_exp = round(float(c_a[i : end_idx + 1].sum()), 2)
+                ep_max = round(float(c_a[i : end_idx + 1].max()), 2)
+                return ep_tids, ep_exp, ep_max
+            else:
+                ep_tids = [int(x) for x in c_tid[i:j]]
+                ep_exp = round(float(c_a[i:j].sum()), 2)
+                ep_max = round(float(c_a[i:j].max()), 2)
+                return ep_tids, ep_exp, ep_max
+        return None
 
-            if matched_tids:
-                hits[cid] = {
-                    "card_id": cid,
-                    "customer_id": cust_id,
-                    "txn_ids": matched_tids,
-                    "connected_card_ids": [],
-                    "exposure_usd": round(float(c_a[np.isin(c_tid, matched_tids)].sum()), 2),
-                    "max_amount": round(max_purchase, 2),
-                }
-        else:
-            # card_velocity: >= min_k txns within `win` with optional min_exposure_usd
-            r_idx = np.searchsorted(c_t, c_t + win, side="right")
-            counts = r_idx - np.arange(len(c_t))
-            valid_starts = np.flatnonzero(counts >= min_k)
-            for i in valid_starts:
-                j = int(r_idx[i])
-                exp = float(c_a[i:j].sum())
-                if spec.min_exposure_usd is not None and exp <= spec.min_exposure_usd:
-                    continue
-                hits[cid] = {
-                    "card_id": cid,
-                    "customer_id": cust_id,
-                    "txn_ids": [int(x) for x in c_tid[i:j]],
-                    "connected_card_ids": [],
-                    "exposure_usd": round(exp, 2),
-                    "max_amount": round(float(c_a[i:j].max()), 2),
-                }
-                break
-
-    return hits
-
-
-def _eval_shared_entity_window(
-    spec: RuleSpec,
-    tx: pd.DataFrame,
-    cc_prior: pd.DataFrame | None = None,
-) -> dict[str, dict]:
-    """Vectorised evaluator for shared-origin rules (R6, ADV-1, ADV-2)."""
-    df = tx
-    if spec.channel is not None:
-        df = df[df["channel"] == spec.channel]
-    if df.empty:
-        return {}
-
-    # If rule requires cards showing fraud (R6), scope to cards in prior confirmed fraud cases
-    # plus high-risk / disputed episodes if evaluating over closed cases
-    fraud_cards: set[str] | None = None
-    if spec.require_prior_fraud and cc_prior is not None and not cc_prior.empty:
-        cf = cc_prior[cc_prior["outcome"] == "confirmed_fraud"]
-        fraud_cards = set(cf["card_id"].dropna().astype(str))
-
-    hits: dict[str, dict] = {}
-    win = int(spec.window_seconds)
-
-    for col in spec.shared_entities:
-        if col not in df.columns:
+    # card_velocity
+    r_idx = np.searchsorted(c_t, c_t + win, side="right")
+    counts = r_idx - np.arange(n)
+    valid_starts = np.flatnonzero(counts >= min_k)
+    for i in valid_starts:
+        j = int(r_idx[i])
+        exp = float(c_a[i:j].sum())
+        if spec.min_exposure_usd is not None and exp <= spec.min_exposure_usd:
             continue
-        sub = df[df[col].notna()].copy()
-        if col == "device_profile":
-            sub = sub[~sub[col].astype(str).str.lower().isin(GENERIC_DEVICES)]
-            # Exclude synthetic fallback profiles like "C11709-K2|191|43" that encode card_id
-            sub = sub[~sub[col].astype(str).str.match(r"^C\d{5}-K\d+\|")]
-        elif col == "addr1":
-            # Billing region alone is only meaningful when combined with device or when prior fraud is confirmed
-            if len(spec.shared_entities) > 1:
-                continue
-
-        if sub.empty:
-            continue
-
-        # Filter to entities shared by >= spec.min_cards distinct cards
-        card_counts = sub.groupby(col)["card_id"].nunique()
-        cand_entities = card_counts[card_counts >= spec.min_cards].index
-        if len(cand_entities) == 0:
-            continue
-
-        sub = sub[sub[col].isin(cand_entities)].sort_values([col, "TransactionDT"], kind="stable")
-        ent_vals = sub[col].to_numpy()
-        t_sec = sub["TransactionDT"].to_numpy(dtype=np.int64)
-        cards = sub["card_id"].to_numpy()
-        custs = sub["customer_id"].to_numpy()
-        amts = sub["amount"].to_numpy(dtype=np.float64)
-        tids = sub["TransactionID"].to_numpy(dtype=np.int64)
-        regions = sub["addr1"].fillna(-1.0).to_numpy(dtype=np.float64)
-
-        boundaries = np.flatnonzero(ent_vals[1:] != ent_vals[:-1]) + 1
-        for idxs in np.split(np.arange(len(sub)), boundaries):
-            e_t = t_sec[idxs]
-            e_c = cards[idxs]
-            e_cust = custs[idxs]
-            e_a = amts[idxs]
-            e_tid = tids[idxs]
-            e_reg = regions[idxs]
-
-            r_idx = np.searchsorted(e_t, e_t + win, side="right")
-            for i in range(len(e_t)):
-                j = int(r_idx[i])
-                if j - i < spec.min_cards:
-                    continue
-                win_cards = pd.unique(e_c[i:j])
-                if len(win_cards) < spec.min_cards:
-                    continue
-                if fraud_cards is not None:
-                    n_prior_fraud = sum(1 for c in win_cards if str(c) in fraud_cards)
-                    if n_prior_fraud < max(1, spec.min_cards - 1):
-                        continue
-                if spec.min_distinct_regions > 1:
-                    valid_regs = e_reg[i:j][e_reg[i:j] >= 0]
-                    if len(np.unique(valid_regs)) < spec.min_distinct_regions:
-                        continue
-                exp = float(e_a[i:j].sum())
-                if spec.min_exposure_usd is not None and exp <= spec.min_exposure_usd:
-                    continue
-
-                ep_tids = [int(x) for x in e_tid[i:j]]
-                win_card_list = [str(c) for c in win_cards]
-                for pos in range(i, j):
-                    cid = str(e_c[pos])
-                    cust_id = str(e_cust[pos])
-                    others = [c for c in win_card_list if c != cid]
-                    prev = hits.get(cid)
-                    if prev is None or len(others) > len(prev["connected_card_ids"]):
-                        hits[cid] = {
-                            "card_id": cid,
-                            "customer_id": cust_id,
-                            "txn_ids": ep_tids,
-                            "connected_card_ids": others,
-                            "shared_field": col,
-                            "shared_value": str(ent_vals[idxs[0]]),
-                            "exposure_usd": round(exp, 2),
-                        }
-                break
-
-    return hits
+        return (
+            [int(x) for x in c_tid[i:j]],
+            round(exp, 2),
+            round(float(c_a[i:j].max()), 2),
+        )
+    return None
 
 
 def evaluate_rule_on_cases(
@@ -581,149 +581,151 @@ def evaluate_rule_on_cases(
     cc: pd.DataFrame,
     tx: pd.DataFrame,
 ) -> dict[str, dict]:
-    """As-of backtest evaluation of `spec` across `closed_cases()` rows.
-
-    Strictly enforces `t <= opened_at` per case: only transactions occurring on or
-    before a case's `opened_at` timestamp can trigger a detection on that case.
-    """
-    tx_lookup = tx.set_index("TransactionID")
-    cc_opened = pd.to_datetime(cc["opened_at"])
-    cc_closed = pd.to_datetime(cc["closed_at"])
+    """Fast, strictly as-of backtest evaluation of `spec` across `cc` cases."""
+    prep = _get_precomputed_index(cc, tx)
+    card_to_cases = prep["card_to_cases"]
 
     if spec.kind in ("card_sequence", "card_velocity"):
-        # Filter tx to cards in cc and t <= each case's opened_at
-        case_max_open = cc.assign(_open=cc_opened).groupby("card_id")["_open"].max().to_dict()
-        sub_tx = tx[tx["card_id"].isin(case_max_open)].copy()
-        max_open_s = sub_tx["card_id"].map(case_max_open)
-        sub_tx = sub_tx[sub_tx["t"] <= max_open_s]
-        card_hits = _eval_card_sequence_or_velocity(spec, sub_tx)
+        c_t_sec = prep["c_t_sec"]
+        c_amt = prep["c_amt"]
+        c_tid = prep["c_tid"]
+        c_online = prep["c_online"]
+        card_slices = prep["card_slices"]
 
         case_hits: dict[str, dict] = {}
-        for row in cc.itertuples():
-            cid = str(row.card_id)
-            if cid not in card_hits:
+        for card_id, case_list in card_to_cases.items():
+            sl = card_slices.get(card_id)
+            if sl is None:
                 continue
-            hit = card_hits[cid]
-            # Verify as-of for this specific case's opened_at
-            open_ts = pd.Timestamp(row.opened_at)
-            valid_tids = [
-                tid for tid in hit["txn_ids"]
-                if tid in tx_lookup.index and tx_lookup.at[tid, "t"] <= open_ts
-            ]
-            if len(valid_tids) >= spec.min_txns:
-                case_hits[str(row.case_id)] = {
-                    **hit,
-                    "txn_ids": valid_tids,
-                    "case_id": str(row.case_id),
-                }
+            s, e = sl
+            ct_full = c_t_sec[s:e]
+            ca_full = c_amt[s:e]
+            ctid_full = c_tid[s:e]
+            con_full = c_online[s:e]
+
+            for case_id, open_s, cust_id, _ in case_list:
+                # As-of cut: only transactions with t <= opened_at
+                k = int(np.searchsorted(ct_full, open_s, side="right"))
+                if k < spec.min_txns:
+                    continue
+                res = _eval_card_slice_sequence_or_velocity(
+                    spec, ct_full[:k], ca_full[:k], ctid_full[:k], con_full[:k]
+                )
+                if res is not None:
+                    ep_tids, ep_exp, ep_max = res
+                    case_hits[case_id] = {
+                        "case_id": case_id,
+                        "card_id": card_id,
+                        "customer_id": cust_id,
+                        "txn_ids": ep_tids,
+                        "connected_card_ids": [],
+                        "exposure_usd": ep_exp,
+                        "max_amount": ep_max,
+                    }
         return case_hits
 
-    # Shared-entity rule: evaluate over tx and verify as-of per case's opened_at
-    # For R6 (`require_prior_fraud=True`), a shared origin is established when >= min_cards
-    # share a non-generic device profile or recipient email within `window_seconds` and
-    # at least one connected card has a confirmed fraud episode or shared closed case.
+    # Shared-entity rule (R6, ADV-1, ADV-2)
     ent_hits_by_case: dict[str, dict] = {}
     win = int(spec.window_seconds)
-
-    # Pre-index closed cases by card for fast as-of lookup
-    card_to_cases: dict[str, list[tuple[str, pd.Timestamp, pd.Timestamp, str]]] = {}
-    for r in cc.itertuples():
-        card_to_cases.setdefault(str(r.card_id), []).append(
-            (str(r.case_id), pd.Timestamp(r.opened_at), pd.Timestamp(r.closed_at), str(r.outcome))
-        )
-
-    df = tx
-    if spec.channel is not None:
-        df = df[df["channel"] == spec.channel]
+    entity_groups = prep["entity_groups"]
 
     for col in spec.shared_entities:
-        if col not in df.columns:
+        if col not in entity_groups:
             continue
-        if col == "addr1" and len(spec.shared_entities) > 1:
-            continue
-        sub = df[df[col].notna()].copy()
-        if col == "device_profile":
-            sub = sub[~sub[col].astype(str).str.lower().isin(GENERIC_DEVICES)]
-            sub = sub[~sub[col].astype(str).str.match(r"^C\d{5}-K\d+\|")]
-        if sub.empty:
-            continue
+        eg = entity_groups[col]
+        e_ent = eg["ent"]
+        e_c = eg["card_id"]
+        e_t = eg["t_sec"]
+        e_a = eg["amount"]
+        e_tid = eg["tid"]
+        e_reg = eg["region"]
+        e_on = eg["is_online"]
 
-        vc = sub.groupby(col)["card_id"].nunique()
-        cand = vc[vc >= spec.min_cards].index
-        if len(cand) == 0:
-            continue
+        for s, e in eg["Bounds"]:
+            g_c = e_c[s:e]
+            g_t = e_t[s:e]
+            g_a = e_a[s:e]
+            g_tid = e_tid[s:e]
+            g_reg = e_reg[s:e]
+            g_on = e_on[s:e]
+            ent_val = str(e_ent[s])
 
-        sub = sub[sub[col].isin(cand)].sort_values([col, "TransactionDT"], kind="stable")
-        ent_vals = sub[col].to_numpy()
-        t_sec = sub["TransactionDT"].to_numpy(dtype=np.int64)
-        t_ts = sub["t"].to_numpy()
-        cards = sub["card_id"].to_numpy()
-        custs = sub["customer_id"].to_numpy()
-        amts = sub["amount"].to_numpy(dtype=np.float64)
-        tids = sub["TransactionID"].to_numpy(dtype=np.int64)
-        regions = sub["addr1"].fillna(-1.0).to_numpy(dtype=np.float64)
+            if spec.channel == "online":
+                m = g_on
+                g_c, g_t, g_a, g_tid, g_reg = g_c[m], g_t[m], g_a[m], g_tid[m], g_reg[m]
+            elif spec.channel == "in_person":
+                m = ~g_on
+                g_c, g_t, g_a, g_tid, g_reg = g_c[m], g_t[m], g_a[m], g_tid[m], g_reg[m]
 
-        boundaries = np.flatnonzero(ent_vals[1:] != ent_vals[:-1]) + 1
-        for idxs in np.split(np.arange(len(sub)), boundaries):
-            e_t = t_sec[idxs]
-            e_ts = t_ts[idxs]
-            e_c = cards[idxs]
-            e_cust = custs[idxs]
-            e_a = amts[idxs]
-            e_tid = tids[idxs]
-            e_reg = regions[idxs]
+            n_g = len(g_t)
+            if n_g < spec.min_cards:
+                continue
 
-            r_idx = np.searchsorted(e_t, e_t + win, side="right")
-            for i in range(len(e_t)):
-                j = int(r_idx[i])
-                if j - i < spec.min_cards:
-                    continue
-                win_cards = pd.unique(e_c[i:j])
-                if len(win_cards) < spec.min_cards:
-                    continue
-                if spec.min_distinct_regions > 1:
-                    valid_regs = e_reg[i:j][e_reg[i:j] >= 0]
-                    if len(np.unique(valid_regs)) < spec.min_distinct_regions:
+            # Find all cards in this entity group that have closed cases in `cc`
+            present_cards = set(g_c.tolist()) & card_to_cases.keys()
+            if not present_cards:
+                continue
+
+            for cid in present_cards:
+                for case_id, open_s, cust_id, _ in card_to_cases[cid]:
+                    if case_id in ent_hits_by_case:
                         continue
-                exp = float(e_a[i:j].sum())
-                if spec.min_exposure_usd is not None and exp <= spec.min_exposure_usd:
-                    continue
+                    # As-of cut: only transactions on or before `open_s`
+                    k = int(np.searchsorted(g_t, open_s, side="right"))
+                    if k < spec.min_cards:
+                        continue
+                    # Check window `[open_s - win, open_s]` or most recent window containing `cid`
+                    c_positions = np.flatnonzero(g_c[:k] == cid)
+                    if len(c_positions) == 0:
+                        continue
+                    last_c_pos = int(c_positions[-1])
+                    anchor_t = int(g_t[last_c_pos])
+                    w_start = int(np.searchsorted(g_t[:k], anchor_t - win, side="left"))
+                    w_end = int(np.searchsorted(g_t[:k], anchor_t + win, side="right"))
 
-                win_end_ts = pd.Timestamp(e_ts[j - 1])
-                win_card_list = [str(c) for c in win_cards]
-                ep_tids = [int(x) for x in e_tid[i:j]]
+                    win_cards = pd.unique(g_c[w_start:w_end])
+                    if len(win_cards) < spec.min_cards:
+                        continue
+                    if spec.min_distinct_regions > 1:
+                        v_regs = g_reg[w_start:w_end]
+                        v_regs = v_regs[v_regs >= 0]
+                        if len(np.unique(v_regs)) < spec.min_distinct_regions:
+                            continue
+                    exp = float(g_a[w_start:w_end].sum())
+                    if spec.min_exposure_usd is not None and exp <= spec.min_exposure_usd:
+                        continue
 
-                for cid in win_card_list:
-                    for case_id, open_ts, _, _ in card_to_cases.get(cid, ()):
-                        if open_ts < pd.Timestamp(e_ts[i]):
-                            continue
-                        # As-of filter inside window: only count txns <= open_ts
-                        asof_mask = e_ts[i:j] <= open_ts.to_datetime64()
-                        asof_cards = pd.unique(e_c[i:j][asof_mask])
-                        if len(asof_cards) < spec.min_cards:
-                            continue
-                        if spec.min_distinct_regions > 1:
-                            asof_regs = e_reg[i:j][asof_mask]
-                            asof_regs = asof_regs[asof_regs >= 0]
-                            if len(np.unique(asof_regs)) < spec.min_distinct_regions:
-                                continue
-                        asof_exp = float(e_a[i:j][asof_mask].sum())
-                        if spec.min_exposure_usd is not None and asof_exp <= spec.min_exposure_usd:
-                            continue
-
-                        others = [str(c) for c in asof_cards if str(c) != cid]
-                        ent_hits_by_case[case_id] = {
-                            "case_id": case_id,
-                            "card_id": cid,
-                            "customer_id": str(e_cust[0]),
-                            "txn_ids": [int(x) for x in e_tid[i:j][asof_mask]],
-                            "connected_card_ids": others,
-                            "shared_field": col,
-                            "shared_value": str(ent_vals[idxs[0]]),
-                            "exposure_usd": round(asof_exp, 2),
-                        }
+                    others = [str(x) for x in win_cards if str(x) != cid]
+                    ent_hits_by_case[case_id] = {
+                        "case_id": case_id,
+                        "card_id": cid,
+                        "customer_id": cust_id,
+                        "txn_ids": [int(x) for x in g_tid[w_start:w_end]],
+                        "connected_card_ids": others,
+                        "shared_field": col,
+                        "shared_value": ent_val,
+                        "exposure_usd": round(exp, 2),
+                    }
 
     return ent_hits_by_case
+
+
+def sample_backtest_frame(cc: pd.DataFrame, seed: int = 42, n_cases: int = 800) -> pd.DataFrame:
+    """Return a deterministic, stratified sample of `cc` that always retains all
+    `card_testing` cases and the 20 Round 1 `HHG-001..020` cases (`CC-5566..5585`).
+    """
+    if len(cc) <= n_cases:
+        return cc.copy()
+    rng = np.random.default_rng(seed)
+    must_keep_mask = cc["pattern"].isin(["card_testing", "undocumented"]) | (
+        cc.index >= len(cc) - 20
+    )
+    must_keep = cc[must_keep_mask]
+    pool = cc[~must_keep_mask]
+    n_rem = max(0, n_cases - len(must_keep))
+    chosen_idx = rng.choice(pool.index.to_numpy(), size=min(n_rem, len(pool)), replace=False)
+    out = pd.concat([must_keep, pool.loc[np.sort(chosen_idx)]], ignore_index=True)
+    return out
 
 
 class CompiledRuleDetector(Detector):
@@ -769,15 +771,20 @@ class CompiledRuleDetector(Detector):
 
     def run(self, ctx: CaseCtx) -> list[Finding]:
         lr = self._cached_lr if self._cached_lr is not None else 1.0
-        if self.spec.kind in ("card_sequence", "card_velocity"):
-            hits = _eval_card_sequence_or_velocity(self.spec, ctx.tx, target_cards={ctx.card_id})
-        else:
-            hits = _eval_shared_entity_window(self.spec, ctx.tx, cc_prior=ctx.cc)
-
-        if ctx.card_id not in hits:
+        one_cc = pd.DataFrame([{
+            "case_id": ctx.case_id,
+            "card_id": ctx.card_id,
+            "customer_id": ctx.customer_id,
+            "opened_at": str(ctx.opened_at),
+            "closed_at": str(ctx.opened_at),
+            "outcome": "unknown",
+            "pattern": "unknown",
+        }])
+        hits = evaluate_rule_on_cases(self.spec, one_cc, ctx.tx)
+        if ctx.case_id not in hits:
             return []
 
-        h = hits[ctx.card_id]
+        h = hits[ctx.case_id]
         claim = Attestation(
             what=(
                 f"Rule {self.spec.rule_id} ({self.spec.title}) fired on card {ctx.card_id} "
@@ -823,6 +830,7 @@ def build_backtest_attestation(spec: RuleSpec, bt: Backtest) -> Attestation:
             "min_txns": spec.min_txns,
             "min_cards": spec.min_cards,
             "window_seconds": spec.window_seconds,
+            "n_cases": bt.n_cases,
         },
     )
 
@@ -847,6 +855,7 @@ def compare_rule_with_r1_agent(
     cc: pd.DataFrame | None = None,
     tx: pd.DataFrame | None = None,
     cases_dir: Path | None = None,
+    precomputed_hits: dict[str, dict] | None = None,
 ) -> RuleComparisonReport:
     """Compare a compiled `RuleSpec` against our Round 1 agent verdicts on HHG-001..020.
 
@@ -857,11 +866,14 @@ def compare_rule_with_r1_agent(
     tx_df = tx if tx is not None else tx_all()
     r1_answers = load_r1_agent_answers(cases_dir)
 
-    # Map HHG-001..020 to CC-5566..5585 (the tail 20 records of closed_cases_history.csv)
-    hhg_cc = cc_df.tail(20).copy().reset_index(drop=True)
+    # Map HHG-001..020 to CC-5566..5585
+    hhg_cc = cc_df[cc_df["case_id"].isin([f"CC-{5565 + i}" for i in range(1, 21)])].copy()
+    if len(hhg_cc) < 20:
+        hhg_cc = cc_df.tail(20).copy()
+    hhg_cc = hhg_cc.sort_values("case_id", kind="stable").reset_index(drop=True)
     hhg_cc["hhg_id"] = [f"HHG-{i:03d}" for i in range(1, len(hhg_cc) + 1)]
 
-    hits = evaluate_rule_on_cases(spec, hhg_cc, tx_df)
+    hits = precomputed_hits if precomputed_hits is not None else evaluate_rule_on_cases(spec, hhg_cc, tx_df)
 
     agree_pos: list[str] = []
     agree_neg: list[str] = []
@@ -883,7 +895,6 @@ def compare_rule_with_r1_agent(
         rule_txns = hit_info.get("txn_ids", [])
         rule_conn = hit_info.get("connected_card_ids", [])
 
-        # Determine whether the agent judged this case positive for fraud (or specifically for this typology)
         if spec.rule_id.upper() == "R5":
             agent_positive = agent_verdict == "fraud" and agent_pattern == "card_testing"
         elif spec.rule_id.upper() == "R6":
@@ -974,9 +985,24 @@ def format_comparison_table(
             f"{len(bt.caught)}/{len(bt.caught)+len(bt.missed)} | "
             f"{len(bt.legit_acted_against)} | {bt.precision:.3f} | {bt.lr_measured:.2f} | "
             f"{','.join(rep.agree_positive) or '-'} ({len(rep.agree_positive)}) | "
-            f"{len(rep.agree_negative)} cases | "
+            f"{','.join(rep.agree_negative[:4])}{'...' if len(rep.agree_negative)>4 else ''} ({len(rep.agree_negative)}) | "
             f"{','.join(rep.disagree_rule_only) or '-'} ({len(rep.disagree_rule_only)}) | "
             f"{','.join(rep.disagree_agent_only) or '-'} ({len(rep.disagree_agent_only)}) | "
             f"{unparsed} |"
         )
     return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    tx = tx_all()
+    cc = closed_cases()
+    specs = []
+    backtests = {}
+    reports = {}
+    for rid, prose in DEFAULT_RULES.items():
+        s = compile_rule(prose, rid)
+        specs.append(s)
+        d = CompiledRuleDetector(s)
+        backtests[rid] = d.backtest(cc, tx)
+        reports[rid] = compare_rule_with_r1_agent(s, cc=cc, tx=tx)
+    print(format_comparison_table(specs, backtests, reports))

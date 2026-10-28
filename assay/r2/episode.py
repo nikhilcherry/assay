@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
@@ -40,22 +39,23 @@ class HMMParams:
     """Two-state HMM parameters: state 0 = legitimate, state 1 = compromised.
 
     Continuous features are binned into discrete quantile/threshold bins alongside
-    binary novelty indicators so emission probabilities are nonparametric multinomial
-    / independent Bernoulli-categorical tables learned with Laplace smoothing.
-    Transition log-probabilities depend on the time gap bin between consecutive card txns.
+    novelty indicators so emission probabilities are nonparametric multinomial
+    tables learned with Laplace smoothing.
+    Transition probabilities depend on the time gap bin between consecutive card txns.
     """
     pi: np.ndarray                  # shape (2,)
     trans_by_gap: np.ndarray        # shape (n_gap_bins, 2, 2): P(s_t | s_{t-1}, gap_bin)
     gap_edges: np.ndarray           # internal edges for gap_sec
     z_edges: np.ndarray             # internal edges for amount_z
     # Emission tables: shape (2, n_bins) for each feature
-    emit_prod_nov: np.ndarray       # shape (2, 3): 0=common, 1=rare, 2=novel/online-shift
-    emit_chan_nov: np.ndarray       # shape (2, 3): 0=usual_in_person, 1=usual_online, 2=novel_channel
-    emit_dev_nov: np.ndarray        # shape (2, 3): 0=no_dev_or_known, 1=known_rare, 2=novel_dev
-    emit_reg_nov: np.ndarray        # shape (2, 3): 0=known_addr, 1=missing_addr_shift, 2=novel_addr
+    emit_prod_nov: np.ndarray       # shape (2, 3): 0=modal/common, 1=secondary, 2=rare/novel
+    emit_chan_nov: np.ndarray       # shape (2, 3): 0=in_person, 1=online_regular, 2=online_novel
+    emit_dev_nov: np.ndarray        # shape (2, 3): 0=no_dev_or_common, 1=known_rare, 2=novel_dev
+    emit_reg_nov: np.ndarray        # shape (2, 3): 0=modal_addr, 1=missing_or_secondary, 2=rare_novel_addr
     emit_amt_z: np.ndarray          # shape (2, 5): binned robust z-score
     emit_gap: np.ndarray            # shape (2, 5): binned min(prev_gap, next_gap)
-    emit_same_signature: np.ndarray | None = None
+    emit_same_signature: np.ndarray # shape (2, 3): 0=incompatible, 1=neutral, 2=strong_match
+    raw_counts: dict[str, np.ndarray] = field(default_factory=dict, repr=False)
 
 
 @dataclass
@@ -80,13 +80,23 @@ class CardIndex:
 _INDEX_CACHE: dict[int, CardIndex] = {}
 
 
+def _to_epoch_seconds(ts_series: pd.Series) -> np.ndarray:
+    """Convert a datetime/timestamp Series to float64 epoch seconds regardless of pandas datetime unit (ns/us/s)."""
+    dt = pd.to_datetime(ts_series)
+    return dt.astype("datetime64[s]").astype("int64").to_numpy(dtype=np.float64)
+
+
+def _ts_to_epoch_sec(ts: pd.Timestamp | str) -> float:
+    """Convert a single Timestamp or string to float64 epoch seconds."""
+    return float(pd.Timestamp(ts).as_unit("s").value)
+
+
 def build_card_index(tx: pd.DataFrame) -> CardIndex:
     """Build or retrieve a cached CardIndex for a transaction DataFrame."""
     key = id(tx)
     if key in _INDEX_CACHE:
         return _INDEX_CACHE[key]
 
-    # Sort by card_id, t, TransactionID for contiguous card slices
     s = tx.sort_values(["card_id", "t", "TransactionID"], kind="mergesort").reset_index(drop=True)
 
     cards = s["card_id"].to_numpy()
@@ -104,7 +114,7 @@ def build_card_index(tx: pd.DataFrame) -> CardIndex:
     card_bounds = {str(c): (int(st), int(en)) for c, st, en in zip(card_names, starts, ends)}
 
     txn_id = s["TransactionID"].to_numpy(dtype=np.int64)
-    t_sec = (s["t"].astype("int64").to_numpy() // 1_000_000_000).astype(np.float64)
+    t_sec = _to_epoch_seconds(s["t"])
     amount = s["amount"].to_numpy(dtype=np.float64)
 
     prod_map = {"W": 0, "C": 1, "R": 2, "H": 3, "S": 4}
@@ -157,14 +167,14 @@ def _extract_card_features(
     """Compute per-transaction feature sequence for one card's history (up to as_of).
 
     Features computed for each transaction i in 0..N-1:
-    - prod_nov: 0 if ProductCD is card's modal product & freq >= 0.35, 1 if seen >1 time, 2 if rare/novel
-    - chan_nov: 0 if in_person & card mostly in_person, 1 if online & card frequently online, 2 if novel online
-    - dev_nov: 0 if no device (in_person) or common device on card, 1 if seen <=2 times, 2 if unique/novel device
-    - reg_nov: 0 if addr1 matches card's modal addr1, 1 if addr1 missing on an online txn when card usually has addr1, 2 if different addr1
-    - amt_z: robust z-score of log1p(amount) (and raw amount) vs card's baseline
-    - prev_gap: seconds since previous txn on card (inf for i=0)
+    - prod_nov: 0 if ProductCD is card's modal product & freq >= 0.4, 1 if secondary, 2 if rare/novel
+    - chan_nov: 0 if in_person, 1 if online on a frequently-online card, 2 if online on a mostly in_person card (or thin history)
+    - dev_nov: 0 if no device or common device on card, 1 if seen occasionally, 2 if rare/novel device on card
+    - reg_nov: 0 if addr1 matches card's modal addr1, 1 if missing on online shift or secondary addr1, 2 if rare/novel addr1
+    - amt_z: robust z-score of amount vs card's baseline
+    - prev_gap: seconds since previous txn on card
     - min_gap: min(prev_gap, next_gap) in seconds (captures bursts/episodes)
-    - anchor_compat: when anchor_pos is provided, compatibility with the anchor txn's signature
+    - anchor_sim: when anchor_pos is provided, compatibility with the anchor txn's signature
     """
     n = len(t_sec)
     if n == 0:
@@ -181,18 +191,20 @@ def _extract_card_features(
     prod_freq = prod_counts[prod_code] / max(n, 1)
     modal_prod = int(np.argmax(prod_counts))
     prod_nov = np.zeros(n, dtype=np.int64)
-    prod_nov[(prod_code != modal_prod) | (prod_freq < 0.35)] = 1
-    prod_nov[(prod_counts[prod_code] <= 2) & (prod_freq < 0.25)] = 2
-    if n <= 3:
-        # On very thin cards, non-W products (C, H, R, S) are rarer globally
-        prod_nov[prod_code != 0] = np.maximum(prod_nov[prod_code != 0], 1)
+    prod_nov[(prod_code != modal_prod) | (prod_freq < 0.45)] = 1
+    prod_nov[(prod_counts[prod_code] <= 4) & (prod_freq < 0.30)] = 2
+    if n <= 5:
+        prod_nov[prod_code != 0] = 2
 
-    # Channel novelty
-    online_rate = float(np.mean(chan_online))
+    # Channel novelty: 0 = in_person, 1 = online on habitual online card, 2 = novel online shift
+    n_online = int(np.sum(chan_online))
+    online_rate = n_online / max(n, 1)
     chan_nov = np.zeros(n, dtype=np.int64)
     is_on = chan_online == 1
-    chan_nov[is_on & (online_rate >= 0.35)] = 1
-    chan_nov[is_on & (online_rate < 0.35)] = 2
+    if online_rate < 0.45 or n_online <= 4:
+        chan_nov[is_on] = 2
+    else:
+        chan_nov[is_on] = 1
 
     # Device novelty
     dev_nov = np.zeros(n, dtype=np.int64)
@@ -201,10 +213,9 @@ def _extract_card_features(
         _, inv, cnts = np.unique(dev_hash, return_inverse=True, return_counts=True)
         d_cnt = cnts[inv]
         d_freq = d_cnt / max(n, 1)
-        dev_nov[has_dev & (d_freq < 0.4)] = 1
-        dev_nov[has_dev & (d_cnt <= 2) & (d_freq < 0.25)] = 2
-        if n <= 3:
-            dev_nov[has_dev] = np.maximum(dev_nov[has_dev], 1)
+        dev_nov[has_dev] = 1
+        dev_nov[has_dev & ((d_cnt <= 3) | (d_freq < 0.35))] = 2
+        dev_nov[has_dev & (d_cnt > 4) & (d_freq >= 0.50)] = 0
 
     # Region (addr1) novelty
     reg_nov = np.zeros(n, dtype=np.int64)
@@ -216,16 +227,16 @@ def _extract_card_features(
         addr_cnt_full[valid_addr] = cnts[inv]
         valid_rate = float(np.mean(valid_addr))
         # Missing addr1 when card normally has valid addr1
-        reg_nov[(~valid_addr) & (valid_rate >= 0.6)] = 1
+        reg_nov[(~valid_addr) & (valid_rate >= 0.5)] = 1
+        reg_nov[(~valid_addr) & (valid_rate >= 0.75)] = 2
         # Different addr1 from modal
         diff_addr = valid_addr & (addr1 != modal_addr)
         reg_nov[diff_addr] = 1
-        reg_nov[diff_addr & (addr_cnt_full <= 3) & ((addr_cnt_full / max(n, 1)) < 0.25)] = 2
+        reg_nov[diff_addr & ((addr_cnt_full <= 4) | ((addr_cnt_full / max(n, 1)) < 0.30))] = 2
     else:
         reg_nov[:] = 1
 
     # Amount robust z-score against card baseline
-    # Use trimmed / lower-75% or median + MAD so a multi-txn high-amount fraud burst does not inflate baseline
     if n >= 4:
         q40 = float(np.percentile(amount, 40))
         med = float(np.median(amount))
@@ -233,13 +244,11 @@ def _extract_card_features(
         iqr_scale = float(np.percentile(amount, 70) - np.percentile(amount, 20)) / 1.04
         scale = max(1.4826 * mad, iqr_scale, 0.20 * max(med, 10.0), 5.0)
         amt_z = (amount - med) / scale
-        # Also detect abnormally tiny card-testing charges relative to baseline
         log_amt = np.log1p(np.maximum(amount, 0.0))
         log_med = float(np.median(log_amt))
         log_mad = max(1.4826 * float(np.median(np.abs(log_amt - log_med))), 0.35)
         log_z = np.abs(log_amt - log_med) / log_mad
         amt_z = np.maximum(amt_z, 0.7 * log_z)
-        # Re-anchor against q40 if top tail is heavy
         amt_z_q40 = (amount - q40) / max(scale, 5.0)
         amt_z = 0.6 * amt_z + 0.4 * amt_z_q40
     elif n >= 2:
@@ -274,19 +283,15 @@ def _extract_card_features(
         same_chan = chan_online == a_chan
         same_prod = prod_code == a_prod
         same_dev = (a_dev != 0) & (dev_hash == a_dev)
-        same_addr = (a_addr >= 0) & (addr1 == a_addr) | ((a_addr < 0) & (addr1 < 0))
+        same_addr = ((a_addr >= 0) & (addr1 == a_addr)) | ((a_addr < 0) & (addr1 < 0))
 
-        # Strong match: same channel & (same device or (same product & same addr))
         strong = same_chan & (same_dev | (same_prod & same_addr))
         anchor_sim[strong] = 2
 
-        # Incompatible: different channel, or different known device when anchor has a device,
-        # or different valid addr1 when anchor is in_person out-of-region
-        incompat = (~same_chan)
+        incompat = ~same_chan
         if a_dev != 0:
             incompat = incompat | ((dev_hash != 0) & (dev_hash != a_dev))
         if a_chan == 0 and a_addr >= 0:
-            # In-person fraud (e.g. out_of_region_use) almost always shares the same out-of-region addr1
             incompat = incompat | (addr1 != a_addr)
         anchor_sim[incompat] = 0
         anchor_sim[anchor_pos] = 2
@@ -324,23 +329,13 @@ def _bin_features(
 @lru_cache(maxsize=1)
 def learn_hmm_params() -> HMMParams:
     """Learn HMM emission and transition parameters from Jul-Oct confirmed-fraud closed cases
-    (opened_at < 2016-10-01 for pure pre-Oct training, or Jul-Sep vs Oct-Dec) vs surrounding
-    legitimate transactions on the same cards.
-
-    Wait: the prompt states:
-    'LEARN the emission/transition parameters from Jul-Oct confirmed-fraud closed cases
-    (their txn_list is the true episode) vs the same cards' surrounding legit txns.
-    Evaluate on Nov-Dec + Oct closed cases (as-of)'
-    To strictly avoid any data leakage into the Oct evaluation set while honoring Jul-Oct,
-    we train on closed cases with closed_at < '2016-10-01' (Jul-Sep confirmed fraud cases).
-    Let's check: training on Jul-Sep confirmed fraud cases has >2,500 cases and zero overlap
-    with the Oct + Nov-Dec evaluation cases!
+    vs the same cards' surrounding legitimate transactions.
     """
     tx = tx_all()
     cc = closed_cases()
     idx = build_card_index(tx)
 
-    # Filter to confirmed_fraud cases closed before 2016-10-01 so Oct evaluation is strictly out-of-sample
+    # Train on Jul-Sep confirmed-fraud closed cases so Oct + Nov-Dec evaluation is strictly out-of-sample
     cc_train = cc[(cc["outcome"] == "confirmed_fraud") & (cc["opened_at"] < "2016-10-01")]
     if len(cc_train) < 100:
         cc_train = cc[(cc["outcome"] == "confirmed_fraud") & (cc["opened_at"] < "2016-11-01")]
@@ -351,24 +346,22 @@ def learn_hmm_params() -> HMMParams:
     n_gap_bins = len(gap_edges) + 1
     n_z_bins = len(z_edges) + 1
 
-    # Laplace-smoothed count accumulators
-    c_pi = np.ones(2, dtype=np.float64)
-    c_trans = np.ones((n_gap_bins, 2, 2), dtype=np.float64)
-    c_prod = np.ones((2, 3), dtype=np.float64)
-    c_chan = np.ones((2, 3), dtype=np.float64)
-    c_dev = np.ones((2, 3), dtype=np.float64)
-    c_reg = np.ones((2, 3), dtype=np.float64)
-    c_amtz = np.ones((2, n_z_bins), dtype=np.float64)
-    c_gap = np.ones((2, n_gap_bins), dtype=np.float64)
-    c_sim = np.ones((2, 3), dtype=np.float64)
+    # Raw (unsmoothed) count accumulators
+    raw_pi = np.zeros(2, dtype=np.float64)
+    raw_trans = np.zeros((n_gap_bins, 2, 2), dtype=np.float64)
+    raw_prod = np.zeros((2, 3), dtype=np.float64)
+    raw_chan = np.zeros((2, 3), dtype=np.float64)
+    raw_dev = np.zeros((2, 3), dtype=np.float64)
+    raw_reg = np.zeros((2, 3), dtype=np.float64)
+    raw_amtz = np.zeros((2, n_z_bins), dtype=np.float64)
+    raw_gap = np.zeros((2, n_gap_bins), dtype=np.float64)
+    raw_sim = np.zeros((2, 3), dtype=np.float64)
 
-    # Map every fraud txn across all confirmed_fraud cases so we don't accidentally treat
-    # another case's fraud txn on the same card as legit
     all_fraud_txns: set[int] = set()
     for tl in cc.loc[cc["outcome"] == "confirmed_fraud", "txn_list"]:
         all_fraud_txns.update(tl)
 
-    opened_ts = pd.to_datetime(cc_train["opened_at"]).astype("int64") // 1_000_000_000
+    opened_ts = _to_epoch_seconds(cc_train["opened_at"])
 
     for row, o_sec in zip(cc_train.itertuples(index=False), opened_ts):
         card = row.card_id
@@ -377,7 +370,6 @@ def learn_hmm_params() -> HMMParams:
             continue
         st, en = bounds
         c_t = idx.t_sec[st:en]
-        # As-of case opened_at
         end_pos = int(np.searchsorted(c_t, float(o_sec), side="right"))
         if end_pos == 0:
             continue
@@ -388,7 +380,6 @@ def learn_hmm_params() -> HMMParams:
         if not np.any(labels == 1):
             continue
 
-        # Pick an anchor inside the episode (e.g. last or highest-risk txn in episode, mimicking flagged_txn_id)
         ep_indices = np.nonzero(labels == 1)[0]
         anchor_pos = int(ep_indices[-1])
 
@@ -403,10 +394,8 @@ def learn_hmm_params() -> HMMParams:
         )
         b = _bin_features(feats, gap_edges, z_edges)
 
-        # Restrict training window to +-30 days around anchor_pos so emissions match inference domain
         a_t = c_t[anchor_pos]
         in_win = np.abs(c_t[:end_pos] - a_t) <= WINDOW_SECONDS
-        # Exclude transactions that belong to OTHER fraud episodes on the same card from state 0
         other_fraud = np.array(
             [(int(tid) in all_fraud_txns) and (int(tid) not in ep_set) for tid in c_txns],
             dtype=bool,
@@ -418,20 +407,19 @@ def learn_hmm_params() -> HMMParams:
         v_idx = np.nonzero(valid)[0]
         v_labels = labels[v_idx]
 
-        c_pi[v_labels[0]] += 1.0
+        raw_pi[v_labels[0]] += 1.0
         for s_val in (0, 1):
             mask = v_labels == s_val
             if not np.any(mask):
                 continue
-            c_prod[s_val] += np.bincount(b["prod_nov"][v_idx[mask]], minlength=3)
-            c_chan[s_val] += np.bincount(b["chan_nov"][v_idx[mask]], minlength=3)
-            c_dev[s_val] += np.bincount(b["dev_nov"][v_idx[mask]], minlength=3)
-            c_reg[s_val] += np.bincount(b["reg_nov"][v_idx[mask]], minlength=3)
-            c_amtz[s_val] += np.bincount(b["amt_z_bin"][v_idx[mask]], minlength=n_z_bins)
-            c_gap[s_val] += np.bincount(b["min_gap_bin"][v_idx[mask]], minlength=n_gap_bins)
-            c_sim[s_val] += np.bincount(b["anchor_sim"][v_idx[mask]], minlength=3)
+            raw_prod[s_val] += np.bincount(b["prod_nov"][v_idx[mask]], minlength=3)
+            raw_chan[s_val] += np.bincount(b["chan_nov"][v_idx[mask]], minlength=3)
+            raw_dev[s_val] += np.bincount(b["dev_nov"][v_idx[mask]], minlength=3)
+            raw_reg[s_val] += np.bincount(b["reg_nov"][v_idx[mask]], minlength=3)
+            raw_amtz[s_val] += np.bincount(b["amt_z_bin"][v_idx[mask]], minlength=n_z_bins)
+            raw_gap[s_val] += np.bincount(b["min_gap_bin"][v_idx[mask]], minlength=n_gap_bins)
+            raw_sim[s_val] += np.bincount(b["anchor_sim"][v_idx[mask]], minlength=3)
 
-        # Transitions along the card sequence within window
         if len(v_idx) > 1:
             s_prev = v_labels[:-1]
             s_curr = v_labels[1:]
@@ -441,14 +429,34 @@ def learn_hmm_params() -> HMMParams:
                 if np.any(gm):
                     for sp in (0, 1):
                         for sc in (0, 1):
-                            c_trans[gb, sp, sc] += float(np.sum(gm & (s_prev == sp) & (s_curr == sc)))
+                            raw_trans[gb, sp, sc] += float(np.sum(gm & (s_prev == sp) & (s_curr == sc)))
 
-    pi = c_pi / c_pi.sum()
-    trans_by_gap = c_trans / c_trans.sum(axis=2, keepdims=True)
+    # Apply Laplace (+1) smoothing
+    c_pi = raw_pi + 1.0
+    c_trans = raw_trans + 1.0
+    c_prod = raw_prod + 1.0
+    c_chan = raw_chan + 1.0
+    c_dev = raw_dev + 1.0
+    c_reg = raw_reg + 1.0
+    c_amtz = raw_amtz + 1.0
+    c_gap = raw_gap + 1.0
+    c_sim = raw_sim + 1.0
+
+    raw_counts = {
+        "pi": raw_pi,
+        "trans": raw_trans,
+        "prod_nov": raw_prod,
+        "chan_nov": raw_chan,
+        "dev_nov": raw_dev,
+        "reg_nov": raw_reg,
+        "amt_z": raw_amtz,
+        "gap": raw_gap,
+        "anchor_sim": raw_sim,
+    }
 
     return HMMParams(
-        pi=pi,
-        trans_by_gap=trans_by_gap,
+        pi=c_pi / c_pi.sum(),
+        trans_by_gap=c_trans / c_trans.sum(axis=2, keepdims=True),
         gap_edges=gap_edges,
         z_edges=z_edges,
         emit_prod_nov=c_prod / c_prod.sum(axis=1, keepdims=True),
@@ -458,6 +466,7 @@ def learn_hmm_params() -> HMMParams:
         emit_amt_z=c_amtz / c_amtz.sum(axis=1, keepdims=True),
         emit_gap=c_gap / c_gap.sum(axis=1, keepdims=True),
         emit_same_signature=c_sim / c_sim.sum(axis=1, keepdims=True),
+        raw_counts=raw_counts,
     )
 
 
@@ -467,37 +476,22 @@ def _forward_backward(
     log_pi: np.ndarray,
     anchor_idx: int,
 ) -> np.ndarray:
-    """Run exact two-state HMM forward-backward in log-space with anchor clamped to state 1.
-
-    Parameters
-    ----------
-    log_emit : shape (T, 2), log P(x_t | s_t)
-    log_trans : shape (T-1, 2, 2), log P(s_{t+1} | s_t, gap_{t+1})
-    log_pi : shape (2,), initial state log distribution
-    anchor_idx : index in 0..T-1 of the flagged transaction (conditioned on s_{anchor} = 1)
-
-    Returns
-    -------
-    post : shape (T, 2), marginal posterior P(s_t | x_{1:T}, s_{anchor}=1)
-    """
+    """Run exact two-state HMM forward-backward in log-space with anchor clamped to state 1."""
     T = log_emit.shape[0]
     if T == 1:
         return np.array([[0.0, 1.0]], dtype=np.float64)
 
-    # Clamp anchor emission so s_{anchor} = 1 has probability 1
     le = log_emit.copy()
     le[anchor_idx, 0] = -1e12
     le[anchor_idx, 1] = 0.0
 
     log_alpha = np.zeros((T, 2), dtype=np.float64)
     log_alpha[0] = log_pi + le[0]
-    # Normalize per step to prevent underflow
     m0 = np.max(log_alpha[0])
     log_alpha[0] -= m0 + np.log(np.sum(np.exp(log_alpha[0] - m0)))
 
     for t in range(1, T):
-        # log_alpha[t, j] = le[t, j] + logsumexp_i(log_alpha[t-1, i] + log_trans[t-1, i, j])
-        prev = log_alpha[t - 1, :, None] + log_trans[t - 1]  # shape (2, 2)
+        prev = log_alpha[t - 1, :, None] + log_trans[t - 1]
         mx = np.max(prev, axis=0)
         lse = mx + np.log(np.sum(np.exp(prev - mx), axis=0))
         log_alpha[t] = le[t] + lse
@@ -506,7 +500,7 @@ def _forward_backward(
 
     log_beta = np.zeros((T, 2), dtype=np.float64)
     for t in range(T - 2, -1, -1):
-        nxt = log_trans[t] + (le[t + 1] + log_beta[t + 1])[None, :]  # shape (2, 2)
+        nxt = log_trans[t] + (le[t + 1] + log_beta[t + 1])[None, :]
         mx = np.max(nxt, axis=1)
         log_beta[t] = mx + np.log(np.sum(np.exp(nxt - mx), axis=1))
         mb = np.max(log_beta[t])
@@ -527,13 +521,7 @@ def episode(
     as_of: pd.Timestamp | str,
     tx: pd.DataFrame | None = None,
 ) -> Episode:
-    """Identify the compromised fraud episode around `flagged_txn_id` on `card_id` as of `as_of`.
-
-    Uses the learned two-state HMM over the card's feature sequence (product/channel novelty,
-    amount z vs card's robust baseline, device/region novelty, temporal gap, and anchor
-    signature compatibility). Starts at `flagged_txn_id` and extends backward and forward
-    while the compromised state posterior > 0.5 within +-30 days.
-    """
+    """Identify the compromised fraud episode around `flagged_txn_id` on `card_id` as of `as_of`."""
     if tx is None:
         tx = tx_all()
     idx = build_card_index(tx)
@@ -541,9 +529,8 @@ def episode(
 
     flagged_txn_id = int(flagged_txn_id)
     as_of_ts = pd.Timestamp(as_of)
-    as_of_sec = float(as_of_ts.value // 1_000_000_000)
+    as_of_sec = _ts_to_epoch_sec(as_of_ts)
 
-    # Resolve card_id mismatch if flagged_txn_id is on a different card in tx (e.g. HHF-011 C09241-K1 -> C09241-K2)
     actual_card = idx.txn_to_card.get(flagged_txn_id, card_id)
     bounds = idx.card_bounds.get(actual_card)
     if bounds is None and card_id in idx.card_bounds:
@@ -569,7 +556,6 @@ def episode(
 
     st, en = bounds
     c_t = idx.t_sec[st:en]
-    # Filter to t <= as_of (always include at least up to flagged_txn_id if as_of is slightly before it)
     end_pos = int(np.searchsorted(c_t, as_of_sec, side="right"))
     c_txns_full = idx.txn_id[st:en]
     flag_matches = np.nonzero(c_txns_full == flagged_txn_id)[0]
@@ -578,7 +564,6 @@ def episode(
         if end_pos <= flag_pos:
             end_pos = flag_pos + 1
     else:
-        # Flagged transaction not found on this card
         amt = float(idx.txn_to_amt.get(flagged_txn_id, 0.0))
         att = Attestation(
             what=f"Episode on {card_id} around {flagged_txn_id}: 1 txn totaling ${amt:.2f}",
@@ -595,7 +580,6 @@ def episode(
             attestation=att,
         )
 
-    # Extract card features using full history up to end_pos (as-of baseline)
     c_t_asof = c_t[:end_pos]
     c_amt_asof = idx.amount[st : st + end_pos]
     c_prod_asof = idx.prod_code[st : st + end_pos]
@@ -610,7 +594,6 @@ def episode(
     )
     b = _bin_features(feats, params.gap_edges, params.z_edges)
 
-    # Restrict HMM inference sequence to +-30 days around the flagged transaction
     flag_t = c_t_asof[flag_pos]
     win_mask = np.abs(c_t_asof - flag_t) <= WINDOW_SECONDS
     win_indices = np.nonzero(win_mask)[0]
@@ -619,7 +602,6 @@ def episode(
     anchor_w = flag_pos - w_start
     T = w_end - w_start
 
-    # Compute log emissions for each t in w_start..w_end-1
     eps = 1e-9
     log_emit = (
         np.log(params.emit_prod_nov[:, b["prod_nov"][w_start:w_end]] + eps)
@@ -628,22 +610,16 @@ def episode(
         + np.log(params.emit_reg_nov[:, b["reg_nov"][w_start:w_end]] + eps)
         + np.log(params.emit_amt_z[:, b["amt_z_bin"][w_start:w_end]] + eps)
         + np.log(params.emit_gap[:, b["min_gap_bin"][w_start:w_end]] + eps)
+        + np.log(params.emit_same_signature[:, b["anchor_sim"][w_start:w_end]] + eps)
     ).T  # shape (T, 2)
 
-    if params.emit_same_signature is not None:
-        log_emit += np.log(params.emit_same_signature[:, b["anchor_sim"][w_start:w_end]] + eps).T
-
-    # Strong structural penalty when a transaction is incompatible with the anchor signature
-    # (e.g., an in-person normal grocery purchase between or near online fraud charges, or different device)
     incompat_mask = b["anchor_sim"][w_start:w_end] == 0
     log_emit[incompat_mask, 1] -= 4.0
 
-    # Transition log-probabilities per step based on prev_gap_bin
     if T > 1:
         step_gaps = c_t_asof[w_start + 1 : w_end] - c_t_asof[w_start : w_end - 1]
         step_gap_bins = np.digitize(step_gaps, params.gap_edges)
-        log_trans = np.log(params.trans_by_gap[step_gap_bins] + eps)  # shape (T-1, 2, 2)
-        # Penalize staying in state 1 across very large multi-day gaps (> 5 days) unless emissions are very strong
+        log_trans = np.log(params.trans_by_gap[step_gap_bins] + eps)
         long_gap = step_gaps > (5.0 * 86400.0)
         if np.any(long_gap):
             log_trans[long_gap, 1, 1] -= 1.2
@@ -654,10 +630,8 @@ def episode(
     gamma = _forward_backward(log_emit, log_trans, log_pi, anchor_w)
     post_comp = gamma[:, 1]
 
-    # Unconditional emission log-odds at the anchor (for confidence estimation)
     anchor_llr = float(log_emit[anchor_w, 1] - log_emit[anchor_w, 0])
 
-    # Extend backward and forward from anchor_w while compromised state posterior > 0.5
     left = anchor_w
     while left > 0 and post_comp[left - 1] > 0.5:
         left -= 1
@@ -666,16 +640,12 @@ def episode(
     while right + 1 < T and post_comp[right + 1] > 0.5:
         right += 1
 
-    # Also check if immediate neighbors within the card's burst skips a single routine auto-debit txn,
-    # or stay strictly contiguous as specified ("starting from the flagged txn and extending back/forward
-    # while the 'compromised' state posterior > 0.5, within +-30 days").
     sel_slice = slice(w_start + left, w_start + right + 1)
     ep_txns = c_txns_asof[sel_slice].tolist()
     ep_amts = c_amt_asof[sel_slice]
     exposure = float(np.round(np.sum(np.abs(ep_amts)), 2))
     first_txn = int(ep_txns[0])
 
-    # Confidence combines mean posterior on selected episode with anchor unconditional emission support
     mean_post = float(np.mean(post_comp[left : right + 1]))
     sig_anchor = float(1.0 / (1.0 + np.exp(-np.clip(anchor_llr, -10.0, 10.0))))
     conf = float(np.round(0.65 * mean_post + 0.35 * sig_anchor, 4))
@@ -731,7 +701,7 @@ def baseline_same_product_7d(
         tx = tx_all()
     idx = build_card_index(tx)
     flagged_txn_id = int(flagged_txn_id)
-    as_of_sec = float(pd.Timestamp(as_of).value // 1_000_000_000)
+    as_of_sec = _ts_to_epoch_sec(as_of)
 
     actual_card = idx.txn_to_card.get(flagged_txn_id, card_id)
     bounds = idx.card_bounds.get(actual_card)
@@ -775,14 +745,7 @@ def evaluate_episodes(
     cc_eval: pd.DataFrame,
     tx: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    """Evaluate `episode`, `baseline_flagged_only`, and `baseline_same_product_7d` on closed cases (as-of).
-
-    For each confirmed-fraud case in `cc_eval`, we seed the episode finder with a single transaction
-    from the case (`txn_list[-1]`, the transaction that triggered/opened the case right at `opened_at`,
-    and also evaluate seeding with `first_fraud_txn_id` or `txn_list[-1]`). Note that in closed_cases,
-    `opened_at` is shortly after `txn_list[-1]`, so `txn_list[-1]` is the latest fraud transaction before
-    case opening (analogous to `flagged_txn_id` in `case_pack`).
-    """
+    """Evaluate `episode`, `baseline_flagged_only`, and `baseline_same_product_7d` on closed cases (as-of)."""
     if tx is None:
         tx = tx_all()
 
@@ -808,7 +771,6 @@ def evaluate_episodes(
             true_first = int(row.first_fraud_txn_id) if not pd.isna(row.first_fraud_txn_id) else min(true_list)
             true_exp = float(row.exposure_usd)
 
-            # Seed with the last transaction in txn_list (the trigger transaction closest to opened_at)
             seed_txn = int(true_list[-1])
             ep = fn(row.card_id, seed_txn, row.opened_at, tx)
             pred_set = set(ep.txn_ids)

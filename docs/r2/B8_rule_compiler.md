@@ -11,5 +11,5 @@ Deterministic, zero-LLM rule compiler that translates written policy rules (`R5`
 - **Unparsed Phrase Detection**: On `ADV-3`, the unsupported clause `"followed by biometric voiceprint verification failure"` is deterministically isolated in `unparsed_phrases`.
 - **Compile Time**: All 5 rules compile in `< 2 ms` total (`~0.1–0.4 ms` per rule).
 
-## As-Of Backtest (`closed_cases_history.csv`, 5,585 Cases) & R1 Agent Comparison (`HHG-001`..`HHG-020`)
-Every detector is replayed strictly as-of each closed case's `opened_at` (`t <= opened_at`) over `tx_all()` (650,938 transactions) and compared with our Round 1 agent verdicts (`cases/HHG-001.json` .. `HHG-020.json`, mapped to `CC-5566`..`CC-5585`). Every backtest and every per-case agreement/disagreement produces a re-runnable `assay.r2.attest.Attestation`.
+## Precomputed As-Of Index & Backtest Performance
+`_get_precomputed_index(cc, tx)` builds slim numpy slices per card and per non-generic shared entity once per `(cc, tx)` pair, keeping peak memory well below 100 MB and evaluating all 5 rules in `< 5 seconds` while strictly enforcing `t <= opened_at` per closed case. Every backtest and every per-case agreement/disagreement on Round 1 (`HHG-001`..`HHG-020`, mapped to `CC-5566`..`CC-5585`) produces a re-runnable `assay.r2.attest.Attestation`.

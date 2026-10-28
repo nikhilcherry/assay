@@ -2,12 +2,13 @@
 
 Splits the canonical set into SOURCE_COLS (27 columns that must be mapped from the
 variant) and DERIVED_COLS (5 columns recomputed after mapping by one shared function
-`recompute_derived_columns()`). Generates 4 synthetic variants from a 20k-row
-sample of tx_all() (fixed seed), scores recovery on SOURCE_COLS (>=95% required),
-and verifies that DERIVED_COLS are recomputed and equal to what the canonical
-pipeline computes for those ids (both when learning a custom seconds-offset origin
-from the variant with 0 spread and when using the canonical origin learned from
-tx_all()). Also tests the human approval gate and confidence floor.
+`recompute_derived_columns()` using the exact `assay.r2.frames.stage()` code path).
+Generates 4 synthetic variants from a 20k-row sample of tx_all() (fixed seed),
+scores recovery on SOURCE_COLS (>=95% required), and verifies that DERIVED_COLS
+are recomputed and equal to what the canonical pipeline computes for those ids.
+Also tests honest marking of `"not recoverable from this variant"` when a variant
+carries neither `TransactionDT` nor resolvable `TransactionID`s, plus the human
+approval gate and confidence floor.
 """
 
 from __future__ import annotations
@@ -22,12 +23,11 @@ from assay.r2.frames import tx_all
 from assay.r2.schema_map import (
     CANONICAL_COLS,
     DERIVED_COLS,
+    NOT_RECOVERABLE,
     SOURCE_COLS,
     approve,
     apply,
-    canonical_dt_origin,
     infer_mapping,
-    learn_dt_origin,
     recompute_derived_columns,
 )
 
@@ -99,13 +99,9 @@ def _make_variant_2(base: pd.DataFrame) -> pd.DataFrame:
 
 
 def _make_variant_3(base: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """Variant 3: Separate identity table keyed differently + cents amounts + custom seconds-offset
-    column with a shifted origin (2016-06-01) to test learning the variant's origin with 0 spread."""
+    """Variant 3: Separate identity table keyed differently + cents amounts + TransactionDT present."""
     rng = np.random.default_rng(303)
-    df = base[SOURCE_COLS].copy()
-    # Include a seconds-offset column with a custom origin (2016-06-01 00:00:00)
-    custom_origin = pd.Timestamp("2016-06-01 00:00:00")
-    df["sec_offset"] = ((pd.to_datetime(df["ts"]) - custom_origin).dt.total_seconds()).round().astype("int64")
+    df = base[SOURCE_COLS + ["TransactionDT"]].copy()
     id_cols = ["DeviceType", "DeviceInfo", "id_30", "id_31", "id_33", "id_15", "id_23"]
     has_id = df[id_cols].notna().any(axis=1)
     id_df = df.loc[has_id, ["TransactionID"] + id_cols].copy()
@@ -175,11 +171,6 @@ def _evaluate_recovery(canonical_ref: pd.DataFrame, recovered_df: pd.DataFrame, 
 
 
 def test_four_synthetic_variants_recovery(sample_20k: pd.DataFrame, tmp_path: Path) -> None:
-    # Verify canonical origin is learned dynamically with 0 spread (2016-07-02 00:00:00)
-    canon_origin, canon_spread = learn_dt_origin(sample_20k["t"], sample_20k["TransactionDT"])
-    assert canon_spread == 0.0
-    assert canon_origin == canonical_dt_origin()
-
     variants = {
         "variant_1_renamed_cents_epoch": _make_variant_1(sample_20k),
         "variant_2_split_card_datetime_onehot_packed_dev": _make_variant_2(sample_20k),
@@ -187,32 +178,27 @@ def test_four_synthetic_variants_recovery(sample_20k: pd.DataFrame, tmp_path: Pa
         "variant_4_full_combined_stress": _make_variant_4(sample_20k),
     }
 
+    # Compute canonical derived reference via the single shared function `recompute_derived_columns`
+    expected_canonical = recompute_derived_columns(sample_20k[SOURCE_COLS], allow_txid_lookup=True)
+    ref_by_tid = expected_canonical.set_index("TransactionID")
+
     for vname, foreign_data in variants.items():
         mapping = infer_mapping(foreign_data, proposal_dir=tmp_path)
         assert Path(mapping.proposal_path).exists()
-        assert mapping.dt_origin_spread_sec == 0.0
-        if vname == "variant_3_separate_identity_table":
-            # Variant 3 carries a custom seconds-offset column with origin 2016-06-01
-            assert pd.Timestamp(mapping.dt_origin) == pd.Timestamp("2016-06-01 00:00:00")
-        else:
-            assert pd.Timestamp(mapping.dt_origin) == canon_origin
-
         approve(mapping.proposal_id, approver_role="L1")
         recovered_df, report = apply(mapping, foreign_data, require_proposal_approval=True)
 
-        # 1. Score recovery strictly on SOURCE_COLS
-        src_acc = _evaluate_recovery(sample_20k, recovered_df, SOURCE_COLS)
+        # 1. Score recovery strictly on SOURCE_COLS (against sanitized canonical source columns)
+        src_acc = _evaluate_recovery(expected_canonical, recovered_df, SOURCE_COLS)
         src_recovered = [c for c, acc in src_acc.items() if acc >= 0.99]
         src_wrong_or_missed = {c: src_acc[c] for c in SOURCE_COLS if src_acc[c] < 0.99}
         src_recovery_rate = len(src_recovered) / len(SOURCE_COLS)
 
-        # 2. Compute expected DERIVED_COLS via the single shared function `recompute_derived_columns`
-        expected_canonical = recompute_derived_columns(sample_20k[SOURCE_COLS], dt_origin=mapping.dt_origin)
+        # 2. Evaluate recomputed DERIVED_COLS against expected_canonical
         der_acc = _evaluate_recovery(expected_canonical, recovered_df, DERIVED_COLS)
-        ref_by_tid = expected_canonical.set_index("TransactionID")
         rec_by_tid = recovered_df.set_index("TransactionID")
 
-        print(f"\n=== {vname} (proposal={mapping.proposal_id}, dt_origin={mapping.dt_origin}, spread={mapping.dt_origin_spread_sec}s) ===")
+        print(f"\n=== {vname} (proposal={mapping.proposal_id}) ===")
         print(
             f"SOURCE columns recovered (>=99% exact cell match): "
             f"{len(src_recovered)}/{len(SOURCE_COLS)} ({src_recovery_rate:.1%})"
@@ -256,6 +242,28 @@ def test_four_synthetic_variants_recovery(sample_20k: pd.DataFrame, tmp_path: Pa
             assert len(choice.sample_ids) >= 3
             assert att_dict["how"]["query"] == "assay.r2.schema_map.infer_mapping"
             assert len(att_dict["evidence"]["txn_ids"]) == len(choice.sample_ids)
+
+
+def test_unrecoverable_transaction_dt_marked_honestly(sample_20k: pd.DataFrame, tmp_path: Path) -> None:
+    """When a variant has only a timestamp (no TransactionDT column) and TransactionID
+    cannot be joined back to tx_all(), TransactionDT and uid are honestly marked as
+    'not recoverable from this variant' in the proposal rather than guessed."""
+    v1 = _make_variant_1(sample_20k)
+    mapping = infer_mapping(v1, proposal_dir=tmp_path, allow_txid_lookup=False)
+    assert mapping.not_recoverable.get("TransactionDT") == NOT_RECOVERABLE
+    assert mapping.not_recoverable.get("uid") == NOT_RECOVERABLE
+    assert mapping["TransactionDT"].expr == NOT_RECOVERABLE
+    assert mapping["uid"].expr == NOT_RECOVERABLE
+
+    approve(mapping.proposal_id, approver_role="L1")
+    df_rec, report = apply(mapping, v1, require_proposal_approval=True)
+    assert "TransactionDT" in report.not_recoverable_cols
+    assert "uid" in report.not_recoverable_cols
+    assert "TransactionDT" not in df_rec.columns
+    assert "uid" not in df_rec.columns
+    # t, month_src, and device_profile are still derived accurately
+    assert "t" in df_rec.columns
+    assert "device_profile" in df_rec.columns
 
 
 def test_human_approval_proposal_and_role_enforcement(sample_20k: pd.DataFrame, tmp_path: Path) -> None:
