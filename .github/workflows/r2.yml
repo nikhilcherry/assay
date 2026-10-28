@@ -1,0 +1,14 @@
+name: r2-repro
+on: [push, pull_request]
+jobs:
+  repro:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: PYTHONPATH=. python -m pytest -q tests/r2/test_repro.py
+      - run: make -n stage PY=python
+      - run: make -n case CASE=HHF-007 PY=python

@@ -1,0 +1,16 @@
+// B14 -- TigerVector schema extension and vector loading job (TigerGraph CE 4.2.5)
+USE GRAPH assay
+
+DROP JOB load_case_vectors
+DROP JOB r2_add_case_vector
+
+CREATE GLOBAL SCHEMA_CHANGE JOB r2_add_case_vector {
+  ALTER VERTEX ClosedCase ADD VECTOR ATTRIBUTE behaviour(DIMENSION=24, METRIC="COSINE");
+}
+
+RUN GLOBAL SCHEMA_CHANGE JOB r2_add_case_vector
+
+CREATE LOADING JOB load_case_vectors FOR GRAPH assay {
+  DEFINE FILENAME f_vec = "/home/tigergraph/data/tg_r2/case_vectors.csv";
+  LOAD f_vec TO VERTEX ClosedCase VALUES ($0, $"behaviour") USING SEPARATOR="|", HEADER="true", EOL="\n";
+}

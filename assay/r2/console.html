@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ASSAY // Final Round Live Investigation Console</title>
+<style>
+  :root {
+    --bg-0: #090d16;
+    --bg-1: #0f1624;
+    --bg-2: #162033;
+    --bg-3: #1e2b44;
+    --border: #2a3956;
+    --text-main: #f0f4f8;
+    --text-dim: #9fb1cc;
+    --text-muted: #697d9c;
+    --accent: #38bdf8;
+    --accent-glow: rgba(56, 189, 248, 0.2);
+    --amber: #f59e0b;
+    --amber-bg: rgba(245, 158, 11, 0.16);
+    --amber-border: #fbbf24;
+    --red: #f43f5e;
+    --red-bg: rgba(244, 63, 94, 0.16);
+    --green: #10b981;
+    --green-bg: rgba(16, 185, 129, 0.16);
+    --purple: #a855f7;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+    --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-0);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.45;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header Bar */
+  header {
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-badge {
+    background: var(--accent);
+    color: #030712;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: 14px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+  }
+
+  .brand-title {
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.02em;
+  }
+
+  .brand-sub {
+    color: var(--text-dim);
+    font-size: 13px;
+    font-family: var(--font-mono);
+  }
+
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    border-radius: 6px;
+  }
+
+  .control-group label {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .control-input {
+    background: var(--bg-0);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    width: 185px;
+  }
+
+  .btn {
+    background: var(--accent);
+    color: #040914;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 14px;
+    font-weight: 700;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn:hover:not(:disabled) {
+    filter: brightness(1.12);
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: var(--bg-3);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+  }
+
+  .btn-break {
+    background: var(--bg-2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .btn-break.active {
+    background: var(--red-bg);
+    color: #fda4af;
+    border-color: var(--red);
+    box-shadow: 0 0 12px rgba(244, 63, 94, 0.35);
+  }
+
+  /* Main Workspace */
+  .workspace {
+    display: grid;
+    grid-template-columns: 390px 1fr;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Left Column: 18 Cases */
+  .sidebar {
+    background: var(--bg-1);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .sidebar-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    background: var(--bg-2);
+  }
+
+  .case-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .case-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .case-card:hover {
+    border-color: var(--accent);
+  }
+
+  .case-card.selected {
+    background: var(--bg-3);
+    border-color: var(--accent);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  .case-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .case-id {
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--accent);
+  }
+
+  .trigger-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--bg-0);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .case-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .trigger-text {
+    font-size: 13px;
+    color: var(--text-main);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .quarantined-span {
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    color: #fde68a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .quarantined-tag {
+    background: var(--amber);
+    color: #090d16;
+    font-weight: 800;
+    font-size: 10px;
+    text-transform: uppercase;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-right: 6px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Right Main Panel */
+  .main-panel {
+    overflow-y: auto;
+    padding: 16px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .active-case-banner {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .banner-left {
+    flex: 1;
+  }
+
+  .banner-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .banner-case-id {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .btn-run {
+    font-size: 15px;
+    padding: 10px 22px;
+    background: var(--green);
+    color: #03120e;
+  }
+
+  /* Probability Needle & Gauge */
+  .needle-panel {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+  }
+
+  .needle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+
+  .needle-label {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .needle-readout {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .needle-track {
+    position: relative;
+    height: 22px;
+    background: linear-gradient(90deg,
+      rgba(16, 185, 129, 0.35) 0%,
+      rgba(16, 185, 129, 0.35) 15%,
+      rgba(245, 158, 11, 0.35) 50%,
+      rgba(244, 63, 94, 0.45) 85%,
+      rgba(244, 63, 94, 0.65) 100%
+    );
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    overflow: visible;
+  }
+
+  .needle-marker {
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    width: 6px;
+    background: #ffffff;
+    border: 2px solid var(--accent);
+    border-radius: 3px;
+    transform: translateX(-50%);
+    transition: left 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 10px var(--accent);
+  }
+
+  .needle-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* Two-column Trace + Ledger */
+  .replay-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 16px;
+  }
+
+  .panel-card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    min-height: 240px;
+  }
+
+  .panel-header {
+    padding: 10px 14px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .panel-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .step-item {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 13px;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-family: var(--font-mono);
+  }
+
+  .step-name {
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .step-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg-0);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .lr-badge {
+    font-weight: 700;
+    color: var(--amber);
+  }
+
+  .step-params {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    word-break: break-all;
+  }
+
+  /* Outcome & Actions Summary */
+  .outcome-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .metric-box {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .metric-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .metric-value {
+    font-family: var(--font-mono);
+    font-size: 19px;
+    font-weight: 800;
+  }
+
+  .verdict-fraud { color: var(--red); }
+  .verdict-legitimate { color: var(--green); }
+  .verdict-uncertain { color: var(--amber); }
+
+  /* Actions & Approvals Table */
+  .actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-row {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: var(--font-mono);
+  }
+
+  .action-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .route-pill {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .route-auto {
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green);
+  }
+
+  .route-L1, .route-L2 {
+    background: var(--amber-bg);
+    color: var(--amber);
+    border: 1px solid var(--amber);
+  }
+
+  .status-awaiting {
+    color: var(--amber);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .status-approved {
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  /* Fail-closed Alert Banner */
+  .fail-closed-box {
+    background: var(--red-bg);
+    border: 2px solid var(--red);
+    border-radius: 8px;
+    padding: 16px 20px;
+    color: #ffe4e6;
+    font-family: var(--font-mono);
+  }
+
+  .fail-closed-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--red);
+    margin-bottom: 6px;
+  }
+
+  .sar-narrative {
+    font-size: 13px;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-badge">ASSAY R2</span>
+    <div>
+      <div class="brand-title">Fraud Investigation &amp; Audit Replay Console</div>
+      <div class="brand-sub">TigerGraph &times; Hacker House Goa Final Round &middot; 18 Cases</div>
+    </div>
+  </div>
+
+  <div class="controls-bar">
+    <div class="control-group">
+      <label for="approver-token">Approver Token (RAM only)</label>
+      <input id="approver-token" class="control-input" type="password" placeholder="e.g. demo-l2-token" autocomplete="off" />
+    </div>
+
+    <div class="control-group">
+      <label for="fault-spec">Fault Spec</label>
+      <input id="fault-spec" class="control-input" type="text" value="get_transaction:down@2" />
+      <button id="btn-break-toggle" class="btn btn-break" onclick="toggleBreakIt()">Break it: OFF</button>
+    </div>
+  </div>
+</header>
+
+<div class="workspace">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span>FINAL PACK (<span id="case-count">0</span>)</span>
+      <span>QUARANTINE GUARD: ON</span>
+    </div>
+    <div id="case-list" class="case-list"></div>
+  </aside>
+
+  <main class="main-panel">
+    <div class="active-case-banner">
+      <div class="banner-left">
+        <div class="banner-title">
+          <span id="active-case-id" class="banner-case-id">Select a Case</span>
+          <span id="active-trigger-type" class="trigger-badge">--</span>
+          <span id="active-meta" class="case-meta"></span>
+        </div>
+        <div id="active-trigger-text" class="trigger-text">Choose one of the 18 cases on the left to inspect its trigger and run the live investigation.</div>
+      </div>
+      <div class="banner-actions">
+        <button id="btn-instant" class="btn btn-secondary" onclick="runSelectedCase(false)" disabled>Instant</button>
+        <button id="btn-run" class="btn btn-run" onclick="runSelectedCase(true)" disabled>&#9654; Run Investigation</button>
+      </div>
+    </div>
+
+    <div id="fail-closed-container" style="display:none;"></div>
+
+    <div class="needle-panel">
+      <div class="needle-header">
+        <span class="needle-label">Live Log-Odds Fraud Probability Needle</span>
+        <span id="needle-readout" class="needle-readout">--</span>
+      </div>
+      <div class="needle-track">
+        <div id="needle-marker" class="needle-marker" style="left: 50%;"></div>
+      </div>
+      <div class="needle-ticks">
+        <span>0.00 (Legitimate)</span>
+        <span>0.15 (Stop Low)</span>
+        <span>0.30 (Open Case)</span>
+        <span>0.50</span>
+        <span>0.70 (R1 Gate)</span>
+        <span>0.85 (Stop High)</span>
+        <span>1.00 (Confirmed Fraud)</span>
+      </div>
+    </div>
+
+    <div class="replay-grid">
+      <div class="panel-card">
+        <div class="panel-header">
+          <span>1. TOOL CALL TRACE (store.calls)</span>
+          <span id="calls-counter">0 calls</span>
+        </div>
+        <div id="calls-list" class="panel-body"></div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-header">
+          <span>2. EVIDENCE LEDGER &amp; LR UPDATES</span>
+          <span id="ledger-counter">0 findings</span>
+        </div>
+        <div id="ledger-list" class="panel-body"></div>
+      </div>
+    </div>
+
+    <div id="outcome-section" style="display:none; flex-direction:column; gap:16px;">
+      <div class="outcome-grid">
+        <div class="metric-box">
+          <div class="metric-label">Final Verdict</div>
+          <div id="out-verdict" class="metric-value">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Pattern Typology</div>
+          <div id="out-pattern" class="metric-value">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Attested Exposure (USD)</div>
+          <div id="out-exposure" class="metric-value">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">SAR Filing (&sect;3a)</div>
+          <div id="out-sar" class="metric-value">--</div>
+        </div>
+      </div>
+
+      <div class="panel-card" style="min-height:auto;">
+        <div class="panel-header">
+          <span>3. NEXT BEST ACTIONS &amp; SERVER-SIDE APPROVAL ROUTING</span>
+          <span id="out-elapsed"></span>
+        </div>
+        <div class="panel-body">
+          <div id="actions-list" class="actions-list"></div>
+        </div>
+      </div>
+
+      <div id="sar-box" class="panel-card" style="min-height:auto; display:none;">
+        <div class="panel-header">
+          <span>4. SUSPICIOUS ACTIVITY REPORT (SAR) NARRATIVE</span>
+          <span>Policy &sect;3a</span>
+        </div>
+        <div class="panel-body">
+          <div id="sar-narrative" class="sar-narrative"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  let CASES = [];
+  let SELECTED_CASE_ID = null;
+  let BREAK_ACTIVE = false;
+  let REPLAY_TIMERS = [];
+
+  function clearReplayTimers() {
+    while (REPLAY_TIMERS.length > 0) {
+      clearTimeout(REPLAY_TIMERS.pop());
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function renderSegmentsHtml(segments) {
+    if (!segments || !segments.length) return "";
+    return segments.map(seg => {
+      if (seg.quarantined) {
+        return `<span class="quarantined-span"><span class="quarantined-tag">${escapeHtml(seg.label || "treated as data")}</span>${escapeHtml(seg.text)}</span>`;
+      }
+      return `<span>${escapeHtml(seg.text)}</span>`;
+    }).join(" ");
+  }
+
+  async function loadCases() {
+    const res = await fetch("/cases");
+    CASES = await res.json();
+    document.getElementById("case-count").textContent = CASES.length;
+    const listEl = document.getElementById("case-list");
+    listEl.innerHTML = "";
+
+    CASES.forEach(c => {
+      const card = document.createElement("div");
+      card.className = "case-card";
+      card.id = `card-${c.case_id}`;
+      card.onclick = () => selectCase(c.case_id);
+
+      const rsText = c.risk_score !== null && c.risk_score !== undefined ? ` &middot; score=${c.risk_score}` : "";
+      card.innerHTML = `
+        <div class="case-card-top">
+          <span class="case-id">${escapeHtml(c.case_id)}</span>
+          <span class="trigger-badge">${escapeHtml(c.trigger_type)}</span>
+        </div>
+        <div class="case-meta">txn=${escapeHtml(c.flagged_txn_id)} &middot; card=${escapeHtml(c.card_id)}${rsText}</div>
+        <div class="trigger-text">${renderSegmentsHtml(c.segments)}</div>
+      `;
+      listEl.appendChild(card);
+    });
+
+    if (CASES.length > 0) {
+      selectCase(CASES[0].case_id);
+    }
+  }
+
+  function selectCase(caseId) {
+    SELECTED_CASE_ID = caseId;
+    document.querySelectorAll(".case-card").forEach(el => el.classList.remove("selected"));
+    const cardEl = document.getElementById(`card-${caseId}`);
+    if (cardEl) cardEl.classList.add("selected");
+
+    const c = CASES.find(x => x.case_id === caseId);
+    if (!c) return;
+
+    document.getElementById("active-case-id").textContent = c.case_id;
+    document.getElementById("active-trigger-type").textContent = c.trigger_type;
+    document.getElementById("active-meta").textContent =
+      `opened=${c.opened_at} | txn=${c.flagged_txn_id} | card=${c.card_id} | customer=${c.customer_id}`;
+    document.getElementById("active-trigger-text").innerHTML = renderSegmentsHtml(c.segments);
+
+    document.getElementById("btn-run").disabled = false;
+    document.getElementById("btn-instant").disabled = false;
+  }
+
+  async function toggleBreakIt() {
+    const specInput = document.getElementById("fault-spec").value.trim() || "get_transaction:down@2";
+    const nextFault = BREAK_ACTIVE ? null : specInput;
+    const res = await fetch("/fault", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fault: nextFault })
+    });
+    const data = await res.json();
+    BREAK_ACTIVE = Boolean(data.active);
+    const btn = document.getElementById("btn-break-toggle");
+    if (BREAK_ACTIVE) {
+      btn.classList.add("active");
+      btn.textContent = `Break it: ON (${data.fault})`;
+    } else {
+      btn.classList.remove("active");
+      btn.textContent = "Break it: OFF";
+    }
+  }
+
+  function setNeedle(prob, labelSuffix) {
+    const p = Math.max(0, Math.min(1, Number(prob || 0)));
+    const pct = (p * 100).toFixed(1);
+    document.getElementById("needle-marker").style.left = `${pct}%`;
+    document.getElementById("needle-readout").textContent =
+      `${p.toFixed(2)}${labelSuffix ? " (" + labelSuffix + ")" : ""}`;
+  }
+
+  async function runSelectedCase(animate = true) {
+    if (!SELECTED_CASE_ID) return;
+    clearReplayTimers();
+
+    const btnRun = document.getElementById("btn-run");
+    btnRun.disabled = true;
+    btnRun.textContent = "Running...";
+
+    document.getElementById("fail-closed-container").style.display = "none";
+    document.getElementById("outcome-section").style.display = "none";
+    document.getElementById("calls-list").innerHTML = "";
+    document.getElementById("ledger-list").innerHTML = "";
+    document.getElementById("calls-counter").textContent = "0 calls";
+    document.getElementById("ledger-counter").textContent = "0 findings";
+
+    try {
+      const res = await fetch(`/run/${encodeURIComponent(SELECTED_CASE_ID)}`, { method: "POST" });
+      const data = await res.json();
+      replayInvestigation(data, animate);
+    } catch (err) {
+      const fc = document.getElementById("fail-closed-container");
+      fc.style.display = "block";
+      fc.innerHTML = `<div class="fail-closed-box"><div class="fail-closed-title">FAIL CLOSED</div>${escapeHtml(err.message)}</div>`;
+    } finally {
+      btnRun.disabled = false;
+      btnRun.innerHTML = "&#9654; Run Investigation";
+    }
+  }
+
+  function appendCallStep(call, totalSoFar) {
+    const list = document.getElementById("calls-list");
+    const div = document.createElement("div");
+    div.className = "step-item";
+    const paramsStr = Object.entries(call.params || {})
+      .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+      .join(", ");
+    div.innerHTML = `
+      <div class="step-top">
+        <span class="step-name">#${call.step} ${escapeHtml(call.name)}</span>
+        <span class="step-badge">${call.row_count} row${call.row_count === 1 ? "" : "s"}</span>
+      </div>
+      <div class="step-params">(${escapeHtml(paramsStr)})</div>
+    `;
+    list.appendChild(div);
+    document.getElementById("calls-counter").textContent = `${totalSoFar} calls`;
+  }
+
+  function appendLedgerStep(item, totalSoFar) {
+    const list = document.getElementById("ledger-list");
+    const div = document.createElement("div");
+    div.className = "step-item";
+    div.innerHTML = `
+      <div class="step-top">
+        <span class="lr-badge">LR ${Number(item.lr).toFixed(2)}&times; &rarr; p=${Number(item.probability_after).toFixed(2)}</span>
+        <span class="step-badge">${escapeHtml(item.ref)}</span>
+      </div>
+      <div class="trigger-text">${escapeHtml(item.claim)}</div>
+    `;
+    list.appendChild(div);
+    document.getElementById("ledger-counter").textContent = `${totalSoFar} findings`;
+    setNeedle(item.probability_after, `Step ${item.step}`);
+  }
+
+  function renderFinalOutcome(data) {
+    if (data.fail_closed || !data.ok) {
+      const fc = document.getElementById("fail-closed-container");
+      fc.style.display = "block";
+      fc.innerHTML = `
+        <div class="fail-closed-box">
+          <div class="fail-closed-title">&#9888; FAIL-CLOSED HALT (${escapeHtml(data.error_type || "FaultInjectedError")})</div>
+          <div>${escapeHtml(data.error)}</div>
+          <div style="margin-top:6px; font-size:12px; color:#fda4af;">
+            Fault spec: ${escapeHtml(data.fault_injected || "N/A")} &middot; Halted cleanly after ${data.calls ? data.calls.length : 0} tool calls with no guessed verdict.
+          </div>
+        </div>
+      `;
+      setNeedle(0.5, "HALTED / FAIL-CLOSED");
+      return;
+    }
+
+    const outSec = document.getElementById("outcome-section");
+    outSec.style.display = "flex";
+
+    const vEl = document.getElementById("out-verdict");
+    vEl.textContent = data.verdict;
+    vEl.className = `metric-value verdict-${data.verdict}`;
+
+    document.getElementById("out-pattern").textContent = data.pattern;
+    document.getElementById("out-exposure").textContent =
+      `$${Number(data.exposure_usd).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const sarRequired = Boolean(data.sar && data.sar.file);
+    const sarEl = document.getElementById("out-sar");
+    sarEl.textContent = sarRequired ? "YES (FILE_REPORT)" : "NO";
+    sarEl.style.color = sarRequired ? "var(--amber)" : "var(--text-dim)";
+
+    document.getElementById("out-elapsed").textContent = `${data.elapsed_ms} ms`;
+    setNeedle(data.fraud_probability, `Verdict: ${data.verdict}`);
+
+    const actList = document.getElementById("actions-list");
+    actList.innerHTML = "";
+    (data.actions || []).forEach(act => {
+      const row = document.createElement("div");
+      row.className = "action-row";
+      row.id = `proposal-row-${act.proposal_id}`;
+
+      const isGated = act.approval_route === "L1" || act.approval_route === "L2";
+      const rightHtml = isGated
+        ? `<div style="display:flex; align-items:center; gap:10px;">
+             <span id="status-${act.proposal_id}" class="status-awaiting">awaiting approval (${escapeHtml(act.approval_route)})</span>
+             <button id="btn-approve-${act.proposal_id}" class="btn" onclick="approveProposal('${act.proposal_id}', '${act.approval_route}')">Approve</button>
+           </div>`
+        : `<span class="status-approved">auto_executed</span>`;
+
+      row.innerHTML = `
+        <div class="action-left">
+          <span class="route-pill route-${escapeHtml(act.approval_route)}">${escapeHtml(act.approval_route)}</span>
+          <span style="font-weight:700;">${escapeHtml(act.action)}</span>
+        </div>
+        ${rightHtml}
+      `;
+      actList.appendChild(row);
+    });
+
+    const sarBox = document.getElementById("sar-box");
+    if (sarRequired && data.sar.narrative) {
+      sarBox.style.display = "flex";
+      document.getElementById("sar-narrative").textContent = data.sar.narrative;
+    } else {
+      sarBox.style.display = "none";
+    }
+  }
+
+  function replayInvestigation(data, animate) {
+    const calls = data.calls || [];
+    const ledger = data.ledger || [];
+
+    if (data.prior_probability !== undefined) {
+      setNeedle(data.prior_probability, "Initial Prior");
+    }
+
+    if (!animate) {
+      calls.forEach((c, i) => appendCallStep(c, i + 1));
+      ledger.forEach((l, i) => appendLedgerStep(l, i + 1));
+      renderFinalOutcome(data);
+      return;
+    }
+
+    const stepDelay = 90;
+    let delay = 0;
+
+    calls.forEach((c, i) => {
+      delay += stepDelay;
+      REPLAY_TIMERS.push(setTimeout(() => appendCallStep(c, i + 1), delay));
+    });
+
+    ledger.forEach((l, i) => {
+      delay += stepDelay + 40;
+      REPLAY_TIMERS.push(setTimeout(() => appendLedgerStep(l, i + 1), delay));
+    });
+
+    delay += stepDelay;
+    REPLAY_TIMERS.push(setTimeout(() => renderFinalOutcome(data), delay));
+  }
+
+  async function approveProposal(proposalId, route) {
+    const token = document.getElementById("approver-token").value.trim();
+    const statusEl = document.getElementById(`status-${proposalId}`);
+    const btnEl = document.getElementById(`btn-approve-${proposalId}`);
+
+    if (!token) {
+      statusEl.textContent = "Paste approver token above first!";
+      statusEl.style.color = "var(--red)";
+      return;
+    }
+
+    const idemKey = `console-${proposalId}-${Date.now()}`;
+    const res = await fetch(`/approvals/proposals/${encodeURIComponent(proposalId)}/decision`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "Idempotency-Key": idemKey
+      },
+      body: JSON.stringify({
+        decision: "approve",
+        note: `Approved live in console for route ${route}`
+      })
+    });
+
+    const body = await res.json();
+    if (!res.ok) {
+      statusEl.textContent = `Denied (${res.status}): ${body.detail || "unauthorized"}`;
+      statusEl.style.color = "var(--red)";
+      return;
+    }
+
+    statusEl.textContent = `approved by ${body.decided_by} (${route})`;
+    statusEl.className = "status-approved";
+    statusEl.style.color = "";
+    if (btnEl) btnEl.disabled = true;
+  }
+
+  window.addEventListener("DOMContentLoaded", loadCases);
+</script>
+</body>
+</html>

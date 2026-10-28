@@ -61,6 +61,20 @@ class Investigator:
         self.writer = writer    # callable(answer) -> graph_case_id, or None
         self.last: dict = {}    # the numbers behind the last answer, for assay.trace
 
+    def _extra_findings(self, case: pd.Series, f: pd.Series) -> tuple[list[Finding], tuple | None]:
+        """Hook for detectors outside this module: (findings, scenario or None)."""
+        return [], None
+
+    def model_trusted(self, f: pd.Series) -> bool:
+        """Hook: False when the model is scoring data it was never trained near, so a low
+        score must not count as independent evidence of innocence."""
+        return True
+
+    def assumed_clear_allowed(self, findings: list[Finding]) -> str | None:
+        """Hook: None lets one cardholder's confirmation clear the case; a string is the
+        reason it cannot (e.g. the card is tied to other cards)."""
+        return None
+
     # ------------------------------------------------------------------ run
     def run(self, case: pd.Series) -> dict:
         t_start = time.time()
@@ -184,12 +198,18 @@ class Investigator:
                 f"({why['p_planted']:.2f}). Weighted equally: {p_disp:.2f}.",
                 f"case_pack:{case.case_id}", [fid], source="customer", lr=lr, tag="dispute"))
 
+        # -- 4b. extra detectors (final round: assay.r2.investigate_r2 overrides this) --
+        extra, extra_scenario = self._extra_findings(case, f)
+        findings += extra
+        if scenario is None and extra_scenario is not None:
+            scenario = extra_scenario
+
         p1 = D.combine(p_model, findings)
         pro = sum(1 for x in findings if x.independent and (x.lr > 1 or x.tag == "pro"))
         con = sum(1 for x in findings if x.independent and (x.lr < 1 or x.tag == "con"))
         if p_model >= 0.5:
             pro += 1
-        elif p_model <= 0.15:
+        elif p_model <= 0.15 and self.model_trusted(f):
             con += 1
 
         # -- 5. the §6 gate and evidence --------------------------------------
@@ -269,7 +289,7 @@ class Investigator:
             # The cardholder's own denial, and the graph agrees with it: R2 applies as it stands
             # (§6 -- "a verification response settles the question").
             band = "fraud"
-        elif p1 <= 0.15 and con >= 2:
+        elif p1 <= 0.15 and con >= 2 and not self.assumed_clear_allowed(findings):
             band = "legit"
         else:
             band = "mid"
@@ -340,6 +360,11 @@ class Investigator:
                                      "and still has the card."})
                     p2 = D.combine(p1, [Finding("", "", lr=LR_DENIES)])
                     reply, verdict = CustomerReply.DENIES, Verdict.FRAUD
+                elif p1 <= 0.4 and (blocker := self.assumed_clear_allowed(findings)):
+                    requests.append({"type": "analyst_info", "asked_after_step": step,
+                                     "assumed_response": f"Escalated for analyst review: {blocker} One "
+                                     "cardholder's confirmation cannot clear activity that spans other cards."})
+                    reply, verdict = CustomerReply.NOT_ASKED, Verdict.UNCERTAIN
                 elif p1 <= 0.4:
                     requests.append({"type": "customer_validation", "asked_after_step": step,
                                      "assumed_response": "Cardholder confirms they made the transaction."})

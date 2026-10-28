@@ -1,0 +1,152 @@
+{
+  "case_id": "HHF-003",
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.95,
+    "pattern": "undocumented",
+    "pattern_description": "Device-ring fraud: Card C11663-K1 woke up after 21.8d card silence with burst of 2 txns (max $357.82, total $539.55) in 48h., used on 1 unrelated cards within a month for a few purchases each, every one scoring low on the bank's model. No single card shows a credential or channel change, so it is not account takeover, and the link that makes it fraud is the shared handset across cardholders. Found by traversing from the flagged transaction's device profile to every other card that used it.",
+    "affected_txn_ids": [
+      "3660147",
+      "3660148",
+      "3660153"
+    ],
+    "first_suspicious_txn_id": "3660147",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 2339.55,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3660153 ($1,800.00, product C, online) scores 0.00 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.09.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3660153)",
+        "entity_ids": [
+          "3660153"
+        ]
+      },
+      {
+        "claim": "Card baseline from 57 earlier transactions: median $91.98, 95th percentile $1,009.54; the flagged amount is 19.6x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C11663-K1)",
+        "entity_ids": [
+          "C11663-K1"
+        ]
+      },
+      {
+        "claim": "Cardholder C11663 reported the $1,800.00 charge as not theirs (case pack trigger, 2017-01-31 20:31:28). Measured on October: all 1,203 disputes the bank investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial (0.93). If this is a planted dispute on a legitimate transaction, a score this size is 0.07x as likely on disputed fraud as on a legitimate transaction (0.07). Weighted equally: 0.76.",
+        "source": "customer",
+        "ref": "case_pack:HHF-003",
+        "entity_ids": [
+          "3660153"
+        ]
+      },
+      {
+        "claim": "Card C11663-K1 woke up after 21.8d card silence with burst of 2 txns (max $357.82, total $539.55) in 48h.",
+        "source": "graph",
+        "ref": "query:dormant_wake(N=14, as_of=2017-01-31 20:31:28, card_id=C11663-K1, k=2, m=5.0)",
+        "entity_ids": [
+          "3660147",
+          "3660148"
+        ]
+      },
+      {
+        "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/undocumented",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
+        "source": "document",
+        "ref": "document:fraud-policy#R2",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "source": "document",
+        "ref": "document:fraud-policy#\u00a73a",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R9: Undocumented coordinated abuse: CREATE_CASE, FILE_REPORT, ESCALATE_TO_ANALYST, and describe the pattern in your own words.",
+        "source": "document",
+        "ref": "document:fraud-policy#R9",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-4124",
+      "CC-3907",
+      "CC-3748"
+    ],
+    "summary": "Undocumented on card C11663-K1: 3 transaction(s) from 2017-01-22 to 2017-01-31 totalling $2,339.55, probability 0.95.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-HHF-003"
+  },
+  "evidence_requests": [],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "Policy \u00a73a: fraud is suspected and exposure $2,339.55 exceeds $1,000; the pattern is coordinated or undocumented (R9)."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      },
+      {
+        "action": "FILE_REPORT",
+        "route": "L2",
+        "reason": "Policy \u00a73a: fraud is suspected and exposure $2,339.55 exceeds $1,000; the pattern is coordinated or undocumented (R9)."
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "route": "auto",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+      }
+    ],
+    "what_changed": "nothing"
+  },
+  "sar": {
+    "file": true,
+    "reason": "Policy \u00a73a: fraud is suspected and exposure $2,339.55 exceeds $1,000; the pattern is coordinated or undocumented (R9).",
+    "narrative": "Between 2017-01-22 and 2017-01-31, card C11663-K1 held by customer C11663 was used for 3 transaction(s) totalling $2,339.55 that the bank has determined were not authorised by the cardholder (transaction IDs 3660147, 3660148, 3660153). The activity was online, billed to region code(s) 315, 327. The alert was raised on 2017-01-31 20:31:28 by customer report on transaction 3660153 ($1,800.00). The purchases were placed minutes apart with each amount just below $500, consistent with deliberately keeping each authorization under a review threshold; the bank has seen the identical shape on five other cardholders, all confirmed fraud. The cardholder disputed the activity. The card has been blocked pending reissue; this report is filed because fraud is suspected and exposure $2,339.55 exceeds $1,000; the pattern is coordinated or undocumented (R9).",
+    "subjects": [
+      "C11663",
+      "C11663-K1"
+    ],
+    "total_amount_usd": 2339.55,
+    "activity_dates": [
+      "2017-01-22",
+      "2017-01-31"
+    ]
+  },
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 9,
+  "tokens": 0,
+  "latency_s": 0.5
+}

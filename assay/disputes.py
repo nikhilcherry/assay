@@ -34,6 +34,7 @@ from assay.data import ROOT, STAGE, closed_cases
 REPORT = ROOT / "docs" / "DISPUTE_REPORT.json"
 BINS = [0, .005, .01, .02, .05, .1, .2, .4, .6, .8, 1.0001]
 W_HISTORY = 0.5     # assumption: the case pack is as likely to hold planted disputes as real ones
+W_OVERRIDE: float | None = None   # set by the final round once the Round 1 exam outcomes are known
 
 
 def measure() -> dict:
@@ -87,7 +88,7 @@ def posterior(p_model: float) -> tuple[float, dict]:
     p_hist = 1 / (1 + math.exp(-(math.log(p / (1 - p)) + math.log(r["lr_history"]))))
     b = next(x for x in r["score_bins"] if x["from"] <= p_model < x["to"] or x["to"] == 1.0)
     p_planted = b["lr"] / (1 + b["lr"])
-    w = r["w_history"]
+    w = r["w_history"] if W_OVERRIDE is None else W_OVERRIDE
     return w * p_hist + (1 - w) * p_planted, {"p_history": p_hist, "p_planted": p_planted, "lr_score": b["lr"]}
 
 

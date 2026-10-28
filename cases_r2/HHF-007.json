@@ -1,0 +1,119 @@
+{
+  "case_id": "HHF-007",
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.91,
+    "pattern": "card_testing",
+    "pattern_description": "",
+    "affected_txn_ids": [
+      "3660346",
+      "3660347",
+      "3660348",
+      "3660349",
+      "3660350"
+    ],
+    "first_suspicious_txn_id": "3660346",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 246.38,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3660350 ($236.28, product C, online) scores 0.01 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.19.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3660350)",
+        "entity_ids": [
+          "3660350"
+        ]
+      },
+      {
+        "claim": "Card baseline from 708 earlier transactions: median $59.08, 95th percentile $390.06; the flagged amount is 4.0x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C09582-K1)",
+        "entity_ids": [
+          "C09582-K1"
+        ]
+      },
+      {
+        "claim": "Card testing: 4 online authorizations under $5 within an hour ($1.53, $3.46, $3.33, $1.78), followed by 1 larger purchase(s) up to $236.28.",
+        "source": "graph",
+        "ref": "query:card_window(card_id=C09582-K1, hours_before=168, hours_after=168)",
+        "entity_ids": [
+          "3660346",
+          "3660347",
+          "3660348",
+          "3660349",
+          "3660350"
+        ]
+      },
+      {
+        "claim": "Cardholder C09582 reported the $236.28 charge as not theirs (case pack trigger, 2017-01-14 15:57:30). Measured on October: all 1,203 disputes the bank investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial (0.99). If this is a planted dispute on a legitimate transaction, a score this size is 0.28x as likely on disputed fraud as on a legitimate transaction (0.22). Weighted equally: 0.84.",
+        "source": "customer",
+        "ref": "case_pack:HHF-007",
+        "entity_ids": [
+          "3660350"
+        ]
+      },
+      {
+        "claim": "Card testing: three or more tiny online authorizations, often under $5, then a larger purchase. Confirmed by the sequence itself.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/card_testing",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
+        "source": "document",
+        "ref": "document:fraud-policy#R2",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-2247",
+      "CC-2394",
+      "CC-2248"
+    ],
+    "summary": "Card testing on card C09582-K1: 5 transaction(s) from 2017-01-14 to 2017-01-14 totalling $246.38, probability 0.91.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-HHF-007"
+  },
+  "evidence_requests": [],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      }
+    ],
+    "what_changed": "nothing"
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: fraud is suspected but no reporting trigger is met -- exposure $246.38 is under $1,000, the activity is isolated to this card, and the pattern is a known one. Case only, no report.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 0.52
+}

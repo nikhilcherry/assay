@@ -1,0 +1,109 @@
+// B14 -- TigerVector queries (TigerGraph CE 4.2.5):
+// (a) similar_cases_vec: vectorSearch() restricted to cases closed before as_of,
+//     followed by a 1-2 hop traversal from the hits to shared cards and devices.
+// (b) similar_cases_fused: 2-hop traversal from Card (as-of t <= as_of) through
+//     DeviceProfile / BillingRegion / EmailDomain to ClosedCase (closed_at <= as_of),
+//     fused with vectorSearch() on that candidate set, plus 1-2 hop expansion from hits.
+USE GRAPH assay
+
+CREATE OR REPLACE QUERY similar_cases_vec(
+  LIST<FLOAT> qv,
+  INT k = 5,
+  DATETIME as_of = to_datetime("2099-01-01 00:00:00")
+) FOR GRAPH assay {
+  SetAccum<STRING> @shared_cards;
+  SetAccum<STRING> @shared_devices;
+
+  AllCases = {ClosedCase.*};
+  Eligible = SELECT cc FROM AllCases:cc WHERE cc.closed_at <= as_of;
+
+  Hits = vectorSearch({ClosedCase.behaviour}, qv, k, filter=Eligible);
+
+  // 1-2 hop traversal from vector hits to shared Cards and DeviceProfiles
+  HitCards = SELECT c FROM Hits:cc -(ON_CARD>|CONNECTED_TO>)- Card:c
+             ACCUM cc.@shared_cards += c.card_id;
+  HitTxns  = SELECT t FROM Hits:cc -(INVOLVES>)- Txn:t WHERE t.ts <= as_of;
+  HitDevs  = SELECT d FROM HitTxns:t -(FROM_DEVICE>)- DeviceProfile:d;
+   GatherDevs = SELECT cc FROM Hits:cc -(INVOLVES>)- Txn:t
+                WHERE t.ts <= as_of AND t.device_profile != ""
+                ACCUM cc.@shared_devices += t.device_profile;
+
+  PRINT Hits[
+    Hits.case_id,
+    Hits.outcome,
+    Hits.pattern,
+    Hits.exposure_usd,
+    Hits.card_id,
+    Hits.closed_at,
+    Hits.@shared_cards AS shared_cards,
+    Hits.@shared_devices AS shared_devices
+  ];
+}
+
+CREATE OR REPLACE QUERY similar_cases_fused(
+  VERTEX<Card> c,
+  LIST<FLOAT> qv,
+  INT k = 5,
+  INT hops = 2,
+  DATETIME as_of = to_datetime("2099-01-01 00:00:00")
+) FOR GRAPH assay {
+  MinAccum<STRING> @connecting_path;
+  SetAccum<STRING> @shared_cards;
+  SetAccum<STRING> @shared_devices;
+
+  StartCard = {c};
+  CardTxns = SELECT t FROM StartCard:s -(MADE>)- Txn:t WHERE t.ts <= as_of;
+
+  // Direct prior closed cases on the same card closed on or before as_of
+  DirectCases = SELECT cc FROM StartCard:s -(HAS_CLOSED_CASE>)- ClosedCase:cc
+                WHERE cc.closed_at <= as_of
+                ACCUM cc.@connecting_path += "Card->" + cc.case_id;
+
+  // Hop 1: shared entities (DeviceProfile, BillingRegion, EmailDomain)
+  Devs = SELECT d FROM CardTxns:t -(FROM_DEVICE>)- DeviceProfile:d;
+  Regs = SELECT r FROM CardTxns:t -(BILLED_IN>)- BillingRegion:r;
+  Ems  = SELECT e FROM CardTxns:t -(PURCHASER_EMAIL>)- EmailDomain:e;
+
+  // Hop 2: transactions touching those shared entities (t <= as_of) -> ClosedCase (closed_at <= as_of)
+  DevTxns = SELECT t FROM Devs:d -(DEVICE_USED_IN>)- Txn:t
+            WHERE t.ts <= as_of
+            ACCUM t.@connecting_path += "DeviceProfile(" + d.device_id + ")";
+  RegTxns = SELECT t FROM Regs:r -(REGION_OF>)- Txn:t
+            WHERE t.ts <= as_of
+            ACCUM t.@connecting_path += "BillingRegion(" + r.region + ")";
+  EmTxns  = SELECT t FROM Ems:e -(EMAIL_USED_IN>)- Txn:t
+            WHERE t.ts <= as_of
+            ACCUM t.@connecting_path += "EmailDomain(" + e.domain + ")";
+
+  CandTxns = DevTxns UNION RegTxns UNION EmTxns;
+
+  ReachableCases = SELECT cc FROM CandTxns:t -(IN_CLOSED_CASE>)- ClosedCase:cc
+                   WHERE cc.closed_at <= as_of
+                   ACCUM cc.@connecting_path += t.@connecting_path + "->ClosedCase(" + cc.case_id + ")";
+
+  CandidateSet = DirectCases UNION ReachableCases;
+
+  // Fused vector search restricted to the reachable as-of candidate set
+  R = vectorSearch({ClosedCase.behaviour}, qv, k, filter=CandidateSet);
+
+  // 1-2 hop traversal from the top-k vector hits to shared Cards and DeviceProfiles
+  HitCards = SELECT k_card FROM R:cc -(ON_CARD>|CONNECTED_TO>)- Card:k_card
+             ACCUM cc.@shared_cards += k_card.card_id;
+  HitDevs  = SELECT cc FROM R:cc -(INVOLVES>)- Txn:t
+             WHERE t.ts <= as_of AND t.device_profile != ""
+             ACCUM cc.@shared_devices += t.device_profile;
+
+  PRINT R[
+    R.case_id,
+    R.outcome,
+    R.pattern,
+    R.exposure_usd,
+    R.card_id,
+    R.closed_at,
+    R.@connecting_path AS connecting_path,
+    R.@shared_cards AS shared_cards,
+    R.@shared_devices AS shared_devices
+  ];
+}
+
+INSTALL QUERY similar_cases_vec, similar_cases_fused

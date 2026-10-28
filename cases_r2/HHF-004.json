@@ -1,0 +1,103 @@
+{
+  "case_id": "HHF-004",
+  "case": {
+    "status": "closed_fraud",
+    "verdict": "fraud",
+    "fraud_probability": 0.76,
+    "pattern": "card_not_present_fraud",
+    "pattern_description": "",
+    "affected_txn_ids": [
+      "3660260"
+    ],
+    "first_suspicious_txn_id": "3660260",
+    "connected_card_ids": [],
+    "connected_device_profiles": [],
+    "exposure_usd": 2.9,
+    "evidence": [
+      {
+        "claim": "Flagged transaction 3660260 ($2.90, product C, online) scores 0.00 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.04.",
+        "source": "graph",
+        "ref": "query:get_transaction(txn_id=3660260)",
+        "entity_ids": [
+          "3660260"
+        ]
+      },
+      {
+        "claim": "Card baseline from 198 earlier transactions: median $57.99, 95th percentile $458.82; the flagged amount is 0.1x the median.",
+        "source": "graph",
+        "ref": "query:card_history(card_id=C12975-K2)",
+        "entity_ids": [
+          "C12975-K2"
+        ]
+      },
+      {
+        "claim": "Cardholder C12975 reported the $2.90 charge as not theirs (case pack trigger, 2017-01-26 21:09:37). Measured on October: all 1,203 disputes the bank investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial (0.93). If this is a planted dispute on a legitimate transaction, a score this size is 0.07x as likely on disputed fraud as on a legitimate transaction (0.07). Weighted equally: 0.76.",
+        "source": "customer",
+        "ref": "case_pack:HHF-004",
+        "entity_ids": [
+          "3660260"
+        ]
+      },
+      {
+        "claim": "Card-not-present fraud: the number used online without the card; amounts and products that don't fit the cardholder, often two to four within 48 hours.",
+        "source": "document",
+        "ref": "document:brief#known-fraud-patterns/card_not_present_fraud",
+        "entity_ids": []
+      },
+      {
+        "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
+        "source": "document",
+        "ref": "document:fraud-policy#R2",
+        "entity_ids": []
+      }
+    ],
+    "similar_prior_cases": [
+      "CC-4890",
+      "CC-2396",
+      "CC-5104"
+    ],
+    "summary": "Card not present fraud on card C12975-K2: 1 transaction(s) from 2017-01-26 to 2017-01-26 totalling $2.90, probability 0.76.",
+    "written_to_graph": true,
+    "graph_case_id": "ASSAY-HHF-004"
+  },
+  "evidence_requests": [],
+  "next_best_actions": {
+    "initial": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      }
+    ],
+    "final": [
+      {
+        "action": "BLOCK_CARD",
+        "route": "L1",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+      },
+      {
+        "action": "CREATE_CASE",
+        "route": "auto",
+        "reason": "R2: a denial requires an internal case with the evidence attached."
+      }
+    ],
+    "what_changed": "nothing"
+  },
+  "sar": {
+    "file": false,
+    "reason": "Policy \u00a73a: fraud is suspected but no reporting trigger is met -- exposure $2.90 is under $1,000, the activity is isolated to this card, and the pattern is a known one. Case only, no report.",
+    "narrative": "",
+    "subjects": [],
+    "total_amount_usd": 0,
+    "activity_dates": []
+  },
+  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
+  "tool_calls": 8,
+  "tokens": 0,
+  "latency_s": 23.12
+}
