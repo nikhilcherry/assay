@@ -20,7 +20,8 @@ Wires:
   6. Redacted, hash-chained audit logging (`assay.r2.audit.AuditLog`) and case lifecycle management
      (`assay.r2.casefile.CaseFile`).
   7. Pending approval ledger entries (`assay.r2.approvals.Ledger`) for L1/L2 actions; `--role` on CLI
-     never executes or approves actions.
+     never executes or approves actions, and `CaseFile` records L1/L2 actions as `AWAITING_APPROVAL`
+     (never applied by the agent) while only applying auto-route actions idempotently.
   8. Prints per-case latency and tokens (`tokens=0`).
 """
 
@@ -35,10 +36,12 @@ import sys
 import threading
 import time
 from contextlib import contextmanager
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterator
 
+import numpy as np
 import pandas as pd
 
 from assay import disputes
@@ -46,9 +49,10 @@ from assay.data import ROOT
 from assay.r2.approvals import Ledger as ApprovalLedger, route_for as approval_route_for
 from assay.r2.attest import dataset_tag
 from assay.r2.audit import AuditLog, redact as audit_redact
-from assay.r2.casefile import CaseFile, CaseStore
+from assay.r2.casefile import CaseFile, CaseState, CaseStore, _normalize_evidence
 from assay.r2.frames import case_pack, tx_all
 from assay.r2.harness import (
+    CallRecord,
     DependencyDown,
     FaultInjector,
     GarbageResponse,
@@ -113,6 +117,45 @@ _FILE_LOCKS: dict[str, threading.RLock] = {}
 # Initialize process-global dispute override weight ONCE at module startup (never mutated per case)
 _STARTUP_W_OVERRIDE, _STARTUP_DISPUTE_BASIS = measured_exam_dispute_weight()
 disputes.W_OVERRIDE = _STARTUP_W_OVERRIDE
+
+
+def _to_json_safe(obj: Any) -> Any:
+    """Recursively converts `pd.Timestamp`, `datetime`, `np.generic`, `pd.Series`, `pd.DataFrame`,
+    and sets into plain JSON-serializable Python types (ISO strings, ints, floats, dicts, lists)."""
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+    if isinstance(obj, (pd.Timestamp, datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, dict):
+        return {str(k): _to_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [_to_json_safe(x) for x in obj]
+    if isinstance(obj, pd.Series):
+        return {str(k): _to_json_safe(v) for k, v in obj.to_dict().items()}
+    if isinstance(obj, pd.DataFrame):
+        return {"rows": int(len(obj))}
+    return str(obj)
+
+
+def _sanitize_call_records(calls: list[CallRecord]) -> list[CallRecord]:
+    """Returns a copy of `CallRecord` list with all `args` converted to JSON-safe primitives."""
+    return [
+        CallRecord(
+            name=c.name,
+            args=_to_json_safe(c.args),
+            started=float(c.started),
+            ms=float(c.ms),
+            ok=bool(c.ok),
+            error_type=c.error_type,
+        )
+        for c in calls
+    ]
 
 
 def _get_thread_lock(lock_key: str) -> threading.RLock:
@@ -238,8 +281,9 @@ class StoreProxyAdapter:
             raise ToolTimeout(f"Injected fault: query '{tool}' timed out")
         if fault == "garbage":
             raise GarbageResponse(f"Injected fault: query '{tool}' returned garbage")
-        arg = ", ".join(f"{k}={v!r}" for k, v in params.items())
-        self._local_calls.append({"tool": tool, "params": params})
+        safe_params = _to_json_safe(params)
+        arg = ", ".join(f"{k}={v!r}" for k, v in safe_params.items())
+        self._local_calls.append({"tool": tool, "params": safe_params})
         return f"query:{tool}({arg})"
 
     @property
@@ -276,7 +320,8 @@ class StoreProxyAdapter:
             def _wrapped(*args: Any, **kwargs: Any) -> Any:
                 self._raw.as_of = object.__getattribute__(self, "as_of")
                 out = res(*args, **kwargs)
-                self._local_calls.append({"tool": name, "params": kwargs or {"args": [str(a) for a in args]}})
+                safe_kw = _to_json_safe(kwargs) if kwargs else {"args": [str(a) for a in args]}
+                self._local_calls.append({"tool": name, "params": safe_kw})
                 return out
             return _wrapped
         return res
@@ -436,12 +481,26 @@ def _update_casefile(
     answer: dict[str, Any],
     db_path: Path,
     ts: str,
+    idempotent_replay: bool = False,
 ) -> CaseFile:
-    """Opens and updates the case lifecycle in `assay.r2.casefile.CaseFile`."""
+    """Opens and updates the case lifecycle in `assay.r2.casefile.CaseFile`.
+
+    - Idempotent: if `idempotent_replay` is True or the case already has recorded events for this run,
+      returns the existing `CaseFile` without appending duplicate events or triggering a transition
+      out of `AWAITING_APPROVAL`.
+    - Never applies `L1`/`L2` actions as `agent`: only applies `auto` route actions (`AUTO_ACTION_APPLIED`)
+      and records `L1`/`L2` actions as `REQUEST_APPROVAL` (`to_state=AWAITING_APPROVAL`) without executing them.
+    """
     cstore = CaseStore(str(db_path))
     cf = CaseFile(case_id, store=cstore)
+    if idempotent_replay and cf.events:
+        return cf
+    if cf.events:
+        # Case was already recorded in a previous run of this case_id; preserve idempotency
+        return cf
+
     case_data = answer["case"]
-    ev_list = case_data.get("evidence", [])
+    ev_list = _normalize_evidence(case_data.get("evidence", []))
     verdict = case_data.get("verdict", "uncertain")
     status = case_data.get("status", "open")
     exposure = float(case_data.get("exposure_usd", 0.0) or 0.0)
@@ -460,16 +519,41 @@ def _update_casefile(
         ts=ts,
     )
 
-    l1_l2 = [a for a in final_actions if a.get("route") in ("L1", "L2")]
-    if l1_l2:
-        top = l1_l2[0]
-        cf.request_approval(
-            required_role=str(top["route"]),
-            action=str(top["action"]),
+    auto_actions = [a for a in final_actions if approval_route_for(str(a.get("action", "")), exposure) == "auto"]
+    l1_l2_actions = [a for a in final_actions if approval_route_for(str(a.get("action", "")), exposure) in ("L1", "L2")]
+
+    # Apply only auto-route actions (never L1/L2)
+    for act in auto_actions:
+        act_name = str(act.get("action", ""))
+        cstore.append_event(
+            case_id=case_id,
+            event_type="AUTO_ACTION_APPLIED",
             actor="agent",
-            reason=str(top.get("reason", "")),
-            evidence=ev_list[:3],
-            exposure=exposure,
+            from_state=cf.current_state,
+            to_state=cf.current_state,
+            evidence_refs=ev_list[:2],
+            reason=f"Auto-applied action '{act_name}' (route=auto): {act.get('reason', '')}",
+            ts=ts,
+        )
+
+    # Record L1/L2 actions strictly as pending/awaiting approval (never applied by agent)
+    if l1_l2_actions:
+        routes_needed = sorted({approval_route_for(str(a["action"]), exposure) for a in l1_l2_actions})
+        highest_route = "L2" if "L2" in routes_needed else "L1"
+        pending_desc = ", ".join(
+            f"{a['action']} ({approval_route_for(str(a['action']), exposure)})" for a in l1_l2_actions
+        )
+        cstore.append_event(
+            case_id=case_id,
+            event_type="REQUEST_APPROVAL",
+            actor="agent",
+            from_state=cf.current_state,
+            to_state=CaseState.AWAITING_APPROVAL,
+            evidence_refs=ev_list[:3],
+            reason=(
+                f"Awaiting {highest_route} approval for recommended action(s): {pending_desc}. "
+                f"Agent never executes L1/L2 actions."
+            ),
             ts=ts,
         )
     elif status == "escalated" or any(a.get("action") == "ESCALATE_TO_ANALYST" for a in final_actions):
@@ -653,7 +737,7 @@ def run_agent_case(
     out_dir: str | Path = DEFAULT_OUT,
     fault: str = "none",
     role: str = "analyst",
-    timeout_s: float = 2.0,
+    timeout_s: float = 20.0,
 ) -> int:
     """Runs the full N1 agent pipeline on a single case and returns the process exit code:
       - 0: Success (valid answer written idempotently).
@@ -734,7 +818,7 @@ def run_agent_case(
         facts.claims_of_authority = [scrub_secrets_and_pii(c) for c in facts.claims_of_authority]
         warnings = [scrub_secrets_and_pii(w) for w in cross_check(facts, raw_row)]
         att_trigger = attest_trigger_facts(case_id, facts, warnings)
-        audit.log_finding(case_id, audit_redact(att_trigger.to_dict()))
+        audit.log_finding(case_id, audit_redact(_to_json_safe(att_trigger.to_dict())))
 
         # 3. Check fault specification & idempotency ledger
         fault_norm = (fault or "none").strip().lower()
@@ -792,7 +876,8 @@ def run_agent_case(
             except (DependencyDown, ToolTimeout, GarbageResponse, HarnessError) as exc:
                 inv.s = prev_store
                 inv.writer = prev_writer
-                for c in proxy.calls:
+                safe_calls = _sanitize_call_records(proxy.calls)
+                for c in safe_calls:
                     audit.log_tool_call(
                         case_id,
                         name=c.name,
@@ -802,7 +887,7 @@ def run_agent_case(
                         ms=round(c.ms, 2),
                     )
                 err_type = type(exc).__name__
-                failed_call = proxy.calls[-1].name if proxy.calls else "store_check"
+                failed_call = safe_calls[-1].name if safe_calls else "store_check"
                 audit.log_error(
                     case_id,
                     f"FAIL_CLOSED ({err_type}) on tool '{failed_call}': {exc}",
@@ -841,10 +926,11 @@ def run_agent_case(
         tx_as_of = tx_df[tx_df["t"] <= opened_ts]
         _attach_sar_if_required(ans, tx_as_of)
 
-        # Normalize tokens and deterministic latency for byte-identical idempotent output
+        # Normalize tokens, deterministic latency, and convert any Timestamp/numpy values to JSON-safe primitives
         measured_latency = round(time.time() - t_start, 4)
         ans["tokens"] = 0
         ans["latency_s"] = 0.0
+        ans = _to_json_safe(ans)
 
         # Validate final answer schema & policy consistency
         val_errors = validate(ans)
@@ -854,8 +940,9 @@ def run_agent_case(
             print(f"FAIL CLOSED [EXIT 3] Answer validation failed for {case_id}: {val_errors}", file=sys.stderr)
             return 3
 
-        # 4. Write answer idempotently via write_answer + RunLedger
-        run_res = RunResult(status="COMPLETE", answer=ans, error=None, calls=proxy.calls)
+        # 4. Write answer idempotently via write_answer + RunLedger (with sanitized JSON-safe CallRecords)
+        safe_calls = _sanitize_call_records(proxy.calls)
+        run_res = RunResult(status="COMPLETE", answer=ans, error=None, calls=safe_calls)
         sha256_hex = write_answer(run_res, out_path, case_id=case_id)
         ans_bytes = (out_path / f"{case_id}.json").read_bytes()
 
@@ -867,7 +954,7 @@ def run_agent_case(
         _record_case_id_key(out_path, case_id, idem_key)
 
         # 6. Audit log every tool call and the final decision; update CaseFile state machine
-        for c in proxy.calls:
+        for c in safe_calls:
             audit.log_tool_call(
                 case_id,
                 name=c.name,
@@ -876,7 +963,8 @@ def run_agent_case(
                 row_count=1 if c.ok else 0,
                 ms=round(c.ms, 2),
             )
-        for tc in ans.get("tool_calls", []):
+        tc_list = ans.get("tool_calls", [])
+        for tc in (tc_list if isinstance(tc_list, list) else []):   # the answer format stores a count
             audit.log_tool_call(
                 case_id,
                 name=str(tc),
@@ -908,7 +996,7 @@ def run_agent_case(
         )
 
         fixed_case_ts = str(raw_row["opened_at"])
-        _update_casefile(case_id, ans, cases_db_path, ts=fixed_case_ts)
+        _update_casefile(case_id, ans, cases_db_path, ts=fixed_case_ts, idempotent_replay=idempotent_replay)
 
         # 7. Write L1/L2 actions to approvals.Ledger as PENDING (never executed by agent or --role)
         pending_props = _record_pending_approvals(
@@ -966,8 +1054,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--timeout",
         type=float,
-        default=2.0,
-        help="Per-tool timeout in seconds (default: 2.0s)",
+        default=20.0,
+        help="Per-tool timeout in seconds (default: 20s; the slowest real query, closed_cases_like, takes several seconds)",
     )
     return p
 

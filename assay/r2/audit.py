@@ -22,6 +22,8 @@ identifiable information (PII) or secrets.
 from __future__ import annotations
 
 import hashlib
+import fcntl
+import os
 import json
 import re
 import subprocess
@@ -144,19 +146,38 @@ class AuditLog:
             "event_type": event_type,
             "case_id": case_id,
             "ts": ts,
-            "prev_hash": self.prev_hash,
+            "prev_hash": "",   # filled in under the file lock
             **redacted_payload,
         }
 
-        h = compute_line_hash(event_dict)
-        event_dict["hash"] = h
-
-        canonical_line = json.dumps(event_dict, sort_keys=True, ensure_ascii=False)
-        with open(self.path, "a", encoding="utf-8") as f:
-            f.write(canonical_line + "\n")
-
+        # Chain onto the file's real last line, read under an exclusive lock at append time:
+        # several AuditLog objects (or processes) may write one file, so a hash cached at
+        # construction can be stale and would break the chain.
+        with open(self.path, "a+", encoding="utf-8") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                event_dict["prev_hash"] = self._last_hash(f)
+                h = compute_line_hash(event_dict)
+                event_dict["hash"] = h
+                f.write(json.dumps(event_dict, sort_keys=True, ensure_ascii=False) + "\n")
+                f.flush()
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
         self.prev_hash = h
         return event_dict
+
+    @staticmethod
+    def _last_hash(f) -> str:
+        f.seek(0, os.SEEK_END)
+        end = f.tell()
+        if end == 0:
+            return "0" * 64
+        f.seek(max(0, end - 4 * 1024 * 1024))   # one record is far smaller than this
+        tail = [ln for ln in f.read().splitlines() if ln.strip()]
+        try:
+            return json.loads(tail[-1]).get("hash", "0" * 64)
+        except (IndexError, json.JSONDecodeError):
+            return "0" * 64
 
     def log_run_start(self, case_id: str, metadata: dict | None = None) -> dict:
         return self.log_event("run_start", case_id, {"metadata": metadata or {}})

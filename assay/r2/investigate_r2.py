@@ -59,6 +59,9 @@ class R2Investigator(Investigator):
                        cc=self._cc[pd.to_datetime(self._cc.closed_at) <= t0])
 
     def run(self, case):
+        if int(case.flagged_txn_id) not in self.s.tx.index:
+            raise ValueError(f"{case.case_id}: flagged transaction {int(case.flagged_txn_id)} is not in the bank's "
+                             "data; refusing to investigate a charge that does not exist")
         self.s.as_of = pd.Timestamp(case.opened_at)
         try:
             ans = super().run(case)

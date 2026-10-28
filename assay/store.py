@@ -139,6 +139,16 @@ class LocalStore(Store):
         cc = self.cc
         return cc[cc.card_id.isin(s) | cc.connected_list.map(lambda l: bool(s.intersection(l)))], ref
 
+    def _case_txns(self) -> pd.DataFrame:
+        """(case_id, TransactionID, ProductCD, TransactionAmt) for every closed-case txn, built once."""
+        if getattr(self, "_ct", None) is None:
+            e = self.cc[["case_id", "txn_list"]].explode("txn_list").dropna()
+            e = e[e.txn_list.isin(self.tx.index)]
+            t = self.tx.loc[e.txn_list.astype("int64").values, ["ProductCD", "TransactionAmt"]]
+            self._ct = pd.DataFrame({"case_id": e.case_id.values, "ProductCD": t.ProductCD.values,
+                                     "TransactionAmt": t.TransactionAmt.values})
+        return self._ct
+
     def closed_cases_like(self, pattern: str, device_profile: str = "", limit: int = 3, product: str = "",
                           amount: float = 0.0):
         """Closed cases of the same typology, ranked by how closely their
@@ -152,14 +162,17 @@ class LocalStore(Store):
             hit = cc[cc.analyst_notes.str.contains(dev, regex=False, na=False)]
             if len(hit):
                 cc = hit
-        rows = []
-        for r in cc.itertuples():
-            t = self.tx.loc[[i for i in r.txn_list if i in self.tx.index]]
-            if not len(t):
-                continue
-            same = t[t.ProductCD == product] if product else t
-            d = (same.TransactionAmt - amount).abs().min() if len(same) else 1e9
-            rows.append((0 if len(same) else 1, d, r.case_id))
+        ct = self._case_txns()
+        ct = ct[ct.case_id.isin(set(cc.case_id))]
+        if not len(ct):
+            return self.cc.iloc[:0], ref
+        # rank: has a txn with the same product (0) before not (1), then the nearest amount among those
+        same = ct[ct.ProductCD == product] if product else ct
+        d_same = (same.TransactionAmt - amount).abs().groupby(same.case_id).min()
+        rank = pd.DataFrame({"case_id": ct.case_id.unique()})
+        rank["k"] = (~rank.case_id.isin(d_same.index)).astype(int)
+        rank["d"] = rank.case_id.map(d_same).fillna(1e9)
+        rows = list(zip(rank.k, rank.d, rank.case_id))
         ids = [c for _, _, c in sorted(rows)[:limit]]
         return self.cc.set_index("case_id").loc[ids].reset_index(), ref
 
