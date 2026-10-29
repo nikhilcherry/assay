@@ -12,10 +12,11 @@
 
 ## Final-Round State: the Graph Decides
 
-Under `ASSAY_TG=1` (how `cases_r2/` is produced) three decisions come from installed GSQL, and a fourth query runs but abstains:
+Under `ASSAY_TG=1` (how `cases_r2/` is produced) four decisions come from installed GSQL, and a fifth query runs but abstains:
 
 | decision | query | file |
 |---|---|---|
+| common point of compromise: loss-shape cohort and origin counts (HHF-001–003; parity in `docs/r2/C10_tg_cpc.md`) | `r2_cpc_loss_cohort`, `r2_cpc_origin_counts` | `graph/queries/r2_cpc.gsql` |
 | ring membership | `r2_ring_wcc` | `graph/queries/r2_ring_wcc.gsql` |
 | micro-drip cohort | `r2_micro_drip_cohort` | `graph/queries/r2_cohorts.gsql` |
 | recipient fan-in | `r2_recipient_fanin` | `graph/queries/r2_cohorts.gsql` |

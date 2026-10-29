@@ -82,7 +82,7 @@
           "3660286",
           "3660287"
         ],
-        "ref": "query:cpc_loss_shape_cohort(ProductCD=C, card_id=C11663-K1, channel=online, cohort_size_bucket=6+, flagged_txn_id=3660153, lookback_days=60, max_amt=2200.0, min_amt=250.0)",
+        "ref": "query:cpc_loss_shape_cohort(ProductCD=C, backend=tigergraph, card_id=C11663-K1, channel=online, cohort_size_bucket=6+, flagged_txn_id=3660153, lookback_days=60, max_amt=2200.0, min_amt=250.0)",
         "source": "graph"
       },
       {

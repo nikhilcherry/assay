@@ -81,12 +81,12 @@ make tg-load    # Runs assay.tg prepare && assay.tg setup && assay.r2.tg_load pr
 # Install the final-round queries (ring, cohorts, vectors, case write-back); idempotent
 PYTHONPATH=. .venv/bin/python -c "from assay.r2 import tg_r2, tg_cohorts; tg_r2.install(); tg_cohorts.install()"
 
-# Run every case with TigerGraph deciding the ring and both cohorts
+# Run every case with TigerGraph deciding the compromise cohort, the ring and both cohorts
 ASSAY_TG=1 make all
 ASSAY_TG=1 .venv/bin/python -m assay.r2.console --port 8742   # the demo console
 ```
 
-Under `ASSAY_TG=1` the graph decides `r2_ring_wcc`, `r2_micro_drip_cohort`, and `r2_recipient_fanin`;
+Under `ASSAY_TG=1` the graph decides `r2_cpc_loss_cohort`/`r2_cpc_origin_counts`, `r2_ring_wcc`, `r2_micro_drip_cohort`, and `r2_recipient_fanin`;
 `similar_cases_vec` is queried but abstains (`docs/r2/C5_vector_vote.md`). Each case is written back as a `FraudCase`. If the graph is down or answers
 wrongly, or the write-back fails ("case NOT saved to the TigerGraph graph"), the run exits 3 and writes
 no answer.

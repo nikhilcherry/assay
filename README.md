@@ -40,7 +40,7 @@ and a 5-minute demo, on the bank's January 2017 data.
 | Verdicts | **6 fraud · 3 uncertain · 9 legitimate**. The brief says nine are legitimate | [`docs/r2/FACTS.md`](docs/r2/FACTS.md) |
 | Every claim re-executed | **325 claims checked: every query re-run, every policy citation, threshold and approval route matched; 0 mismatches** | `python -m assay.r2.verify_claims` |
 | Live resilience drills | **84/84 checks**: dependency down, timeouts, garbage replies, hostile input, wrong-role approval, double runs, corrupt startup data, failed graph write-back | `pytest tests/r2/test_drills.py` |
-| Graph vs local code | **identical** ring decisions, cohort members and transaction ids on all 18 cases | [`docs/r2/C6_tg_cohorts.md`](docs/r2/C6_tg_cohorts.md) |
+| Graph vs local code | **identical** ring decisions, cohort members, origin counts and transaction ids on all 18 cases; the graph decides 5 of the 6 frauds | [`C6`](docs/r2/C6_tg_cohorts.md) · [`C10`](docs/r2/C10_tg_cpc.md) |
 | Blind red team, latest round (40 scenarios) | **0** legitimate customers blocked without a denial, 3 frauds missed | [`docs/r2/REDTEAM.md`](docs/r2/REDTEAM.md) |
 | LLM tokens on the decision path | **0** | the `tokens` field of every answer |
 
@@ -124,6 +124,7 @@ error, or a reply with no body, stops the run (exit 3) with no fallback.
 
 | decision | query | file |
 |---|---|---|
+| common point of compromise: the loss-shape cohort and the per-origin counts behind HHF-001–003 (statistics stay in Python) | `r2_cpc_loss_cohort`, `r2_cpc_origin_counts` | [`graph/queries/r2_cpc.gsql`](graph/queries/r2_cpc.gsql) |
 | device / identity ring, 15-card cap, BFS | `r2_ring_wcc` | [`graph/queries/r2_ring_wcc.gsql`](graph/queries/r2_ring_wcc.gsql) |
 | new micro-drip cohort (≥4 online charges under $6.50, first time in 60 days) | `r2_micro_drip_cohort` | [`graph/queries/r2_cohorts.gsql`](graph/queries/r2_cohorts.gsql) |
 | many first-time cards paying one recipient | `r2_recipient_fanin` | [`graph/queries/r2_cohorts.gsql`](graph/queries/r2_cohorts.gsql) |

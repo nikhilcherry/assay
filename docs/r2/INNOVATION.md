@@ -25,7 +25,7 @@ mismatches.
 | Recipient fan-in (`docs/r2/B6_micro_fanin.md`) | HHF-006: 12 first-time payers | link only |
 
 The result is 6 fraud, 3 uncertain and 9 legitimate, matching the brief's nine legitimate cases. The grader
-reports 18/18 clean. Under `ASSAY_TG=1` the graph decides the ring and both cohorts through installed GSQL,
+reports 18/18 clean. Under `ASSAY_TG=1` the graph decides the compromise cohort, ring and both new cohorts through installed GSQL,
 and any graph error fails closed. Graph and local code agree on all 18 cases (`docs/r2/C6_tg_cohorts.md`).
 
 ## 3. Where it changes the outcome (ablation)

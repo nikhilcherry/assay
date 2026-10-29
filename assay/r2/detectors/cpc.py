@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import time
 from dataclasses import dataclass
 from functools import lru_cache
@@ -584,7 +585,17 @@ class CommonPointOfCompromise(Detector):
         idx = get_precomputed_index()
         opened_ns = int(pd.Timestamp(ctx.opened_at).value)
 
-        shape, affected_cards, first_loss_ns, burst_txns = fast_find_cohort_by_tid(idx, int(ctx.flagged_txn_id), opened_ns)
+        # under ASSAY_TG=1 the graph finds the cohort and counts the origins (graph/queries/r2_cpc.gsql, fails
+        # closed); the statistics stay here. Parity with the local path: docs/r2/C10_tg_cpc.md
+        on_tg = os.environ.get("ASSAY_TG") == "1"
+        if on_tg:
+            from assay.r2.tg_cpc import compute_origin_lifts_tg, find_cohort_by_tid_tg
+            find_cohort = find_cohort_by_tid_tg
+            origin_lifts = lambda *a, **k: compute_origin_lifts_tg(*a, opened_at=ctx.opened_at, **k)  # noqa: E731
+        else:
+            find_cohort, origin_lifts = fast_find_cohort_by_tid, compute_origin_lifts
+        backend = "tigergraph" if on_tg else "local"
+        shape, affected_cards, first_loss_ns, burst_txns = find_cohort(idx, int(ctx.flagged_txn_id), opened_ns)
         if shape is None:
             CommonPointOfCompromise.last_diagnostics[ctx.case_id] = {
                 "status": "no_loss_shape",
@@ -628,8 +639,8 @@ class CommonPointOfCompromise(Detector):
             return []
 
         controls = fast_matched_controls(idx, affected_cards, shape['t0_ns'], rng_seed=42)
-        res_60, aff_feats_60 = compute_origin_lifts(idx, affected_cards, first_loss_ns, controls, ctx.tx, lookback_days=60)
-        res_full, _ = compute_origin_lifts(idx, affected_cards, first_loss_ns, controls, ctx.tx, lookback_days=210)
+        res_60, aff_feats_60 = origin_lifts(idx, affected_cards, first_loss_ns, controls, ctx.tx, lookback_days=60)
+        res_full, _ = origin_lifts(idx, affected_cards, first_loss_ns, controls, ctx.tx, lookback_days=210)
 
         cap = idx.cap_99
 
@@ -704,6 +715,7 @@ class CommonPointOfCompromise(Detector):
                     "max_amt": float(shape['max_amt']),
                     "cohort_size_bucket": bucket,
                     "lookback_days": 60,
+                    "backend": backend,
                 },
             )
             return [Finding(
@@ -749,6 +761,7 @@ class CommonPointOfCompromise(Detector):
                 "origin_key": best_feat,
                 "cohort_size_bucket": bucket,
                 "lookback_days": 60,
+                "backend": backend,
             },
         )
         return [Finding(
