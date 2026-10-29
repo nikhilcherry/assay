@@ -69,6 +69,7 @@ NUMBER_WORDS: dict[str, int] = {
     "three": 3, "several": 3, "multiple": 3,
     "four": 4, "five": 5, "six": 6, "seven": 7,
     "eight": 8, "nine": 9, "ten": 10,
+    "twelve": 12, "twenty-four": 24, "twenty four": 24,
 }
 
 KNOWN_ACTIONS: tuple[str, ...] = (
