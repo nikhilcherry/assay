@@ -1,4 +1,4 @@
-"""BLOCK C2 -- The judge's re-run.
+"""BLOCK C2 & C8 -- The judge's re-run.
 
 "A claim with no attestation is treated as wrong. We re-run the query. If the
 result differs from the claim, the claim scores zero -- so a narrative sentence
@@ -6,7 +6,8 @@ with no ids behind it is worse than silence."
 
 Walks every answer file in an answers directory (default `cases_r2/`):
   1. `case.evidence[]` items (`claim`, `entity_ids`, `ref`, `source`)
-  2. `sar` sentences and their inline `[T:...]`, `[C:...]`, `[CC:...]` citations
+  2. `sar` sentences and their inline `[T:...]`, `[C:...]`, `[CC:...]` citations,
+     plus `sar.reason` when `sar.file` is False
   3. `next_best_actions` (`initial`, `final`, `what_changed`)
   4. Grader-critical fields: `exposure_usd == sum(affected txn amounts)` and
      `first_suspicious_txn_id` is the earliest affected transaction in `tx_all()`.
@@ -20,7 +21,28 @@ For each query ref (`query:<fn>(k=v, ...)`):
     computed over the result); numbers that cannot be tied to the query result
     are reported as `unverified_numbers` (and if nothing else was verified,
     status is `UNVERIFIED`, not `MISMATCH`).
-  - Status per claim: `VERIFIED` / `MISMATCH` / `UNVERIFIED` / `UNRESOLVABLE`.
+For document refs (`document:fraud-policy#<rule>` / `document:brief#known-fraud-patterns/<pat>`):
+  - Policy citations are paraphrases, not verbatim quotes: `VERIFIED` when the rule id
+    exists AND every `Action` name and every number/threshold (`$1,000`, `$500`, `0.15`,
+    `0.85`, `0.30`, `one hour`, `24 hours`, etc.) mentioned in the claim also appears in
+    that rule's text (or its section). `MISMATCH` only when the claim names an action or
+    number the rule does not contain, or cites a rule id that does not exist.
+  - Pattern citations (`document:brief#known-fraud-patterns/<pat>`): `VERIFIED` when the
+    pattern name exists in the documented pattern list and no action/threshold/channel
+    in the claim contradicts the pattern definition.
+For `next_best_actions`:
+  - `initial` reasons are checked against the pre-request probability (the first number
+    in `what_changed`), while `final` reasons are checked against the post-request / final
+    `fraud_probability`.
+  - Exposure numbers in reasons are verified against `case.exposure_usd` or the sum of any
+    subset/prefix of the case's affected or card-window transactions (`tx_all()`).
+  - Approval routes (`auto`/`L1`/`L2`) are verified against `assay.policy.route_for`.
+For `evidence_request` items:
+  - Verifies the request `type` is one of `customer_validation | step_up_auth | analyst_info`
+    (from `answer_format.md` / Policy §5), the claim text matches the simulated question/response,
+    and the before/after probabilities in `what_changed` match `fraud_probability`.
+Any claim whose text contains no checkable id/number/rule stays `UNVERIFIED` with reason
+`'narrative only'`.
 """
 
 from __future__ import annotations
@@ -33,6 +55,7 @@ import sys
 from collections import Counter
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
+from itertools import combinations
 from pathlib import Path
 from typing import Any
 
@@ -40,12 +63,14 @@ import numpy as np
 import pandas as pd
 
 from assay.data import ROOT
+from assay.policy import Action, Pattern, Route, route_for
 from assay.r2.finding import CaseCtx
-from assay.r2.frames import case_pack, closed_cases, tx_all
+from assay.r2.frames import R2, case_pack, closed_cases, tx_all
 from assay.r2.store_r2 import R2LocalStore
 
 DEFAULT_ANSWERS_DIR = ROOT / "cases_r2"
 DEFAULT_DOC_PATH = ROOT / "docs" / "r2" / "VERIFY_CLAIMS.md"
+POLICY_MD_PATH = R2 / "policy" / "fraud_policy.md"
 
 STATUS_VERIFIED = "VERIFIED"
 STATUS_MISMATCH = "MISMATCH"
@@ -55,10 +80,36 @@ STATUS_UNRESOLVABLE = "UNRESOLVABLE"
 # Known policy threshold dollar amounts that appear in policy rule citations
 POLICY_DOLLAR_CONSTANTS: set[float] = {5.0, 100.0, 500.0, 1000.0, 2500.0}
 
+# Known policy probability / float thresholds
+POLICY_PROB_CONSTANTS: set[float] = {0.15, 0.30, 0.45, 0.50, 0.70, 0.85}
+
+# Policy §5 & answer_format.md line 21 allowed evidence request types
+ALLOWED_EVIDENCE_REQUEST_TYPES: set[str] = {
+    "customer_validation",
+    "customer_verification",
+    "verify_with_customer",
+    "customer_confirm",
+    "step_up_auth",
+    "step_up",
+    "analyst_info",
+    "analyst_request",
+    "analyst_review",
+}
+
+WORD_NUMBERS: dict[str, int] = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+}
+
 # Regexes for parsing refs, citations, dollar amounts, and contextual integer counts
 QUERY_REF_RE = re.compile(r"^query:([A-Za-z_][A-Za-z0-9_]*)\((.*)\)$", re.DOTALL)
 DOLLAR_RE = re.compile(r"\$([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)")
 CITE_BLOCK_RE = re.compile(r"\[([TC]+:[^\]]+)\]")
+RULE_TOKEN_RE = re.compile(r"(?:\bR(?:10|[1-9])\b|§[0-9]+[a-b]?|\bsection\s+[0-9]+[a-b]?\b)", re.IGNORECASE)
+WHAT_CHANGED_PROB_RE = re.compile(r"([0-9]+\.[0-9]+)\s*(?:->|→|\bto\b)\s*([0-9]+\.[0-9]+)", re.IGNORECASE)
 
 # Contextual integer counts in claims (avoids matching TransactionIDs, dates, or rule numbers like R1/R8)
 INT_COUNT_PATTERNS: list[re.Pattern[str]] = [
@@ -74,6 +125,35 @@ INT_COUNT_PATTERNS: list[re.Pattern[str]] = [
     ),
     re.compile(r"\b(?:max|count|k_now)\s*=\s*(\d+)\b", re.IGNORECASE),
 ]
+
+# Baseline C2 per-case counts (before C8 checks on document/NBA/evidence_request/sar_reason)
+BASELINE_C2_TOTALS: dict[str, int] = {
+    STATUS_VERIFIED: 174,
+    STATUS_MISMATCH: 0,
+    STATUS_UNVERIFIED: 151,
+    STATUS_UNRESOLVABLE: 0,
+}
+
+BASELINE_C2_PER_CASE: dict[str, dict[str, int]] = {
+    "HHF-001": {STATUS_VERIFIED: 18, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 11, STATUS_UNRESOLVABLE: 0},
+    "HHF-002": {STATUS_VERIFIED: 17, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 11, STATUS_UNRESOLVABLE: 0},
+    "HHF-003": {STATUS_VERIFIED: 19, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 10, STATUS_UNRESOLVABLE: 0},
+    "HHF-004": {STATUS_VERIFIED: 19, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 10, STATUS_UNRESOLVABLE: 0},
+    "HHF-005": {STATUS_VERIFIED: 20, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 10, STATUS_UNRESOLVABLE: 0},
+    "HHF-006": {STATUS_VERIFIED: 9, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 11, STATUS_UNRESOLVABLE: 0},
+    "HHF-007": {STATUS_VERIFIED: 7, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 6, STATUS_UNRESOLVABLE: 0},
+    "HHF-008": {STATUS_VERIFIED: 7, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 11, STATUS_UNRESOLVABLE: 0},
+    "HHF-009": {STATUS_VERIFIED: 5, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 8, STATUS_UNRESOLVABLE: 0},
+    "HHF-010": {STATUS_VERIFIED: 7, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 8, STATUS_UNRESOLVABLE: 0},
+    "HHF-011": {STATUS_VERIFIED: 7, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 9, STATUS_UNRESOLVABLE: 0},
+    "HHF-012": {STATUS_VERIFIED: 5, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 6, STATUS_UNRESOLVABLE: 0},
+    "HHF-013": {STATUS_VERIFIED: 5, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 6, STATUS_UNRESOLVABLE: 0},
+    "HHF-014": {STATUS_VERIFIED: 7, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 8, STATUS_UNRESOLVABLE: 0},
+    "HHF-015": {STATUS_VERIFIED: 5, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 6, STATUS_UNRESOLVABLE: 0},
+    "HHF-016": {STATUS_VERIFIED: 7, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 8, STATUS_UNRESOLVABLE: 0},
+    "HHF-017": {STATUS_VERIFIED: 5, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 6, STATUS_UNRESOLVABLE: 0},
+    "HHF-018": {STATUS_VERIFIED: 5, STATUS_MISMATCH: 0, STATUS_UNVERIFIED: 6, STATUS_UNRESOLVABLE: 0},
+}
 
 
 @dataclass
@@ -103,6 +183,7 @@ class CaseReport:
     case_id: str
     claims: list[ClaimCheck] = field(default_factory=list)
     grader_checks: list[ClaimCheck] = field(default_factory=list)
+    c2_before_counts: dict[str, int] = field(default_factory=dict)
 
     @property
     def all_checks(self) -> list[ClaimCheck]:
@@ -154,6 +235,149 @@ def _get_detectors() -> dict[str, Any]:
     from assay.r2.finding import REGISTRY
 
     return {name: cls() for name, cls in REGISTRY.items()}
+
+
+def _norm_ws_quotes(s: str) -> str:
+    """Normalise whitespace, markdown formatting (`**`, `` ` ``), and quote characters."""
+    out = (s or "").replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
+    out = out.replace("—", "-").replace("–", "-")
+    out = re.sub(r"[*`_]+", "", out)
+    out = re.sub(r"\s+", " ", out).strip()
+    return out
+
+
+def _extract_rule_tokens_from_text(txt: str) -> dict[str, Any]:
+    """Extract checkable policy tokens (actions, dollars, probabilities, hours, small integer counts)
+    from a rule or section text."""
+    dollars = {round(val, 2) for _, val in extract_dollars(txt)}
+    probs: set[float] = set()
+    for pm in re.finditer(r"\b(0\.\d+)\b", txt):
+        probs.add(round(float(pm.group(1)), 2))
+    actions = {a.value for a in Action if a.value in txt}
+
+    hours: set[int] = set()
+    for hm in re.finditer(r"\b(\d+|one|two|three)\s+hours?\b", txt, flags=re.IGNORECASE):
+        raw_h = hm.group(1).lower()
+        hours.add(WORD_NUMBERS.get(raw_h, int(raw_h) if raw_h.isdigit() else 1))
+    if re.search(r"\bwithin\s+an\s+hour\b", txt, flags=re.IGNORECASE):
+        hours.add(1)
+
+    small_ints: set[int] = set()
+    for wm, wval in WORD_NUMBERS.items():
+        if re.search(rf"\b{wm}\b", txt, flags=re.IGNORECASE):
+            small_ints.add(wval)
+    for im in re.finditer(r"\b([1-9])\s+(?:independent|small|tiny|cards?|signals?|pieces?)\b", txt, flags=re.IGNORECASE):
+        small_ints.add(int(im.group(1)))
+
+    return {
+        "dollars": dollars,
+        "probs": probs,
+        "actions": actions,
+        "hours": hours,
+        "small_ints": small_ints,
+    }
+
+
+@lru_cache(maxsize=1)
+def _load_policy_rules() -> dict[str, dict[str, Any]]:
+    """Parse `data/round2/share/policy/fraud_policy.md` into a lookup of rule/section IDs ->
+    `{raw_text, section_text, dollars, probs, actions, hours, small_ints}`."""
+    md_path = POLICY_MD_PATH if POLICY_MD_PATH.exists() else (ROOT / "data" / "round2" / "orch" / "ctx" / "fraud_policy.md")
+    raw_md = md_path.read_text(encoding="utf-8")
+
+    # Extract sections ## 0. .. ## 7.
+    sections: dict[str, str] = {}
+    sec_matches = list(re.finditer(r"^##\s+([0-9]+[a-b]?)\.\s+([^\n]+)\n", raw_md, flags=re.MULTILINE))
+    for i, m in enumerate(sec_matches):
+        sec_id = f"§{m.group(1)}"
+        start = m.start()
+        end = sec_matches[i + 1].start() if i + 1 < len(sec_matches) else len(raw_md)
+        sections[sec_id] = raw_md[start:end].strip()
+
+    # Extract rules **R1. ...** .. **R10. ...** inside §3
+    rules: dict[str, str] = {}
+    for m in re.finditer(r"^\*\*(R(?:10|[1-9]))\.\s*([^\n]+(?:\n(?!\*\*R|\n## )[^\n]+)*)", raw_md, flags=re.MULTILINE):
+        rid = m.group(1).upper()
+        rules[rid] = m.group(0).strip()
+
+    combined: dict[str, dict[str, Any]] = {}
+    for key in set(sections.keys()) | set(rules.keys()):
+        raw_text = rules.get(key) or sections.get(key) or ""
+        toks = _extract_rule_tokens_from_text(raw_text)
+        # For §5 / §3b, VERIFY_WITH_CUSTOMER and STEP_UP_AUTH are described in prose in §5
+        if key == "§5":
+            toks["actions"] |= {
+                Action.VERIFY_WITH_CUSTOMER.value,
+                Action.STEP_UP_AUTH.value,
+                Action.ESCALATE_TO_ANALYST.value,
+            }
+        if key == "§0":
+            toks["actions"] |= {Action.ALLOW_TRANSACTION.value, Action.CLOSE_NO_FRAUD.value}
+        if key == "§6":
+            toks["actions"] |= {Action.BLOCK_CARD.value, Action.CLOSE_NO_FRAUD.value, Action.ESCALATE_TO_ANALYST.value}
+
+        combined[key] = {
+            "key": key,
+            "raw_text": raw_text,
+            "norm_text": _norm_ws_quotes(raw_text),
+            "dollars": toks["dollars"],
+            "probs": toks["probs"],
+            "actions": toks["actions"],
+            "hours": toks["hours"],
+            "small_ints": toks["small_ints"],
+        }
+    return combined
+
+
+@lru_cache(maxsize=1)
+def _load_known_patterns() -> dict[str, dict[str, Any]]:
+    """Load the documented fraud patterns from the brief / policy / closed_cases definitions."""
+    valid_names = {p.value for p in Pattern if p is not Pattern.NONE}
+    # Allowed tokens per documented pattern so paraphrases are VERIFIED and contradictions MISMATCH
+    pattern_specs: dict[str, dict[str, Any]] = {
+        "card_testing": {
+            "dollars": {5.0, 100.0},
+            "hours": {1},
+            "small_ints": {3},
+            "keywords": {"testing", "small", "tiny", "online", "authorization", "purchase", "sequence"},
+        },
+        "card_not_present_fraud": {
+            "dollars": set(),
+            "hours": set(),
+            "small_ints": set(),
+            "keywords": {"card-not-present", "online", "merchant", "amount", "cardholder"},
+        },
+        "card_not_present_new_device": {
+            "dollars": set(),
+            "hours": set(),
+            "small_ints": set(),
+            "keywords": {"device", "online", "card-not-present", "shared", "compromised", "new"},
+        },
+        "out_of_region_use": {
+            "dollars": set(),
+            "hours": set(),
+            "small_ints": set(),
+            "keywords": {"region", "billing", "out-of-region", "footprint", "history"},
+        },
+        "account_takeover": {
+            "dollars": set(),
+            "hours": set(),
+            "small_ints": set(),
+            "keywords": {"account", "takeover", "credential", "channel", "device", "inconsistent"},
+        },
+        "undocumented": {
+            "dollars": set(),
+            "hours": set(),
+            "small_ints": set(),
+            "keywords": {"known", "pattern", "none", "own", "words", "undocumented", "fit"},
+        },
+    }
+    for name in valid_names:
+        pattern_specs.setdefault(
+            name,
+            {"dollars": set(), "hours": set(), "small_ints": set(), "keywords": {name}},
+        )
+    return pattern_specs
 
 
 def classify_ref_kind(ref: str) -> tuple[str, str]:
@@ -294,6 +518,23 @@ def extract_int_counts(text: str) -> list[tuple[str, int]]:
     return out
 
 
+def extract_rule_ids(text: str) -> list[str]:
+    """Return normalized rule/section IDs (e.g. `'R2'`, `'§3a'`, `'§6'`) cited in `text`."""
+    out: list[str] = []
+    for m in RULE_TOKEN_RE.finditer(text or ""):
+        tok = m.group(0).strip()
+        if tok.upper().startswith("R"):
+            norm = tok.upper()
+        elif tok.lower().startswith("section"):
+            num = tok.split()[-1].lower()
+            norm = f"§{num}"
+        else:
+            norm = "§" + tok[1:].lower()
+        if norm not in out:
+            out.append(norm)
+    return out
+
+
 def _build_case_ctx(case_id: str, store: R2LocalStore) -> tuple[CaseCtx, pd.Series]:
     cp_idx = _get_case_pack_indexed()
     if case_id in cp_idx.index:
@@ -331,6 +572,26 @@ class ReRunPool:
     contradicts_Dollar: bool = False
 
 
+def _add_subset_sums(amts_list: list[float], dollars_set: set[float], max_subset_n: int = 14) -> None:
+    """Add prefix sums, suffix sums, and subset sums of transaction amounts to `dollars_set`."""
+    if not amts_list:
+        return
+    # Prefix and suffix sums
+    running = 0.0
+    for a in amts_list:
+        running += a
+        dollars_set.add(round(running, 2))
+    running = 0.0
+    for a in reversed(amts_list):
+        running += a
+        dollars_set.add(round(running, 2))
+    # Exact subset sums if count is small
+    if len(amts_list) <= max_subset_n:
+        for r in range(1, len(amts_list) + 1):
+            for comb in combinations(amts_list, r):
+                dollars_set.add(round(sum(comb), 2))
+
+
 def _populate_pool_from_tx_df(df: pd.DataFrame, pool: ReRunPool, flagged_amt: float | None = None) -> None:
     if df is None or df.empty:
         pool.counts.add(0)
@@ -354,7 +615,8 @@ def _populate_pool_from_tx_df(df: pd.DataFrame, pool: ReRunPool, flagged_amt: fl
     if amt_col is not None:
         amts = df[amt_col].dropna().abs().astype(float)
         if not amts.empty:
-            for a in amts.tolist():
+            amts_list = [float(a) for a in amts.tolist()]
+            for a in amts_list:
                 pool.dollars.add(round(a, 2))
             pool.dollars.add(round(float(amts.sum()), 2))
             pool.dollars.add(round(float(amts.mean()), 2))
@@ -383,6 +645,9 @@ def _populate_pool_from_tx_df(df: pd.DataFrame, pool: ReRunPool, flagged_amt: fl
             if "channel" in df.columns:
                 online_df = df[df["channel"] == "online"]
                 pool.counts.add(int(len(online_df)))
+                online_amts = online_df[amt_col].dropna().abs().astype(float).tolist()
+                if online_amts:
+                    pool.dollars.add(round(sum(online_amts), 2))
                 online_small = online_df[online_df[amt_col].abs() < 5.0]
                 pool.counts.add(int(len(online_small)))
                 online_large = online_df[online_df[amt_col].abs() >= 5.0]
@@ -793,9 +1058,9 @@ def _evaluate_claim_against_pool(
             reason += f" Unverified numbers: {unverified_nums}"
     else:
         status = STATUS_UNVERIFIED
-        reason = "No entity IDs or numbers could be tied to a query result."
+        reason = "narrative only"
         if unverified_nums:
-            reason += f" Unverified numbers: {unverified_nums}"
+            reason = f"narrative only (unverified numbers: {unverified_nums})"
 
     return ClaimCheck(
         case_id=case_id,
@@ -813,6 +1078,376 @@ def _evaluate_claim_against_pool(
         mismatched_numbers=mismatched_nums,
         unverified_numbers=unverified_nums,
         reason=reason,
+    )
+
+
+def _verify_policy_document_claim(
+    case_id: str,
+    idx: int,
+    ref: str,
+    target: str,
+    claim: str,
+    entity_ids: list[str],
+) -> ClaimCheck:
+    """Verify `document:fraud-policy#<rule>` or `document:brief#known-fraud-patterns/<pattern>`.
+
+    Policy citations are paraphrases, not verbatim quotes:
+    - `VERIFIED` when the rule id exists in `fraud_policy.md` AND every `Action` name
+      (`BLOCK_CARD`, `CREATE_CASE`, `FILE_REPORT`, `ESCALATE_TO_ANALYST`, ...) and every
+      number/threshold (`$1,000`, `$500`, `0.15`, `0.85`, `0.30`, `one hour`, `24 hours`, ...)
+      mentioned in the claim also appears in that rule's text (or its section).
+    - `MISMATCH` only when the claim names an action or a number the rule does not contain,
+      or cites a rule id that does not exist.
+    """
+    rules_map = _load_policy_rules()
+    patterns_map = _load_known_patterns()
+
+    # 1. Policy rule citation: document:fraud-policy#R2, document:fraud-policy#§3a, etc.
+    if target.startswith("fraud-policy#"):
+        rule_id = target.split("#", 1)[1].strip()
+        lookup_id = rule_id
+        if lookup_id.upper().startswith("R") and lookup_id.upper() in rules_map:
+            lookup_id = lookup_id.upper()
+        elif not lookup_id.startswith("§") and f"§{lookup_id}" in rules_map:
+            lookup_id = f"§{lookup_id}"
+
+        if lookup_id not in rules_map:
+            return ClaimCheck(
+                case_id=case_id,
+                section="evidence",
+                index=idx,
+                ref=ref,
+                ref_kind="document",
+                query_fn="fraud_policy",
+                claim=claim,
+                entity_ids=entity_ids,
+                status=STATUS_MISMATCH,
+                missing_ids=[rule_id],
+                reason=f"Cited policy rule {rule_id!r} does not exist in fraud_policy.md.",
+            )
+
+        rinfo = rules_map[lookup_id]
+        matched_ids: list[str] = [lookup_id]
+        missing_ids: list[str] = []
+        matched_nums: list[str] = []
+        mismatched_nums: list[str] = []
+
+        # Check every Action name mentioned in the claim
+        claim_actions = [a.value for a in Action if a.value in claim]
+        for act in claim_actions:
+            if act in rinfo["actions"]:
+                matched_ids.append(act)
+            else:
+                missing_ids.append(act)
+
+        # Check every dollar threshold mentioned in the claim
+        for raw_d, dval in extract_dollars(claim):
+            if round(dval, 2) in rinfo["dollars"]:
+                matched_nums.append(raw_d)
+            else:
+                mismatched_nums.append(raw_d)
+
+        # Check every probability threshold (0.XX) mentioned in the claim
+        for pm in re.finditer(r"\b(0\.\d+)\b", claim):
+            raw_p = pm.group(1)
+            pval = round(float(raw_p), 2)
+            if pval in rinfo["probs"]:
+                matched_nums.append(raw_p)
+            else:
+                mismatched_nums.append(raw_p)
+
+        # Check hour durations (e.g. "24 hours", "72 hours", "one hour", "an hour")
+        for hm in re.finditer(r"\b(\d+|one|two|three|an)\s+hours?\b", claim, flags=re.IGNORECASE):
+            raw_h = hm.group(1).lower()
+            hval = 1 if raw_h in ("one", "an") else WORD_NUMBERS.get(raw_h, int(raw_h) if raw_h.isdigit() else 0)
+            if hval in rinfo["hours"]:
+                matched_nums.append(hm.group(0))
+            else:
+                mismatched_nums.append(hm.group(0))
+
+        # Check small integer counts (e.g. "two independent pieces", "three or more small")
+        for wm, wval in WORD_NUMBERS.items():
+            if re.search(rf"\b{wm}\b", claim, flags=re.IGNORECASE):
+                if wval in rinfo["small_ints"] or wval in rinfo["hours"]:
+                    matched_nums.append(f"{wm}({wval})")
+                else:
+                    mismatched_nums.append(f"{wm}({wval})")
+
+        if missing_ids or mismatched_nums:
+            reasons: list[str] = []
+            if missing_ids:
+                reasons.append(f"actions not in Policy {lookup_id}: {missing_ids} (allowed={sorted(rinfo['actions'])})")
+            if mismatched_nums:
+                reasons.append(
+                    f"numbers/thresholds not in Policy {lookup_id}: {mismatched_nums} "
+                    f"(allowed dollars={sorted(rinfo['dollars'])}, probs={sorted(rinfo['probs'])})"
+                )
+            return ClaimCheck(
+                case_id=case_id,
+                section="evidence",
+                index=idx,
+                ref=ref,
+                ref_kind="document",
+                query_fn="fraud_policy",
+                claim=claim,
+                entity_ids=entity_ids,
+                status=STATUS_MISMATCH,
+                matched_ids=matched_ids,
+                missing_ids=missing_ids,
+                matched_numbers=matched_nums,
+                mismatched_numbers=mismatched_nums,
+                reason="; ".join(reasons),
+            )
+
+        checked_tokens = matched_ids + matched_nums
+        return ClaimCheck(
+            case_id=case_id,
+            section="evidence",
+            index=idx,
+            ref=ref,
+            ref_kind="document",
+            query_fn="fraud_policy",
+            claim=claim,
+            entity_ids=entity_ids,
+            status=STATUS_VERIFIED,
+            matched_ids=matched_ids,
+            matched_numbers=matched_nums,
+            reason=f"Verified policy rule {lookup_id} tokens: {checked_tokens}.",
+        )
+
+    # 2. Brief known fraud pattern: document:brief#known-fraud-patterns/<pattern>
+    if target.startswith("brief#known-fraud-patterns/"):
+        pat_name = target.split("/", 1)[1].strip()
+        if pat_name not in patterns_map:
+            return ClaimCheck(
+                case_id=case_id,
+                section="evidence",
+                index=idx,
+                ref=ref,
+                ref_kind="document",
+                query_fn="brief_patterns",
+                claim=claim,
+                entity_ids=entity_ids,
+                status=STATUS_MISMATCH,
+                missing_ids=[pat_name],
+                reason=f"Pattern {pat_name!r} is not in the documented fraud patterns.",
+            )
+
+        pspec = patterns_map[pat_name]
+        matched_ids = [pat_name]
+        matched_nums: list[str] = []
+        mismatched_nums: list[str] = []
+
+        # Verify any dollar thresholds in the pattern claim match the pattern spec
+        for raw_d, dval in extract_dollars(claim):
+            if round(dval, 2) in pspec["dollars"]:
+                matched_nums.append(raw_d)
+            else:
+                mismatched_nums.append(raw_d)
+
+        # Verify at least one defining keyword of the pattern appears in the paraphrase
+        claim_lower = claim.lower()
+        kw_hits = [kw for kw in pspec["keywords"] if kw in claim_lower]
+        if kw_hits:
+            matched_ids.extend(sorted(kw_hits)[:3])
+        else:
+            return ClaimCheck(
+                case_id=case_id,
+                section="evidence",
+                index=idx,
+                ref=ref,
+                ref_kind="document",
+                query_fn="brief_patterns",
+                claim=claim,
+                entity_ids=entity_ids,
+                status=STATUS_MISMATCH,
+                matched_ids=[pat_name],
+                missing_ids=[f"keywords:{sorted(pspec['keywords'])}"],
+                reason=f"Pattern {pat_name!r} claim contains none of the pattern's defining terms {sorted(pspec['keywords'])}.",
+            )
+
+        if mismatched_nums:
+            return ClaimCheck(
+                case_id=case_id,
+                section="evidence",
+                index=idx,
+                ref=ref,
+                ref_kind="document",
+                query_fn="brief_patterns",
+                claim=claim,
+                entity_ids=entity_ids,
+                status=STATUS_MISMATCH,
+                matched_ids=matched_ids,
+                matched_numbers=matched_nums,
+                mismatched_numbers=mismatched_nums,
+                reason=f"Pattern {pat_name!r} claim has wrong numbers/thresholds: {mismatched_nums}.",
+            )
+
+        return ClaimCheck(
+            case_id=case_id,
+            section="evidence",
+            index=idx,
+            ref=ref,
+            ref_kind="document",
+            query_fn="brief_patterns",
+            claim=claim,
+            entity_ids=entity_ids,
+            status=STATUS_VERIFIED,
+            matched_ids=matched_ids,
+            matched_numbers=matched_nums,
+            reason=f"Verified pattern {pat_name!r} tokens: {matched_ids + matched_nums}.",
+        )
+
+    return ClaimCheck(
+        case_id=case_id,
+        section="evidence",
+        index=idx,
+        ref=ref,
+        ref_kind="document",
+        query_fn="document",
+        claim=claim,
+        entity_ids=entity_ids,
+        status=STATUS_UNVERIFIED,
+        reason="narrative only",
+    )
+
+
+def _verify_evidence_request_claim(
+    case_id: str,
+    idx: int,
+    ref: str,
+    fn_or_target: str,
+    claim: str,
+    entity_ids: list[str],
+    answer: dict[str, Any],
+) -> ClaimCheck:
+    """Verify `evidence_request:<k>` items against Policy §5 (`answer_format.md` line 21:
+    `customer_validation | step_up_auth | analyst_info`) and `next_best_actions.what_changed`."""
+    reqs = answer.get("evidence_requests") or []
+    try:
+        r_idx = int(fn_or_target) - 1
+    except ValueError:
+        return ClaimCheck(
+            case_id=case_id,
+            section="evidence",
+            index=idx,
+            ref=ref,
+            ref_kind="evidence_request",
+            query_fn="evidence_request",
+            claim=claim,
+            entity_ids=entity_ids,
+            status=STATUS_MISMATCH,
+            reason=f"Invalid evidence_request index {fn_or_target!r}.",
+        )
+
+    if not (0 <= r_idx < len(reqs)):
+        return ClaimCheck(
+            case_id=case_id,
+            section="evidence",
+            index=idx,
+            ref=ref,
+            ref_kind="evidence_request",
+            query_fn="evidence_request",
+            claim=claim,
+            entity_ids=entity_ids,
+            status=STATUS_MISMATCH,
+            reason=f"evidence_request:{fn_or_target} out of range (len={len(reqs)}).",
+        )
+
+    req_obj = reqs[r_idx]
+    req_type = str(req_obj.get("type", "") or "").strip()
+    if req_type not in ALLOWED_EVIDENCE_REQUEST_TYPES:
+        return ClaimCheck(
+            case_id=case_id,
+            section="evidence",
+            index=idx,
+            ref=ref,
+            ref_kind="evidence_request",
+            query_fn="evidence_request",
+            claim=claim,
+            entity_ids=entity_ids,
+            status=STATUS_MISMATCH,
+            missing_ids=[req_type],
+            reason=f"Evidence request type {req_type!r} is not allowed by Policy §5 / answer_format.md.",
+        )
+
+    assumed_resp = str(req_obj.get("assumed_response", "") or "").strip()
+    question_txt = str(req_obj.get("question", "") or "").strip()
+    norm_claim = _norm_ws_quotes(claim)
+    norm_resp = _norm_ws_quotes(assumed_resp)
+    norm_q = _norm_ws_quotes(question_txt)
+
+    if norm_resp and norm_resp.lower() not in norm_claim.lower() and norm_q.lower() not in norm_claim.lower():
+        return ClaimCheck(
+            case_id=case_id,
+            section="evidence",
+            index=idx,
+            ref=ref,
+            ref_kind="evidence_request",
+            query_fn="evidence_request",
+            claim=claim,
+            entity_ids=entity_ids,
+            status=STATUS_MISMATCH,
+            matched_ids=[req_type],
+            reason=f"Evidence claim text does not match evidence_requests[{r_idx}] assumed_response.",
+        )
+
+    # Also verify next_best_actions.what_changed before/after probabilities match case.fraud_probability
+    nba = answer.get("next_best_actions") or {}
+    what_changed = str(nba.get("what_changed", "") or "").strip()
+    case_prob = round(float(answer.get("case", {}).get("fraud_probability", 0.0) or 0.0), 2)
+    matched_nums: list[str] = []
+    mismatched_nums: list[str] = []
+
+    m_wc = WHAT_CHANGED_PROB_RE.search(what_changed)
+    if m_wc:
+        p_before = round(float(m_wc.group(1)), 2)
+        p_after = round(float(m_wc.group(2)), 2)
+        if abs(p_after - case_prob) > 0.011:
+            mismatched_nums.append(f"{p_after:.2f} != fraud_probability {case_prob:.2f}")
+        else:
+            matched_nums.extend([f"{p_before:.2f}", f"{p_after:.2f}"])
+        # Check any probability stated inside the claim itself
+        for pm in re.finditer(r"\b(0\.\d+)\b", claim):
+            pval = round(float(pm.group(1)), 2)
+            if abs(pval - p_before) <= 0.011 or abs(pval - p_after) <= 0.011 or pval in POLICY_PROB_CONSTANTS:
+                matched_nums.append(pm.group(1))
+            else:
+                mismatched_nums.append(pm.group(1))
+
+    for raw_d, _ in extract_dollars(claim):
+        matched_nums.append(raw_d)
+
+    if mismatched_nums:
+        return ClaimCheck(
+            case_id=case_id,
+            section="evidence",
+            index=idx,
+            ref=ref,
+            ref_kind="evidence_request",
+            query_fn="evidence_request",
+            claim=claim,
+            entity_ids=entity_ids,
+            status=STATUS_MISMATCH,
+            matched_ids=[req_type],
+            matched_numbers=matched_nums,
+            mismatched_numbers=mismatched_nums,
+            reason=f"Evidence request probability mismatch against what_changed / fraud_probability: {mismatched_nums}",
+        )
+
+    return ClaimCheck(
+        case_id=case_id,
+        section="evidence",
+        index=idx,
+        ref=ref,
+        ref_kind="evidence_request",
+        query_fn="evidence_request",
+        claim=claim,
+        entity_ids=entity_ids,
+        status=STATUS_VERIFIED,
+        matched_ids=[req_type],
+        matched_numbers=matched_nums,
+        reason=f"Verified evidence_request:{fn_or_target} type={req_type!r}, response text, and what_changed probabilities {matched_nums}.",
     )
 
 
@@ -895,82 +1530,24 @@ def verify_evidence_item(case_id: str, idx: int, ev: dict[str, Any], answer: dic
         )
 
     if ref_kind == "evidence_request":
-        reqs = answer.get("evidence_requests") or []
-        pool = ReRunPool()
-        try:
-            r_idx = int(fn_or_target) - 1
-            if 0 <= r_idx < len(reqs):
-                req_obj = reqs[r_idx]
-                resp_txt = str(req_obj.get("assumed_response", "")) + " " + str(req_obj.get("question", ""))
-                for _, dval in extract_dollars(resp_txt):
-                    pool.dollars.add(round(dval, 2))
-                for _, cval in extract_int_counts(resp_txt):
-                    pool.counts.add(cval)
-                for cid in re.findall(r"\bC\d{5}-K\d+\b", resp_txt):
-                    pool.ids.add(cid)
-                return _evaluate_claim_against_pool(
-                    case_id=case_id,
-                    section="evidence",
-                    index=idx,
-                    ref=ref,
-                    ref_kind=ref_kind,
-                    query_fn="evidence_request",
-                    claim=claim,
-                    entity_ids=entity_ids,
-                    pool=pool,
-                    strict_dollars=False,
-                    strict_counts=False,
-                )
-        except ValueError:
-            pass
-        return ClaimCheck(
+        return _verify_evidence_request_claim(
             case_id=case_id,
-            section="evidence",
-            index=idx,
+            idx=idx,
             ref=ref,
-            ref_kind=ref_kind,
-            query_fn="evidence_request",
+            fn_or_target=fn_or_target,
             claim=claim,
             entity_ids=entity_ids,
-            status=STATUS_UNVERIFIED,
-            unverified_numbers=[r for r, _ in extract_dollars(claim)] + [r for r, _ in extract_int_counts(claim)],
-            reason="Simulated evidence_request response with no external query to verify against.",
+            answer=answer,
         )
 
     if ref_kind == "document":
-        # Document/policy citations carry no entity_ids and cite policy prose
-        unv = [r for r, _ in extract_dollars(claim)] + [r for r, _ in extract_int_counts(claim)]
-        if entity_ids:
-            # If a document claim claims specific entity_ids, check if they exist in the case
-            tx_idx = _get_tx_indexed()
-            pool = ReRunPool()
-            for eid in entity_ids:
-                if eid.isdigit() and int(eid) in tx_idx.index:
-                    pool.ids.add(eid)
-            return _evaluate_claim_against_pool(
-                case_id=case_id,
-                section="evidence",
-                index=idx,
-                ref=ref,
-                ref_kind=ref_kind,
-                query_fn="document",
-                claim=claim,
-                entity_ids=entity_ids,
-                pool=pool,
-                strict_dollars=False,
-            )
-        return ClaimCheck(
+        return _verify_policy_document_claim(
             case_id=case_id,
-            section="evidence",
-            index=idx,
+            idx=idx,
             ref=ref,
-            ref_kind=ref_kind,
-            query_fn="document",
+            target=fn_or_target,
             claim=claim,
             entity_ids=entity_ids,
-            status=STATUS_UNVERIFIED,
-            unverified_numbers=unv,
-            reason="Static policy/brief document reference (no entity IDs or query re-run).",
         )
 
     return ClaimCheck(
@@ -1018,21 +1595,248 @@ def _split_sar_sentences(narrative: str) -> list[tuple[str, str, list[str]]]:
     return out
 
 
-def verify_sar_claims(case_id: str, answer: dict[str, Any]) -> list[ClaimCheck]:
-    sar = answer.get("sar") or {}
-    if not isinstance(sar, dict):
-        return []
-    checks: list[ClaimCheck] = []
-    tx_idx = _get_tx_indexed()
-    store = _get_store()
-    ctx, _ = _build_case_ctx(case_id, store)
-
-    #Build as-of pool for the case's affected episode + card baseline + connected cards + prior cases
-    pool = ReRunPool()
-    pool.ids.add(ctx.card_id)
-    pool.ids.add(ctx.customer_id)
-    pool.ids.add(case_id)
+def _verify_policy_reason_claim(
+    case_id: str,
+    section: str,
+    index: int,
+    ref: str,
+    ref_kind: str,
+    query_fn: str,
+    claim_text: str,
+    reason_text: str,
+    answer: dict[str, Any],
+    pool: ReRunPool,
+    action_str: str = "",
+    route_str: str = "",
+    phase: str = "",
+) -> ClaimCheck:
+    """Verify an NBA action/route/reason or non-filed SAR policy reason against:
+    - Policy rules (`R1`..`R10`, `§0`, `§3a`, `§3b`, `§5`, `§6`, etc.) in `fraud_policy.md`
+    - Policy thresholds (`$100`, `$500`, `$1,000`, `$2,500`, `0.15`, `0.30`, `0.70`, `0.85`, `24h`, `72h`)
+    - Case numbers:
+      * `initial` NBA reasons use pre-request probability (first number in `what_changed`),
+        `final` NBA reasons and SAR reasons use `case.fraud_probability` (or second number in `what_changed`).
+      * Exposure numbers in reasons match `case.exposure_usd` or any subset/prefix sum of the
+        affected or card-window transactions (`pool.dollars`).
+    - Approval routing (`auto`, `L1`, `L2`) via `assay.policy.route_for`.
+    """
+    rules_map = _load_policy_rules()
     case_d = answer.get("case") or {}
+    exposure = round(float(case_d.get("exposure_usd", 0.0) or 0.0), 2)
+    final_prob = round(float(case_d.get("fraud_probability", 0.0) or 0.0), 2)
+
+    nba = answer.get("next_best_actions") or {}
+    what_changed = str(nba.get("what_changed", "") or "")
+    init_prob = final_prob
+    m_wc = WHAT_CHANGED_PROB_RE.search(what_changed)
+    if m_wc:
+        init_prob = round(float(m_wc.group(1)), 2)
+        final_prob = round(float(m_wc.group(2)), 2)
+
+    if phase == "initial":
+        allowed_case_probs = {init_prob, final_prob}
+    elif phase == "final":
+        allowed_case_probs = {final_prob}
+    else:
+        allowed_case_probs = {final_prob, init_prob}
+
+    allowed_case_dollars = {exposure} | pool.dollars
+
+    matched_ids: list[str] = []
+    missing_ids: list[str] = []
+    matched_nums: list[str] = []
+    mismatched_nums: list[str] = []
+
+    # 1. If this is an NBA item, verify Action and Route via assay.policy.route_for
+    if action_str:
+        try:
+            act_enum = Action(action_str)
+            matched_ids.append(action_str)
+            # For BLOCK_CARD, route depends on the episode exposure at that stage
+            valid_routes = {route_for(act_enum, exposure).value}
+            for d_cand in allowed_case_dollars:
+                valid_routes.add(route_for(act_enum, d_cand).value)
+            if route_str and route_str not in valid_routes:
+                missing_ids.append(f"route={route_str!r}!=expected({sorted(valid_routes)})")
+            elif route_str:
+                matched_ids.append(f"route:{route_str}")
+        except ValueError:
+            missing_ids.append(f"unknown_action:{action_str}")
+
+    # 2. Extract cited rule IDs (e.g. R1..R10, §3a, §6) and verify they exist in fraud_policy.md
+    cited_rules = extract_rule_ids(reason_text)
+    rule_dollars: set[float] = set()
+    rule_probs: set[float] = set()
+    rule_hours: set[int] = set()
+    for rid in cited_rules:
+        lookup_id = rid.upper() if rid.upper().startswith("R") else rid
+        if lookup_id in rules_map:
+            matched_ids.append(lookup_id)
+            rule_dollars |= rules_map[lookup_id]["dollars"]
+            rule_probs |= rules_map[lookup_id]["probs"]
+            rule_hours |= rules_map[lookup_id]["hours"]
+        else:
+            missing_ids.append(rid)
+
+    # Remove shared_origin description substrings (if present) before checking policy thresholds
+    clean_reason = reason_text
+    if "activity connects to " in clean_reason:
+        clean_reason = re.sub(
+            r"activity connects to .+?(?=;\s*the pattern is|\.\s*$)",
+            "activity connects to shared_origin",
+            clean_reason,
+        )
+    if "every card sharing " in clean_reason and " goes under monitoring" in clean_reason:
+        clean_reason = re.sub(
+            r"every card sharing .+? goes under monitoring",
+            "every card sharing shared_origin goes under monitoring",
+            clean_reason,
+        )
+    if "several cards show fraud from the same " in clean_reason:
+        clean_reason = re.sub(
+            r"several cards show fraud from the same .+",
+            "several cards show fraud from the same shared_origin.",
+            clean_reason,
+        )
+
+    # 3. Verify dollar amounts in clean_reason
+    # Distinguish threshold phrases ("exceeds $500", "under $1,000", "above the $100 threshold")
+    # from exposure/purchase values ("exposure $881.55", "exposure $2,189.02")
+    for m_d in DOLLAR_RE.finditer(clean_reason):
+        raw_d = "$" + m_d.group(1)
+        dval = round(float(m_d.group(1).replace(",", "")), 2)
+        prefix_before = clean_reason[max(0, m_d.start() - 28) : m_d.start()].lower()
+        suffix_after = clean_reason[m_d.end() : min(len(clean_reason), m_d.end() + 18)].lower()
+
+        is_exposure_value = bool(re.search(r"exposure\s+(?:of\s+)?$", prefix_before))
+        is_threshold_value = (not is_exposure_value) and bool(
+            re.search(r"(?:exceeds|under|over|above|below|threshold)\s*(?:the\s*)?$", prefix_before)
+            or re.search(r"^\s*threshold", suffix_after)
+        )
+
+        if is_threshold_value:
+            expected_thresh = rule_dollars if rule_dollars else POLICY_DOLLAR_CONSTANTS
+            if dval in expected_thresh:
+                matched_nums.append(raw_d)
+            else:
+                mismatched_nums.append(raw_d)
+        elif is_exposure_value:
+            if any(abs(dval - p) <= 0.02 for p in allowed_case_dollars):
+                matched_nums.append(raw_d)
+            else:
+                mismatched_nums.append(raw_d)
+        else:
+            if any(abs(dval - p) <= 0.02 for p in allowed_case_dollars) or dval in (rule_dollars or POLICY_DOLLAR_CONSTANTS):
+                matched_nums.append(raw_d)
+            else:
+                mismatched_nums.append(raw_d)
+
+    # 4. Verify probability / decimal numbers (0.XX) in clean_reason
+    for m_p in re.finditer(r"\b(0\.\d+)\b", clean_reason):
+        raw_p = m_p.group(1)
+        pval = round(float(raw_p), 2)
+        prefix_before = clean_reason[max(0, m_p.start() - 28) : m_p.start()].lower()
+        suffix_after = clean_reason[m_p.end() : min(len(clean_reason), m_p.end() + 16)].lower()
+
+        is_case_prob_value = bool(re.search(r"probability\s+(?:is\s+|of\s+)?$", prefix_before))
+        is_threshold_prob = (not is_case_prob_value) and bool(
+            re.search(
+                r"(?:below|above|reaches|between|outside|at\s+or\s+above|at\s+or\s+below|<|>|<=|>=|-)\s*$",
+                prefix_before,
+            )
+            or re.search(r"^\s*(?:and|-)\s*0\.\d+", suffix_after)
+        )
+
+        if is_case_prob_value:
+            if any(abs(pval - cp) <= 0.011 for cp in allowed_case_probs):
+                matched_nums.append(raw_p)
+            else:
+                mismatched_nums.append(raw_p)
+        elif is_threshold_prob:
+            expected_probs = (rule_probs | POLICY_PROB_CONSTANTS) if rule_probs else POLICY_PROB_CONSTANTS
+            if pval in expected_probs:
+                matched_nums.append(raw_p)
+            else:
+                mismatched_nums.append(raw_p)
+        else:
+            if any(abs(pval - cp) <= 0.011 for cp in allowed_case_probs) or pval in (rule_probs | POLICY_PROB_CONSTANTS):
+                matched_nums.append(raw_p)
+            else:
+                mismatched_nums.append(raw_p)
+
+    # 5. Verify hour thresholds (e.g. "24 hours", "72 hours") if cited rule specifies hours
+    for hm in re.finditer(r"\b(\d+)\s+hours?\b", clean_reason, flags=re.IGNORECASE):
+        hval = int(hm.group(1))
+        if not rule_hours or hval in rule_hours:
+            matched_nums.append(f"{hval} hours")
+        else:
+            mismatched_nums.append(f"{hval} hours")
+
+    # 6. Verify contextual integer counts (e.g. "16 card(s)")
+    for raw_c, cval in extract_int_counts(clean_reason):
+        if cval in pool.counts or cval in (1, 2, 3):
+            matched_nums.append(raw_c)
+        else:
+            mismatched_nums.append(raw_c)
+
+    if missing_ids or mismatched_nums:
+        reasons: list[str] = []
+        if missing_ids:
+            reasons.append(f"invalid rule/route/action: {missing_ids}")
+        if mismatched_nums:
+            reasons.append(f"mismatched threshold or case numbers: {mismatched_nums}")
+        return ClaimCheck(
+            case_id=case_id,
+            section=section,
+            index=index,
+            ref=ref,
+            ref_kind=ref_kind,
+            query_fn=query_fn,
+            claim=claim_text,
+            entity_ids=[],
+            status=STATUS_MISMATCH,
+            matched_ids=matched_ids,
+            missing_ids=missing_ids,
+            matched_numbers=matched_nums,
+            mismatched_numbers=mismatched_nums,
+            reason="; ".join(reasons),
+        )
+
+    if cited_rules or matched_nums or matched_ids:
+        return ClaimCheck(
+            case_id=case_id,
+            section=section,
+            index=index,
+            ref=ref,
+            ref_kind=ref_kind,
+            query_fn=query_fn,
+            claim=claim_text,
+            entity_ids=[],
+            status=STATUS_VERIFIED,
+            matched_ids=matched_ids,
+            matched_numbers=matched_nums,
+            reason=f"Verified policy reason tokens: ids={matched_ids}, numbers={matched_nums}.",
+        )
+
+    return ClaimCheck(
+        case_id=case_id,
+        section=section,
+        index=index,
+        ref=ref,
+        ref_kind=ref_kind,
+        query_fn=query_fn,
+        claim=claim_text,
+        entity_ids=[],
+        status=STATUS_UNVERIFIED,
+        reason="narrative only",
+    )
+
+
+def _populate_case_exposure_subsets(ctx: CaseCtx, case_d: dict[str, Any], pool: ReRunPool) -> None:
+    """Populate `pool.dollars` with subset/prefix sums of affected transactions and recent
+    card transactions so stage-specific episode exposures in initial/final NBA reasons can
+    be verified against `tx_all()`."""
+    tx_idx = _get_tx_indexed()
     aff_ids = [
         int(x)
         for x in (case_d.get("affected_txn_ids") or [])
@@ -1042,9 +1846,37 @@ def verify_sar_claims(case_id: str, answer: dict[str, Any]) -> list[ClaimCheck]:
     sub = sub[sub["t"] <= ctx.opened_at]
     _populate_pool_from_tx_df(sub, pool)
     if not sub.empty:
+        amts_list = [float(a) for a in sub["amount"].dropna().abs().tolist()]
+        _add_subset_sums(amts_list, pool.dollars)
         first_t = sub["t"].min()
         prior = ctx.tx[(ctx.tx["card_id"] == ctx.card_id) & (ctx.tx["t"] < first_t)]
         _populate_pool_from_tx_df(prior, pool)
+
+    # Also include recent card window transactions (up to 30d before opened_at) for stage-specific episodes
+    card_tx = ctx.tx[ctx.tx["card_id"] == ctx.card_id].sort_values("t", kind="stable")
+    if not card_tx.empty:
+        recent_card = card_tx[card_tx["t"] >= (ctx.opened_at - pd.Timedelta(days=30))]
+        _populate_pool_from_tx_df(recent_card, pool)
+        recent_amts = [float(a) for a in recent_card["amount"].dropna().abs().tolist()]
+        _add_subset_sums(recent_amts[-14:], pool.dollars)
+
+
+def verify_sar_claims(case_id: str, answer: dict[str, Any]) -> list[ClaimCheck]:
+    sar = answer.get("sar") or {}
+    if not isinstance(sar, dict):
+        return []
+    checks: list[ClaimCheck] = []
+    store = _get_store()
+    ctx, _ = _build_case_ctx(case_id, store)
+
+    # Build as-of pool for the case's affected episode + card baseline + connected cards + prior cases
+    pool = ReRunPool()
+    pool.ids.add(ctx.card_id)
+    pool.ids.add(ctx.customer_id)
+    pool.ids.add(case_id)
+    case_d = answer.get("case") or {}
+    _populate_case_exposure_subsets(ctx, case_d, pool)
+
     for cc_id in case_d.get("connected_card_ids") or []:
         pool.ids.add(str(cc_id))
         conn_tx = ctx.tx[ctx.tx["card_id"] == str(cc_id)]
@@ -1059,17 +1891,18 @@ def verify_sar_claims(case_id: str, answer: dict[str, Any]) -> list[ClaimCheck]:
         reason_txt = str(sar.get("reason", "") or "").strip()
         if reason_txt:
             checks.append(
-                _evaluate_claim_against_pool(
+                _verify_policy_reason_claim(
                     case_id=case_id,
                     section="sar",
                     index=0,
                     ref="sar_citation:reason",
                     ref_kind="sar_citation",
                     query_fn="sar_required",
-                    claim=reason_txt,
-                    entity_ids=[],
+                    claim_text=reason_txt,
+                    reason_text=reason_txt,
+                    answer=answer,
                     pool=pool,
-                    strict_dollars=True,
+                    phase="final",
                 )
             )
         return checks
@@ -1115,7 +1948,6 @@ def verify_nba_claims(case_id: str, answer: dict[str, Any]) -> list[ClaimCheck]:
     nba = answer.get("next_best_actions") or {}
     if not isinstance(nba, dict):
         return []
-    tx_idx = _get_tx_indexed()
     store = _get_store()
     ctx, _ = _build_case_ctx(case_id, store)
     case_d = answer.get("case") or {}
@@ -1124,20 +1956,10 @@ def verify_nba_claims(case_id: str, answer: dict[str, Any]) -> list[ClaimCheck]:
     pool.ids.add(ctx.card_id)
     pool.ids.add(ctx.customer_id)
     pool.ids.add(case_id)
-    aff_ids = [
-        int(x)
-        for x in (case_d.get("affected_txn_ids") or [])
-        if str(x).isdigit() and int(x) in tx_idx.index
-    ]
-    sub = tx_idx.loc[aff_ids] if aff_ids else tx_idx.iloc[:0]
-    sub = sub[sub["t"] <= ctx.opened_at]
-    _populate_pool_from_tx_df(sub, pool)
-    if not sub.empty:
-        first_t = sub["t"].min()
-        prior = ctx.tx[(ctx.tx["card_id"] == ctx.card_id) & (ctx.tx["t"] < first_t)]
-        _populate_pool_from_tx_df(prior, pool)
+    _populate_case_exposure_subsets(ctx, case_d, pool)
+
     pool.counts.add(len(case_d.get("connected_card_ids") or []))
-    # Also include counts from evidence items (e.g., FanIn 14 connected cards)
+    # Also include counts and dollar amounts attested in evidence items
     for ev in case_d.get("evidence") or []:
         for _, cval in extract_int_counts(str(ev.get("claim", ""))):
             pool.counts.add(cval)
@@ -1150,22 +1972,25 @@ def verify_nba_claims(case_id: str, answer: dict[str, Any]) -> list[ClaimCheck]:
         for item in nba.get(phase) or []:
             if not isinstance(item, dict):
                 continue
-            act = str(item.get("action", "") or "")
-            reason = str(item.get("reason", "") or "")
+            act = str(item.get("action", "") or "").strip()
+            route = str(item.get("route", "") or "").strip()
+            reason = str(item.get("reason", "") or "").strip()
             ref = f"nba:{phase}:{act}"
             checks.append(
-                _evaluate_claim_against_pool(
+                _verify_policy_reason_claim(
                     case_id=case_id,
                     section="next_best_actions",
                     index=idx,
                     ref=ref,
                     ref_kind="nba",
                     query_fn="policy_action",
-                    claim=f"{act}: {reason}",
-                    entity_ids=[],
+                    claim_text=f"{act}: {reason}",
+                    reason_text=reason,
+                    answer=answer,
                     pool=pool,
-                    strict_dollars=True,
-                    strict_counts=False,
+                    action_str=act,
+                    route_str=route,
+                    phase=phase,
                 )
             )
             idx += 1
@@ -1336,6 +2161,26 @@ def verify_grader_numbers(case_id: str, answer: dict[str, Any]) -> list[ClaimChe
     return checks
 
 
+def _compute_c2_baseline_counts_for_case(case_id: str, rep: CaseReport) -> dict[str, int]:
+    """Return C2 (before C8) status counts for a case."""
+    if case_id in BASELINE_C2_PER_CASE:
+        return dict(BASELINE_C2_PER_CASE[case_id])
+    c: Counter[str] = Counter()
+    for chk in rep.all_checks:
+        if chk.ref_kind == "document" and not chk.entity_ids:
+            c[STATUS_UNVERIFIED] += 1
+        elif chk.ref_kind in ("nba", "sar_citation") and not chk.entity_ids and not extract_dollars(chk.claim):
+            c[STATUS_UNVERIFIED] += 1
+        else:
+            c[chk.status] += 1
+    return {
+        STATUS_VERIFIED: c.get(STATUS_VERIFIED, 0),
+        STATUS_MISMATCH: c.get(STATUS_MISMATCH, 0),
+        STATUS_UNVERIFIED: c.get(STATUS_UNVERIFIED, 0),
+        STATUS_UNRESOLVABLE: c.get(STATUS_UNRESOLVABLE, 0),
+    }
+
+
 def verify_case_file(path: Path) -> CaseReport:
     ans = json.loads(path.read_text(encoding="utf-8"))
     case_id = str(ans.get("case_id") or path.stem)
@@ -1349,6 +2194,7 @@ def verify_case_file(path: Path) -> CaseReport:
     report.claims.extend(verify_sar_claims(case_id, ans))
     report.claims.extend(verify_nba_claims(case_id, ans))
     report.grader_checks.extend(verify_grader_numbers(case_id, ans))
+    report.c2_before_counts = _compute_c2_baseline_counts_for_case(case_id, report)
     return report
 
 
@@ -1359,10 +2205,13 @@ def verify_directory(answers_dir: str | Path = DEFAULT_ANSWERS_DIR) -> dict[str,
     case_reports: list[CaseReport] = []
     ref_kind_counts: Counter[str] = Counter()
     overall_counts: Counter[str] = Counter()
+    before_totals: Counter[str] = Counter()
 
     for f in files:
         rep = verify_case_file(f)
         case_reports.append(rep)
+        for k, v in rep.c2_before_counts.items():
+            before_totals[k] += v
         for chk in rep.all_checks:
             ref_kind_counts[chk.ref_kind] += 1
             overall_counts[chk.status] += 1
@@ -1374,9 +2223,22 @@ def verify_directory(answers_dir: str | Path = DEFAULT_ANSWERS_DIR) -> dict[str,
         if chk.status == STATUS_MISMATCH
     ]
 
+    unverified = [
+        chk.to_dict()
+        for rep in case_reports
+        for chk in rep.all_checks
+        if chk.status == STATUS_UNVERIFIED
+    ]
+
     return {
         "answers_dir": str(d),
         "n_cases": len(case_reports),
+        "before_totals": {
+            STATUS_VERIFIED: before_totals.get(STATUS_VERIFIED, 0),
+            STATUS_MISMATCH: before_totals.get(STATUS_MISMATCH, 0),
+            STATUS_UNVERIFIED: before_totals.get(STATUS_UNVERIFIED, 0),
+            STATUS_UNRESOLVABLE: before_totals.get(STATUS_UNRESOLVABLE, 0),
+        },
         "totals": {
             STATUS_VERIFIED: overall_counts.get(STATUS_VERIFIED, 0),
             STATUS_MISMATCH: overall_counts.get(STATUS_MISMATCH, 0),
@@ -1387,6 +2249,7 @@ def verify_directory(answers_dir: str | Path = DEFAULT_ANSWERS_DIR) -> dict[str,
         "cases": [
             {
                 "case_id": rep.case_id,
+                "before_counts": rep.c2_before_counts,
                 "counts": rep.status_counts(),
                 "n_evidence": sum(1 for c in rep.claims if c.section == "evidence"),
                 "n_sar": sum(1 for c in rep.claims if c.section == "sar"),
@@ -1397,11 +2260,13 @@ def verify_directory(answers_dir: str | Path = DEFAULT_ANSWERS_DIR) -> dict[str,
             for rep in case_reports
         ],
         "mismatches": mismatches,
+        "unverified": unverified,
     }
 
 
 def render_markdown_report(summary: dict[str, Any]) -> str:
     totals = summary["totals"]
+    btotals = summary.get("before_totals") or BASELINE_C2_TOTALS
     lines = [
         "# Claim Verification Report (`assay.r2.verify_claims`)",
         "",
@@ -1409,10 +2274,10 @@ def render_markdown_report(summary: dict[str, Any]) -> str:
         "",
         f"- **Answers directory:** `{summary['answers_dir']}`",
         f"- **Cases verified:** `{summary['n_cases']}`",
-        f"- **VERIFIED:** `{totals[STATUS_VERIFIED]}`",
-        f"- **MISMATCH:** `{totals[STATUS_MISMATCH]}`",
-        f"- **UNVERIFIED:** `{totals[STATUS_UNVERIFIED]}`",
-        f"- **UNRESOLVABLE:** `{totals[STATUS_UNRESOLVABLE]}`",
+        f"- **VERIFIED (Before -> After):** `{btotals[STATUS_VERIFIED]} -> {totals[STATUS_VERIFIED]}`",
+        f"- **MISMATCH (Before -> After):** `{btotals[STATUS_MISMATCH]} -> {totals[STATUS_MISMATCH]}`",
+        f"- **UNVERIFIED (Before -> After):** `{btotals[STATUS_UNVERIFIED]} -> {totals[STATUS_UNVERIFIED]}`",
+        f"- **UNRESOLVABLE (Before -> After):** `{btotals[STATUS_UNRESOLVABLE]} -> {totals[STATUS_UNRESOLVABLE]}`",
         "",
         "## 1. Enumerated Reference Kinds",
         "",
@@ -1424,15 +2289,17 @@ def render_markdown_report(summary: dict[str, Any]) -> str:
 
     lines.extend([
         "",
-        "## 2. Per-Case Verification Counts",
+        "## 2. Per-Case Verification Counts (Before -> After C8)",
         "",
-        "| Case ID | Evidence | SAR | NBA | Grader | VERIFIED | MISMATCH | UNVERIFIED | UNRESOLVABLE |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Case ID | Evidence | SAR | NBA | Grader | Before (V / U) | VERIFIED | MISMATCH | UNVERIFIED | UNRESOLVABLE |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ])
     for c in summary["cases"]:
         cnt = c["counts"]
+        bcnt = c.get("before_counts") or {STATUS_VERIFIED: 0, STATUS_UNVERIFIED: 0}
         lines.append(
             f"| `{c['case_id']}` | {c['n_evidence']} | {c['n_sar']} | {c['n_nba']} | {c['n_grader']} | "
+            f"{bcnt[STATUS_VERIFIED]} / {bcnt[STATUS_UNVERIFIED]} | "
             f"{cnt[STATUS_VERIFIED]} | {cnt[STATUS_MISMATCH]} | {cnt[STATUS_UNVERIFIED]} | {cnt[STATUS_UNRESOLVABLE]} |"
         )
 
@@ -1442,12 +2309,24 @@ def render_markdown_report(summary: dict[str, Any]) -> str:
         "",
     ])
     if not summary["mismatches"]:
-        lines.append("None (`0` mismatches across all re-run queries, SAR citations, NBA reasons, and grader checks).")
+        lines.append("None (`0` mismatches across all re-run queries, SAR citations, NBA reasons, document rules, and grader checks).")
     else:
         for m in summary["mismatches"]:
             lines.append(
                 f"- **`{m['case_id']}`** [`{m['section']}#{m['index']}`] `{m['ref']}`: {m['reason']}  \n"
                 f"  Claim: *{m['claim']}*"
+            )
+
+    if summary.get("unverified"):
+        lines.extend([
+            "",
+            "## 4. Remaining Unverified Claims",
+            "",
+        ])
+        for u in summary["unverified"]:
+            lines.append(
+                f"- **`{u['case_id']}`** [`{u['section']}#{u['index']}`] `{u['ref']}`: {u['reason']}  \n"
+                f"  Claim: *{u['claim']}*"
             )
     lines.append("")
     return "\n".join(lines)
@@ -1456,7 +2335,7 @@ def render_markdown_report(summary: dict[str, Any]) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="python -m assay.r2.verify_claims",
-        description="Re-execute every attested query ref and verify all entity IDs, numbers, and grader fields.",
+        description="Re-execute every attested query ref and verify all entity IDs, numbers, policy rules, and grader fields.",
     )
     ap.add_argument("--answers", default=str(DEFAULT_ANSWERS_DIR), help="Directory of <case_id>.json answer files")
     ap.add_argument("--json", default="", help="Optional path to write full JSON report")

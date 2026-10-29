@@ -12,7 +12,7 @@ until it has been measured, and each gets exactly the vote its measurement earns
   still links the case to other cards for §3a, but weighs 1.0. Rarity never becomes a weight.
 - **Escalate, never decide**: untrusted text and conflicting records only send a case to a person.
 
-Every finding carries a re-runnable attestation. `verify_claims` re-executes all 174 of them: 0
+Every finding carries a re-runnable attestation. `verify_claims` checks all 325 of them: 0
 mismatches.
 
 ## 2. On the exam

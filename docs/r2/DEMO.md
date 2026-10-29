@@ -19,7 +19,7 @@ model touches a number, an ID or an action: zero tokens."
 3. Point at the `ref` of one finding and say "this is re-runnable". For a ring (HHF-005) it is
    `query:r2_ring_wcc(...)` running inside TigerGraph; for a cohort (HHF-004, 006) it is
    `query:r2_micro_drip_cohort(...)` or `query:r2_recipient_fanin(...)`. Then press **Re-run every
-   claim**: all 174 claims across the 18 answers re-execute, 0 mismatches (`GET /verify/{case_id}` for
+   claim**: all 325 claims across the 18 answers are checked, 0 mismatches (`GET /verify/{case_id}` for
    one case).
 4. Actions: `auto` ones executed, `L1`/`L2` ones **awaiting approval**. Type `demo-l1-token` against an
    L2 action (FILE_REPORT, if present) to get a 403, then `demo-l2-token` to approve it with a 200.
@@ -39,7 +39,7 @@ failing tool named, and no answer. Toggle it off and it's clean again. Mention t
 84 checks: down, timeout, garbage, hostile input, wrong role, twice-run, kill mid-write, a missing startup file (exit 3) and a failed TigerGraph write-back ("case NOT saved").
 
 ## 4:00–5:00 · Numbers that match
-README table: grader 18/18 clean, drills 84/84, 174 claims re-run with 0 mismatches, graph and local decisions identical on 18/18. Then one measured
+README table: grader 18/18 clean, drills 84/84, 325 claims checked with 0 mismatches, graph and local decisions identical on 18/18. Then one measured
 negative. Uncapped dispute episodes lost to "flagged transaction only" (0.4930 vs 0.5498), so we
 capped them at 1h (0.6266), and the shipped 48h new-device extension reaches 0.6372 exact match
 (`docs/r2/N7_dispute_episode.md`).
