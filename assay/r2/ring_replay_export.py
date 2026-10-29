@@ -349,11 +349,11 @@ def export_exam_case_rings(
         cid = str(row.case_id)
         card = str(row.card_id)
         flagged_tid = int(row.flagged_txn_id)
-        # Resolve card mismatch if flagged_txn_id belongs to another card id of same customer (e.g. HHF-011)
-        if flagged_tid in tx_by_id.index:
-            actual_card = str(tx_by_id.at[flagged_tid, "card_id"])
-        else:
-            actual_card = card
+        # A case naming a card the bank's record disagrees with (HHF-011: K1 vs K2) is a data-quality
+        # flag the agent leaves uncertain; replaying the bank's card would show a ring the case never names
+        if flagged_tid in tx_by_id.index and str(tx_by_id.at[flagged_tid, "card_id"]) != card:
+            continue
+        actual_card = card
 
         opened_at = pd.to_datetime(row.opened_at)
         out_file = out_base / f"{cid}.json"
