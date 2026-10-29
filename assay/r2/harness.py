@@ -428,6 +428,9 @@ def write_answer(result: RunResult, out_dir: str | Path, case_id: str | None = N
             os.replace(tmp_file, target_file)
         finally:
             tmp_file.unlink(missing_ok=True)
+        # a temp file left by an earlier killed run of this case is debris, never an answer (chaos drill C9)
+        for stale in out_path.glob(f"{cid}.json.tmp.*"):
+            stale.unlink(missing_ok=True)
         return hashlib.sha256(data_bytes).hexdigest()
     else:
         # Status is INCOMPLETE or REJECTED_INPUT
