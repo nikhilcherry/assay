@@ -3,7 +3,7 @@
 Runs the real agent (R2Investigator + R2LocalStore + memory-slim pattern model)
 end-to-end through the fail-closed execution harness (assay.r2.harness) and the
 server-side approvals app (assay.r2.approvals). Produces a scorecard (JSON +
-Markdown table) covering drills D1 through D9 with attested evidence, expected vs
+Markdown table) covering drills D1 through D10 with attested evidence, expected vs
 observed outcomes, status, error text, and file-write checks.
 
 Memory discipline (< 4 GB peak RSS):
@@ -1348,6 +1348,82 @@ def run_d9_model_provider_and_missing_score(
     return rows
 
 
+# --- D10: data-file loss at startup + graph write-back failure ---------------
+
+
+def run_d10_startup_and_writeback(case_row: pd.Series) -> list[DrillRow]:
+    """(a) A required data file unreadable at startup, (b) TigerGraph write-back failing AFTER the
+    investigation succeeded (ASSAY_TG=1), (c) write-back returning a body without a graph id.
+    All must fail closed: exit 3 / DependencyDown, a message saying the case was NOT saved, no <case>.json."""
+    from unittest import mock
+
+    from assay.r2 import agent as agent_mod
+    from assay.r2 import tg_r2
+    from assay.r2.harness import DependencyDown
+    from assay.r2.store_r2 import case_writer
+
+    cid = str(case_row.case_id)
+    fid = int(case_row.flagged_txn_id)
+    card_id = str(case_row.card_id)
+    rows: list[DrillRow] = []
+
+    # (a) required data file missing at startup -> agent exit 3, no answer file
+    with tempfile.TemporaryDirectory() as td:
+        err = FileNotFoundError("data/stage/r2/tx_all.parquet (injected: file lost)")
+        with mock.patch.object(agent_mod, "get_shared_runtime", side_effect=err):
+            import contextlib
+            import io
+
+            buf = io.StringIO()
+            with contextlib.redirect_stderr(buf):
+                rc = agent_mod.run_agent_case(cid, td)
+        files = sorted(x.name for x in Path(td).iterdir() if not x.name.startswith("."))
+        saved = f"{cid}.json" in files
+        msg = buf.getvalue().strip().splitlines()[-1] if buf.getvalue().strip() else ""
+    ok = rc == 3 and not saved and "FAIL CLOSED [EXIT 3]" in msg and "no answer written" in msg
+    rows.append(
+        DrillRow(
+            drill_id="D10", category="data_dependency_missing", case_id=cid,
+            subcase="startup_data_file_missing_exit3",
+            expected="exit 3 / clear FAIL CLOSED message / no <case>.json",
+            observed=f"exit={rc} / saved={saved}", outcome="PASS" if ok else "FAIL",
+            status="FAILED_CLOSED" if rc == 3 else f"EXIT_{rc}", error_type="FileNotFoundError",
+            error_text=msg, files_written=files, saved_complete_file=saved,
+            attestation=_attest(f"D10 {cid} lost data file at startup: exit {rc}, saved={saved}.", cid,
+                                "D10_startup_data_missing", fid, card_id),
+        )
+    )
+
+    # (b)/(c) graph write-back failure after the ring query succeeded
+    class _Mem:
+        def write_case(self, answer, card_id=""):
+            return "mem-gid"
+
+    answer = {"case_id": cid, "case": {"card_id": card_id}}
+    for sub, patch_kw, exp_text in (
+        ("tg_writeback_down_not_saved", {"side_effect": tg_r2.TigerGraphUnavailableError("injected: graph down")}, "injected"),
+        ("tg_writeback_no_graph_id_not_saved", {"return_value": {}}, "graph_case_id"),
+    ):
+        with mock.patch.dict(os.environ, {"ASSAY_TG": "1"}), mock.patch.object(tg_r2, "write_case", **patch_kw):
+            raised, text, gid = "", "", None
+            try:
+                gid = case_writer(_Mem())(answer, card_id)
+            except DependencyDown as exc:
+                raised, text = type(exc).__name__, str(exc)
+        ok = raised == "DependencyDown" and "NOT saved" in text and exp_text in text and gid is None
+        rows.append(
+            DrillRow(
+                drill_id="D10", category="graph_writeback_failure", case_id=cid, subcase=sub,
+                expected="DependencyDown 'case NOT saved to the TigerGraph graph' (agent maps it to exit 3, no <case>.json)",
+                observed=f"{raised or 'no error'} / gid={gid}", outcome="PASS" if ok else "FAIL",
+                status="FAILED_CLOSED" if ok else "FALSE_SAVED", error_type=raised, error_text=text,
+                files_written=[], saved_complete_file=False,
+                attestation=_attest(f"D10 {cid} {sub}: {raised}.", cid, f"D10_{sub}", fid, card_id),
+            )
+        )
+    return rows
+
+
 # --- Full Battery Runner ----------------------------------------------------
 
 
@@ -1384,6 +1460,7 @@ def run_drill_battery(
         all_rows.extend(run_d7_kill_mid_write(case_row, baseline_res, bug_notes))
         all_rows.extend(run_d8_ledger_tamper(cid))
         all_rows.extend(run_d9_model_provider_and_missing_score(case_row, inv, store, validators))
+        all_rows.extend(run_d10_startup_and_writeback(case_row))
         gc.collect()
 
     passed = sum(1 for r in all_rows if r.outcome == "PASS")

@@ -27,6 +27,7 @@ class TriggerFacts:
     referenced_txn_ids: list[int] = field(default_factory=list)
     stated_amount: float | None = None
     stated_score: float | None = None
+    stated_channel: str | None = None   # 'online' / 'in_person' only; anything else is ignored
     analyst_ask: str | None = None
     claims_of_authority: list[str] = field(default_factory=list)
     injection_spans: list[tuple[int, int, str]] = field(default_factory=list)
@@ -307,6 +308,8 @@ def parse_trigger(trigger_type: str, text: str) -> TriggerFacts:
             facts.referenced_txn_ids = [int(m.group("txn"))]
             facts.stated_amount = float(m.group("amt").replace(",", ""))
             facts.stated_score = float(m.group("score"))
+            chan = re.sub(r"[\s-]+", "_", (m.group("chan") or "").strip().lower())
+            facts.stated_channel = chan if chan in ("online", "in_person") else None
             template_end = m.end()
         else:
             facts.referenced_txn_ids = _extract_txn_ids(clean_norm)

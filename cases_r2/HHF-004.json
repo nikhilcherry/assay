@@ -8,7 +8,24 @@
       "3660259",
       "3660260"
     ],
-    "connected_card_ids": [],
+    "connected_card_ids": [
+      "C00348-K1",
+      "C01326-K2",
+      "C02851-K2",
+      "C03470-K1",
+      "C03611-K2",
+      "C04274-K1",
+      "C04528-K1",
+      "C05083-K1",
+      "C07220-K1",
+      "C08106-K1",
+      "C09471-K2",
+      "C10035-K2",
+      "C11332-K1",
+      "C12966-K1",
+      "C12982-K1",
+      "C13290-K1"
+    ],
     "connected_device_profiles": [],
     "evidence": [
       {
@@ -36,15 +53,117 @@
         "source": "customer"
       },
       {
-        "claim": "Card-not-present fraud: the number used online without the card; amounts and products that don't fit the cardholder, often two to four within 48 hours.",
+        "claim": "Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measured lr=1.00).",
+        "entity_ids": [
+          "3541385",
+          "3550051",
+          "3552439",
+          "3561593",
+          "3562479",
+          "3570422",
+          "3575632",
+          "3579284",
+          "3582214",
+          "3584017",
+          "3584811",
+          "3585960",
+          "3612390",
+          "3615751",
+          "3658223",
+          "3658234",
+          "3658243",
+          "3658350",
+          "3658352",
+          "3658354",
+          "3658357",
+          "3658372",
+          "3658382",
+          "3658388",
+          "3658390",
+          "3658395",
+          "3658398",
+          "3658399",
+          "3660174",
+          "3660175",
+          "3660176",
+          "3660177",
+          "3660188",
+          "3660189",
+          "3660190",
+          "3660191",
+          "3660193",
+          "3660194",
+          "3660195",
+          "3660196",
+          "3660197",
+          "3660203",
+          "3660204",
+          "3660205",
+          "3660206",
+          "3660207",
+          "3660208",
+          "3660209",
+          "3660210",
+          "3660211",
+          "3660213",
+          "3660214",
+          "3660215",
+          "3660216",
+          "3660222",
+          "3660223",
+          "3660224",
+          "3660225",
+          "3660226",
+          "3660227",
+          "3660228",
+          "3660229",
+          "3660230",
+          "3660231",
+          "3660232",
+          "3660233",
+          "3660234",
+          "3660235",
+          "3660236",
+          "3660237",
+          "3660238",
+          "3660239",
+          "3660245",
+          "3660246",
+          "3660247",
+          "3660248",
+          "3660249",
+          "3660255",
+          "3660256",
+          "3660257",
+          "3660258",
+          "3660259",
+          "3660260"
+        ],
+        "ref": "query:rerun_micro_drip_cohort(card_id=C12975-K2, flagged_txn_id=3660260, max_amt=6.5, min_charges=4, min_other_cards=6, min_span_days=7.0, opened_at=2017-01-26 21:09:37, quiet_days=60, window_days=30)",
+        "source": "graph"
+      },
+      {
+        "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
         "entity_ids": [],
-        "ref": "document:brief#known-fraud-patterns/card_not_present_fraud",
+        "ref": "document:brief#known-fraud-patterns/undocumented",
         "source": "document"
       },
       {
         "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
         "entity_ids": [],
         "ref": "document:fraud-policy#R2",
+        "source": "document"
+      },
+      {
+        "claim": "Policy R6: Shared origin: name the shared element, CREATE_CASE, FILE_REPORT, and MONITOR_CONNECTED_CARDS for every card that shares it.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#R6",
+        "source": "document"
+      },
+      {
+        "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#§3a",
         "source": "document"
       },
       {
@@ -60,15 +179,15 @@
     "first_suspicious_txn_id": "3660255",
     "fraud_probability": 0.76,
     "graph_case_id": "ASSAY-HHF-004",
-    "pattern": "card_not_present_fraud",
-    "pattern_description": "",
+    "pattern": "undocumented",
+    "pattern_description": "Device-ring fraud: Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measured lr=1.00)., used on 17 unrelated cards within a month for a few purchases each, every one scoring low on the bank's model. No single card shows a credential or channel change, so it is not account takeover, and the link that makes it fraud is the shared handset across cardholders. Found by traversing from the flagged transaction's device profile to every other card that used it.",
     "similar_prior_cases": [
-      "CC-2396",
-      "CC-4890",
-      "CC-5104"
+      "CC-2971",
+      "CC-2985",
+      "CC-3035"
     ],
     "status": "closed_fraud",
-    "summary": "Card not present fraud on card C12975-K2: 6 transaction(s) from 2017-01-05 to 2017-01-26 totalling $23.99, probability 0.76.",
+    "summary": "Undocumented on card C12975-K2: 6 transaction(s) from 2017-01-05 to 2017-01-26 totalling $23.99, probability 0.76. Linked to 16 other card(s) through Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu.",
     "verdict": "fraud",
     "written_to_graph": true
   },
@@ -86,6 +205,21 @@
         "action": "CREATE_CASE",
         "reason": "R2: a denial requires an internal case with the evidence attached.",
         "route": "auto"
+      },
+      {
+        "action": "MONITOR_CONNECTED_CARDS",
+        "reason": "R6: every card sharing Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu goes under monitoring (16 card(s)).",
+        "route": "auto"
+      },
+      {
+        "action": "FILE_REPORT",
+        "reason": "Policy §3a: fraud is suspected and activity connects to Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu; the pattern is coordinated or undocumented (R9).",
+        "route": "L2"
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category.",
+        "route": "auto"
       }
     ],
     "initial": [
@@ -98,19 +232,57 @@
         "action": "CREATE_CASE",
         "reason": "R2: a denial requires an internal case with the evidence attached.",
         "route": "auto"
+      },
+      {
+        "action": "MONITOR_CONNECTED_CARDS",
+        "reason": "R6: every card sharing Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu goes under monitoring (16 card(s)).",
+        "route": "auto"
+      },
+      {
+        "action": "FILE_REPORT",
+        "reason": "Policy §3a: fraud is suspected and activity connects to Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu; the pattern is coordinated or undocumented (R9).",
+        "route": "L2"
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category.",
+        "route": "auto"
       }
     ],
     "what_changed": "nothing"
   },
   "sar": {
-    "activity_dates": [],
-    "file": false,
-    "narrative": "",
-    "reason": "Policy §3a: fraud is suspected (probability 0.76), but exposure $23.99 does not exceed $1,000.00, no shared device/region/card link was found, and the pattern is documented and uncoordinated.",
-    "subjects": [],
-    "total_amount_usd": 0
+    "activity_dates": [
+      "2017-01-05",
+      "2017-01-26"
+    ],
+    "file": true,
+    "narrative": "Between 2017-01-05 (2017-01-05 11:33:02 UTC) and 2017-01-26 (2017-01-26 15:09:37 UTC), card C12975-K2 held by customer C12975 recorded 6 unauthorized transaction(s) totaling $23.99 USD (assessed fraud probability 0.76) [T:3660255,3660256,3660257,3660258,3660259,3660260 | C:C12975-K2]. The unauthorized sequence began with transaction 3660255 at 2017-01-05 11:33:02 UTC for $3.51 USD and concluded with transaction 3660260 at 2017-01-26 15:09:37 UTC for $2.90 USD, with individual transaction amounts ranging from $2.66 USD to $5.18 USD [T:3660255,3660256,3660257,3660258,3660259,3660260 | C:C12975-K2]. The activity occurred via online channel(s) under product code(s) C, billed to region code(s) 191, 337, and originated from device profile(s): rv:11.0 | ? | ie 11.0 for desktop | ? [T:3660255,3660256,3660257,3660258,3660259,3660260 | C:C12975-K2]. The investigation examined flagged transaction 3660260 on 2017-01-26 15:09:37 UTC for $2.90 USD, which carried an initial bank model risk score of 0.04 [T:3660260 | C:C12975-K2]. Prior to 2017-01-05 11:33:02 UTC, card C12975-K2 had 174 historical transaction(s) with a median amount of $58.02 USD and a 95th-percentile amount of $471.75 USD [T:3660255,3660256,3660257,3660258,3660259,3660260 | C:C12975-K2]. Graph traversal linked the episode on card C12975-K2 to 16 connected card(s) (C00348-K1, C01326-K2, C02851-K2, C03470-K1, C03611-K2) sharing origin attributes (rv:11.0 | ? | ie 11.0 for desktop | ?), indicating coordinated multi-card activity under pattern 'undocumented' (fraud probability 0.76) [T:3660255,3660256,3660257,3660258,3660259,3660260,3090033,3103649,3501638 | C:C12975-K2,C00348-K1,C01326-K2,C02851-K2 | CC:CC-2985,CC-2971,CC-3035]. Historical case retrieval linked this episode to 3 closed precedent case(s) (CC-2985, CC-2971, CC-3035) in the bank's confirmed case repository [T:3660255,3660256,3660257,3660258,3660259,3660260 | C:C12975-K2 | CC:CC-2985,CC-2971,CC-3035]. In accordance with Policy §3a: fraud is confirmed or strongly suspected (probability 0.76) and activity connects to 16 other card(s) (C00348-K1, C01326-K2, C02851-K2); the pattern is coordinated or undocumented (R9), the bank recorded actions BLOCK_CARD, CREATE_CASE, MONITOR_CONNECTED_CARDS, FILE_REPORT, ESCALATE_TO_ANALYST for total suspicious exposure of $23.99 USD across 6 transaction(s) [T:3660255,3660256,3660257,3660258,3660259,3660260 | C:C12975-K2].",
+    "reason": "Policy §3a: fraud is confirmed or strongly suspected (probability 0.76) and activity connects to 16 other card(s) (C00348-K1, C01326-K2, C02851-K2); the pattern is coordinated or undocumented (R9).",
+    "subjects": [
+      "C00348-K1",
+      "C01326-K2",
+      "C02851-K2",
+      "C03470-K1",
+      "C03611-K2",
+      "C04274-K1",
+      "C04528-K1",
+      "C05083-K1",
+      "C07220-K1",
+      "C08106-K1",
+      "C09471-K2",
+      "C10035-K2",
+      "C11332-K1",
+      "C12966-K1",
+      "C12975",
+      "C12975-K2",
+      "C12982-K1",
+      "C13290-K1",
+      "rv:11.0 | ? | ie 11.0 for desktop | ?"
+    ],
+    "total_amount_usd": 23.99
   },
   "stop_reason": "Policy §6: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
   "tokens": 0,
-  "tool_calls": 10
+  "tool_calls": 11
 }

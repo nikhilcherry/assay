@@ -107,8 +107,18 @@ def case_writer(store):
         gid = store.write_case(answer, card_id)
         if os.environ.get("ASSAY_TG") == "1":
             from assay.r2 import tg_r2
+            from assay.r2.harness import DependencyDown
 
-            gid = tg_r2.write_case(answer, card_id)["graph_case_id"]
+            try:
+                gid = tg_r2.write_case(answer, card_id)["graph_case_id"]
+                if not gid:
+                    raise ValueError("TigerGraph returned no graph_case_id")
+            except Exception as exc:
+                # Never let the caller report "saved" when the graph write did not happen.
+                raise DependencyDown(
+                    f"case NOT saved to the TigerGraph graph (r2_upsert_case write-back failed: "
+                    f"{type(exc).__name__}: {str(exc)[:200]}); no answer written"
+                ) from exc
         return gid
 
     return write
