@@ -19,14 +19,15 @@ make data                  # prints the two exact gdown commands below:
 # 3. Stage Parquet frames and train/score models (~2–4 min total)
 make stage
 #   - python -m assay.data         (~35 s) -> data/stage/*.parquet
-#   - python -m assay.model        (~90 s) -> data/stage/pattern_lgb.pkl
+#   - python -m assay.model        (~90 s) -> data/stage/lgbm_fraud.txt
+#   - python -m assay.patterns     (~20 s) -> data/stage/pattern_lgb.txt
 #   - python -m assay.r2.frames    (~25 s) -> data/stage/r2/tx_all.parquet (650,938 rows)
-#   - python -m assay.r2.score_jan (~40 s) -> data/stage/r2/jan_scores.parquet (60,196 rows)
+#   - python -m assay.r2.score_jan (~40 s) -> data/stage/r2/scores_r2.parquet (60,196 rows)
 
-# 4. Run a single case (the drills command, ~1.5 s)
+# 4. Run a single case (the drills command, ~20 s cold)
 make case CASE=HHF-007
 
-# 5. Run all 18 final-round cases (~15–25 s)
+# 5. Run all 18 final-round cases (~6 min across 18 fresh processes)
 make all
 
 # 6. Run the official organiser grader (~1 s)
@@ -39,9 +40,9 @@ make grade
 |---|---|---|---|
 | Setup | `make setup` | ~60–90 s | `.venv/bin/python` with all packages in `requirements.txt` |
 | Data | `make data` | <0.1 s (prints cmds) | `data/*.csv` (Round 1) and `data/round2/share/*` (Final Round) |
-| Stage | `make stage` | ~2–4 min | `data/stage/r2/tx_all.parquet` (`(650938, 32)`), `18/18` case pack cards resolved |
-| Single case | `make case CASE=HHF-007` | ~1–2 s | `cases_r2/HHF-007.json` (passes `assay.validate` with 0 errors) |
-| Full pack | `make all` | ~15–25 s | `cases_r2/HHF-001.json` .. `cases_r2/HHF-018.json` (exit code 0) |
+| Stage | `make stage` | ~2–4 min | `data/stage/r2/tx_all.parquet` (`(650938, 32)`), `17/18` case pack cards resolved |
+| Single case | `make case CASE=HHF-007` | ~20 s cold | `cases_r2/HHF-007.json` (passes `assay.validate` with 0 errors) |
+| Full pack | `make all` | ~6 min (18 fresh processes) | `cases_r2/HHF-001.json` .. `cases_r2/HHF-018.json` (exit code 0) |
 | Grader | `make grade` | ~1 s | `report.json` (`hard: 0`, `policy: 0` across all 18 cases) |
 
 ## 2. Single-Case Drill Command
@@ -51,10 +52,10 @@ During live drills, run any single case from the root directory with one command
 ```bash
 make case CASE=HHF-007
 # or directly without make:
-PYTHONPATH=. .venv/bin/python -m assay.r2.run_r2 HHF-007
+PYTHONPATH=. .venv/bin/python -m assay.r2.agent HHF-007 --out cases_r2
 ```
 
-It prints a one-line summary (`HHF-007 customer_report ...`) and writes `cases_r2/HHF-007.json`.
+It prints a one-line summary (`HHF-007 status=COMPLETE ...`) and writes `cases_r2/HHF-007.json`.
 
 ## 3. Docker (Code-Only Image, Read-Only Data Mount)
 
