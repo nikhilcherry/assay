@@ -5,7 +5,9 @@
     "ring_wcc",
     "burst_hub",
     "campaign",
-    "cpc"
+    "cpc",
+    "micro_drip_cohort",
+    "vector_precedent"
   ],
   "fired_on": {
     "FanIn": [
@@ -19,14 +21,23 @@
     "dormant_wake": [
       "HHF-003"
     ],
+    "micro_drip_cohort": [
+      "HHF-004",
+      "HHF-005"
+    ],
     "ring_wcc": [
       "HHF-005"
+    ],
+    "vector_precedent": [
+      "HHF-013",
+      "HHF-014",
+      "HHF-015"
     ]
   },
   "verdicts": {
     "fraud": 6,
-    "uncertain": 2,
-    "legitimate": 10
+    "uncertain": 3,
+    "legitimate": 9
   },
   "cases": [
     {
@@ -136,35 +147,49 @@
       "trigger_type": "customer_report",
       "verdict": "fraud",
       "fraud_probability": 0.76,
-      "pattern": "card_not_present_fraud",
+      "pattern": "undocumented",
       "exposure_usd": 23.99,
       "affected_txns": 6,
-      "connected_cards": 0,
-      "sar": false,
-      "similar_prior_cases": 3,
-      "final_actions": [
-        "BLOCK_CARD",
-        "CREATE_CASE"
-      ],
-      "card_mismatch": false,
-      "findings": []
-    },
-    {
-      "case_id": "HHF-005",
-      "trigger_type": "customer_report",
-      "verdict": "fraud",
-      "fraud_probability": 0.96,
-      "pattern": "card_not_present_fraud",
-      "exposure_usd": 23.17,
-      "affected_txns": 6,
-      "connected_cards": 11,
+      "connected_cards": 16,
       "sar": true,
       "similar_prior_cases": 3,
       "final_actions": [
         "BLOCK_CARD",
         "CREATE_CASE",
         "MONITOR_CONNECTED_CARDS",
-        "FILE_REPORT"
+        "FILE_REPORT",
+        "ESCALATE_TO_ANALYST"
+      ],
+      "card_mismatch": false,
+      "findings": [
+        {
+          "detector": "micro_drip_cohort",
+          "kind": "evidence",
+          "lr": 1.0,
+          "pattern": "undocumented:sub_threshold_micro_drip",
+          "connected_cards": 16,
+          "affected_txns": 6,
+          "what": "Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-"
+        }
+      ]
+    },
+    {
+      "case_id": "HHF-005",
+      "trigger_type": "customer_report",
+      "verdict": "fraud",
+      "fraud_probability": 0.96,
+      "pattern": "undocumented",
+      "exposure_usd": 23.17,
+      "affected_txns": 6,
+      "connected_cards": 31,
+      "sar": true,
+      "similar_prior_cases": 3,
+      "final_actions": [
+        "BLOCK_CARD",
+        "CREATE_CASE",
+        "MONITOR_CONNECTED_CARDS",
+        "FILE_REPORT",
+        "ESCALATE_TO_ANALYST"
       ],
       "card_mismatch": false,
       "findings": [
@@ -176,6 +201,15 @@
           "connected_cards": 11,
           "affected_txns": 0,
           "what": "Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members)"
+        },
+        {
+          "detector": "micro_drip_cohort",
+          "kind": "evidence",
+          "lr": 1.0,
+          "pattern": "undocumented:sub_threshold_micro_drip",
+          "connected_cards": 20,
+          "affected_txns": 6,
+          "what": "Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-"
         }
       ]
     },
@@ -183,16 +217,17 @@
       "case_id": "HHF-006",
       "trigger_type": "analyst_request",
       "verdict": "uncertain",
-      "fraud_probability": 0.35,
+      "fraud_probability": 0.15,
       "pattern": "none",
       "exposure_usd": 967.68,
       "affected_txns": 3,
-      "connected_cards": 0,
+      "connected_cards": 11,
       "sar": false,
       "similar_prior_cases": 3,
       "final_actions": [
         "MONITOR_CONNECTED_CARDS",
         "VERIFY_WITH_CUSTOMER",
+        "STEP_UP_AUTH",
         "CREATE_CASE",
         "ESCALATE_TO_ANALYST"
       ],
@@ -201,11 +236,11 @@
         {
           "detector": "FanIn",
           "kind": "evidence",
-          "lr": 3.0,
+          "lr": 1.0,
           "pattern": "undocumented:recipient_fan_in",
-          "connected_cards": 14,
+          "connected_cards": 11,
           "affected_txns": 3,
-          "what": "Recipient burst on R_emaildomain=sc.rr.com: 15 distinct cards used it for the first time in 21d before 2017-01-28 10:59:42 (Jul-Dec baseline mean=0.78, max=5, Poisson p=8.55e-15); flagged episode on C01727-K2 pays this recipient ([305.41, 3"
+          "what": "Recipient fan-in cohort on R_emaildomain=sc.rr.com (online ProductCD=='C', amount >= $100): 12 distinct cards used it for the first time in 21d before 2017-01-28 10:59:42 (Jul-Dec baseline mean=0.00, max=0, Poisson p=0.00e+00); flagged txn "
         }
       ]
     },
@@ -230,17 +265,18 @@
     {
       "case_id": "HHF-008",
       "trigger_type": "risk_score",
-      "verdict": "legitimate",
+      "verdict": "uncertain",
       "fraud_probability": 0.01,
       "pattern": "none",
-      "exposure_usd": 0.0,
-      "affected_txns": 0,
+      "exposure_usd": 165.65,
+      "affected_txns": 1,
       "connected_cards": 0,
       "sar": false,
-      "similar_prior_cases": 2,
+      "similar_prior_cases": 3,
       "final_actions": [
-        "ALLOW_TRANSACTION",
-        "CLOSE_NO_FRAUD"
+        "VERIFY_WITH_CUSTOMER",
+        "CREATE_CASE",
+        "ESCALATE_TO_ANALYST"
       ],
       "card_mismatch": false,
       "findings": []
@@ -286,7 +322,7 @@
       "trigger_type": "risk_score",
       "verdict": "uncertain",
       "fraud_probability": 0.01,
-      "pattern": "account_takeover",
+      "pattern": "none",
       "exposure_usd": 881.55,
       "affected_txns": 1,
       "connected_cards": 0,
@@ -322,7 +358,7 @@
       "case_id": "HHF-013",
       "trigger_type": "risk_score",
       "verdict": "legitimate",
-      "fraud_probability": 0.05,
+      "fraud_probability": 0.01,
       "pattern": "none",
       "exposure_usd": 0.0,
       "affected_txns": 0,
@@ -330,8 +366,8 @@
       "sar": false,
       "similar_prior_cases": 2,
       "final_actions": [
-        "ALLOW_TRANSACTION",
-        "CLOSE_NO_FRAUD"
+        "CLOSE_NO_FRAUD",
+        "CREATE_CASE"
       ],
       "card_mismatch": false,
       "findings": [
@@ -340,9 +376,18 @@
           "kind": "context",
           "lr": 1.0,
           "pattern": "undocumented:recipient_fan_in",
-          "connected_cards": 16,
+          "connected_cards": 12,
           "affected_txns": 0,
-          "what": "CONTEXT NOTE (not in flagged 72h episode): Card C06115-K1 has prior/other charges (txns=[3660311, 3660312], amounts=[181.16, 140.59]) to bursting recipient R_emaildomain=sc.rr.com (16 first-time cards in 21d: ['C00534-K2', 'C01357-K1', 'C01"
+          "what": "CONTEXT NOTE (flagged txn 3626720 does not pay recipient): Card C06115-K1 has other online ProductCD=='C' charges >= $100 (txns=[3660311, 3660312], amounts=[181.16, 140.59]) to bursting recipient R_emaildomain=sc.rr.com (12 first-time cards"
+        },
+        {
+          "detector": "vector_precedent",
+          "kind": "evidence",
+          "lr": 4.0931,
+          "pattern": "none",
+          "connected_cards": 0,
+          "affected_txns": 0,
+          "what": "Vector precedent search (local:similar_cases_vec, variant=pure, k=20, theta=0.9091) on card C06115-K1 as-of 2017-01-26 20:40:00 retrieved 20/20 confirmed-fraud neighbours (Laplace score 0.9545 >= 0.9091): CC-4522:confirmed_fraud(d=0.0164), "
         }
       ]
     },
@@ -362,7 +407,17 @@
         "CREATE_CASE"
       ],
       "card_mismatch": false,
-      "findings": []
+      "findings": [
+        {
+          "detector": "vector_precedent",
+          "kind": "evidence",
+          "lr": 4.0931,
+          "pattern": "none",
+          "connected_cards": 0,
+          "affected_txns": 0,
+          "what": "Vector precedent search (local:similar_cases_vec, variant=pure, k=20, theta=0.9091) on card C00750-K2 as-of 2017-01-01 05:00:25 retrieved 20/20 confirmed-fraud neighbours (Laplace score 0.9545 >= 0.9091): CC-4895:confirmed_fraud(d=0.1485), "
+        }
+      ]
     },
     {
       "case_id": "HHF-015",
@@ -380,7 +435,17 @@
         "CLOSE_NO_FRAUD"
       ],
       "card_mismatch": false,
-      "findings": []
+      "findings": [
+        {
+          "detector": "vector_precedent",
+          "kind": "evidence",
+          "lr": 4.0931,
+          "pattern": "none",
+          "connected_cards": 0,
+          "affected_txns": 0,
+          "what": "Vector precedent search (local:similar_cases_vec, variant=pure, k=20, theta=0.9091) on card C00543-K1 as-of 2017-01-22 12:21:48 retrieved 20/20 confirmed-fraud neighbours (Laplace score 0.9545 >= 0.9091): CC-1894:confirmed_fraud(d=0.0347), "
+        }
+      ]
     },
     {
       "case_id": "HHF-016",

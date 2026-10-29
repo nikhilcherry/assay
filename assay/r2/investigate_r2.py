@@ -9,6 +9,8 @@ policy gate and the same answer file as everything else.
 
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 
 from assay.detectors import Finding as LedgerFinding
@@ -16,7 +18,7 @@ from assay.investigate import Investigator
 from assay.r2.finding import CaseCtx, Finding
 from assay.r2.frames import closed_cases, tx_all
 
-ENABLED: list[str] = ["dormant_wake", "FanIn", "ring_wcc", "burst_hub", "campaign", "cpc"]
+ENABLED: list[str] = ["dormant_wake", "FanIn", "ring_wcc", "burst_hub", "campaign", "cpc", "micro_drip_cohort", "vector_precedent"]
 
 # The model was trained on Jul-Dec. January is new activity it has never seen (the brief:
 # "a low score is not evidence of innocence"); docs/r2/B1_model.md shows the drift.
@@ -26,6 +28,8 @@ MODEL_TRAINED_UNTIL = pd.Timestamp("2017-01-01")
 def _load_detectors():
     import assay.r2.detectors.dormant  # noqa: F401  registers DormantWake
     import assay.r2.detectors.fan_in  # noqa: F401  registers FanIn
+    import assay.r2.detectors.micro_charge  # noqa: F401  registers MicroDripCohort
+    import assay.r2.detectors.vector_vote  # noqa: F401  registers VectorPrecedentVote
     import assay.r2.detectors.campaign  # noqa: F401  registers CampaignDetector
     import assay.r2.detectors.cpc  # noqa: F401  registers CommonPointOfCompromise
     import assay.r2.detectors.burst_hub  # noqa: F401  registers BurstHub
@@ -40,6 +44,7 @@ class R2Investigator(Investigator):
         self.detectors = _load_detectors()
         self._multi = []
         self._card_mismatch = None
+        self._record_conflict = None
         self._case = None
         self._tx = tx_all()
         self._cc = closed_cases()
@@ -73,10 +78,15 @@ class R2Investigator(Investigator):
             # R9 is for evidence that SHOWS coordinated abuse; an uncertain case has not shown it,
             # so it must not claim the pattern (and with it a regulator filing). The description
             # stays in the summary for the analyst.
-            if c["pattern"] == "undocumented":
+            # Nor may it claim any other typology: an unsettled case has not established a pattern
+            # (the summary keeps the classifier's reading for the analyst).
+            if c["pattern"] != "none":
                 c["pattern"], c["pattern_description"] = "none", ""
                 c["summary"] = c["summary"].replace("Undocumented on card", "Unresolved activity on card", 1)
             linked = sorted({x for fd in self._multi for x in fd.connected_card_ids})
+            if linked and not c["connected_card_ids"]:
+                # the cards the analyst is asked to monitor are named, not just counted
+                c["connected_card_ids"] = linked
             if linked and not any(a["action"] == "MONITOR_CONNECTED_CARDS" for a in nba["final"]):
                 nba["final"].insert(0, {"action": "MONITOR_CONNECTED_CARDS", "route": "auto",
                                         "reason": f"Linked by {', '.join(sorted({fd.detector for fd in self._multi}))} "
@@ -104,20 +114,29 @@ class R2Investigator(Investigator):
             ep.shared_origin = "; ".join(fd.claim.what for fd in self._multi)[:300]
         return ep
 
+    def evidence_conflict(self) -> bool:
+        return bool(self._record_conflict)
+
     def model_trusted(self, f) -> bool:
         return pd.Timestamp(f.t) < MODEL_TRAINED_UNTIL
 
     def assumed_clear_allowed(self, findings) -> str | None:
         if self._card_mismatch:
             return self._card_mismatch
+        if self._record_conflict:
+            return self._record_conflict
         linked = sorted({c for fd in self._multi for c in fd.connected_card_ids})
         if linked:
             names = ", ".join(sorted({fd.detector for fd in self._multi}))
-            return f"{names} tie this card to {len(linked)} other card(s) ({', '.join(linked[:6])})."
+            return (f"{names} tie this card to {len(linked)} other card(s) ({', '.join(linked[:6])}). "
+                    "One cardholder's confirmation cannot clear activity that spans other cards.")
         # A simulated reply may only settle a case the evidence left unremarkable: if a measured
         # detector fired, an assumed "customer confirms" would be the agent agreeing with itself
         # (red team, docs/r2/REDTEAM.md: dormant wake-ups cleared on an invented confirmation).
-        fired = sorted({f.tag for f in findings if f.tag in ENABLED and f.lr > 1.0})
+        # precedent (TigerVector neighbours) moves the probability but is not a typology, so it alone
+        # cannot stop a confirmation (docs/r2/C5_vector_vote.md)
+        weak = {d.name for d in self.detectors if not getattr(d, "blocks_assumed_clear", True)}
+        fired = sorted({f.tag for f in findings if f.tag in ENABLED and f.tag not in weak and f.lr > 1.0})
         if fired:
             return f"measured detector(s) {', '.join(fired)} fired on this card."
         return None
@@ -133,6 +152,7 @@ class R2Investigator(Investigator):
             f"The case names card {case.card_id} but the bank records transaction {ctx.flagged_txn_id} "
             f"on {ctx.card_id}, so the cardholder who would be asked is not established."
             if case.card_id != ctx.card_id else None)
+        self._record_conflict = record_conflict(case, self._tx.loc[self._tx.TransactionID == ctx.flagged_txn_id].iloc[0])
         for det in self.detectors:
             for fd in det.run(ctx):
                 if getattr(fd, "kind", "evidence") == "context":
@@ -152,6 +172,27 @@ class R2Investigator(Investigator):
         self.s._log(a.query, **a.params)   # the detector's query is a tool call like any other
         return LedgerFinding(a.what, f"query:{a.query}({params})",
                              [str(x) for x in (ev.txn_ids or ev.card_ids)], lr=fd.lr, tag=fd.detector)
+
+
+_STATED = re.compile(r"\(\$([\d,]+\.\d{2})(?:,\s*(online|in[ _-]person))?\)")
+
+
+def record_conflict(case, flagged) -> str | None:
+    """Two signals disagree (brief): the alert states a fact about the flagged charge that the bank's
+    own record contradicts. The alert text is untrusted data, so a conflict can only hold the case
+    for a person; it never adds weight toward fraud and never clears."""
+    m = _STATED.search(str(case.trigger_text or ""))
+    if not m:
+        return None
+    amt, chan = float(m.group(1).replace(",", "")), m.group(2)
+    rec_chan = str(flagged.channel)
+    if abs(amt - float(flagged.amount)) > 0.005:
+        return (f"The alert states ${amt:,.2f} but the bank records transaction {int(flagged.TransactionID)} "
+                f"at ${float(flagged.amount):,.2f}, so the alert and the record disagree on what was charged.")
+    if chan and chan.replace(" ", "_").replace("-", "_") != rec_chan:
+        return (f"The alert describes transaction {int(flagged.TransactionID)} as {chan} but the bank records it as "
+                f"{rec_chan.replace('_', '-')}, so the alert and the record disagree on how the card was used.")
+    return None
 
 
 def measured_exam_dispute_weight() -> tuple[float, dict]:

@@ -1,4 +1,4 @@
-"""Tests for BLOCK B30 -- Live resilience drill simulator (D1..D9) on 3 exam cases."""
+"""Tests for BLOCK B30 -- Live resilience drill simulator (D1..D10) on 3 exam cases."""
 
 from __future__ import annotations
 
@@ -40,12 +40,12 @@ def scorecard(shared_agent) -> Scorecard:
 
 def test_scorecard_has_all_drills_and_zero_failures(scorecard: Scorecard):
     assert scorecard.cases == ["HHF-007", "HHF-012", "HHF-003"]
-    assert scorecard.total == 75  # 25 drill checks per case across 3 cases
+    assert scorecard.total == 84  # 28 drill checks per case across 3 cases
     assert scorecard.failed == 0, f"Unexpected drill failures: {[r for r in scorecard.rows if r.outcome != 'PASS']}"
     assert scorecard.passed == scorecard.total
 
     drill_ids = {r.drill_id for r in scorecard.rows}
-    assert drill_ids == {"D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9"}
+    assert drill_ids == {"D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10"}
 
 
 def test_no_false_saved_status_on_any_failure_drill(scorecard: Scorecard):

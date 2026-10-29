@@ -75,6 +75,10 @@ class Investigator:
         reason it cannot (e.g. the card is tied to other cards)."""
         return None
 
+    def evidence_conflict(self) -> bool:
+        """Hook: True when two signals about the case disagree (R8 escalates those at any exposure)."""
+        return False
+
     # ------------------------------------------------------------------ run
     def run(self, case: pd.Series) -> dict:
         t_start = time.time()
@@ -311,7 +315,7 @@ class Investigator:
                 fraud_probability=round(prob, 2), verdict=verdict, exposure_usd=exposure,
                 pattern=Pattern(pat), customer_disputed=disputed,
                 single_signal=(pro + con) <= 1, independent_evidence_count=max(pro, con),
-                evidence_conflicts=(disputed and 0.15 < p1 < 0.6),
+                evidence_conflicts=(disputed and 0.15 < p1 < 0.6) or self.evidence_conflict(),
                 customer_reply=reply, evidence_requested=bool(requests) or will_request,
                 card_testing_sequence=(scen_pattern == "card_testing"),
                 large_purchase_cleared_usd=(float(ep.txns.TransactionAmt.max())
@@ -371,8 +375,7 @@ class Investigator:
                     reply, verdict = CustomerReply.DENIES, Verdict.FRAUD
                 elif p1 <= 0.4 and (blocker := self.assumed_clear_allowed(findings)):
                     requests.append({"type": "analyst_info", "asked_after_step": step,
-                                     "assumed_response": f"Escalated for analyst review: {blocker} One "
-                                     "cardholder's confirmation cannot clear activity that spans other cards."})
+                                     "assumed_response": f"Escalated for analyst review: {blocker}"})
                     reply, verdict = CustomerReply.NOT_ASKED, Verdict.UNCERTAIN
                 elif p1 <= 0.4:
                     requests.append({"type": "customer_validation", "asked_after_step": step,

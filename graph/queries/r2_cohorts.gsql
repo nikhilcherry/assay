@@ -1,0 +1,356 @@
+// C6 -- Put the two new cohort detectors (MicroDripCohort and FanIn) on TigerGraph
+// (Community Edition 4.2, GSQL V2 syntax).
+//
+// Schema alignment (graph/schema.gsql & graph/load_r2.gsql):
+//   - Vertex `Txn` has attributes:
+//       txn_id (STRING), ts (DATETIME), amount (DOUBLE), product (STRING),
+//       channel (STRING), p_email (STRING), r_email (STRING), card_id (STRING).
+//   - `R_emaildomain` is loaded directly onto `Txn.r_email` (`$"r_email"` in load_r2.gsql).
+//     Note: `EmailDomain` vertices and `PURCHASER_EMAIL` edges only index `p_email`,
+//     not `r_email`; therefore `r2_recipient_fanin` reads `t.r_email` directly on `Txn`
+//     vertices traversed via `Card -(MADE>)- Txn`.
+//   - Both queries evaluate strictly as-of `opened_at` (`t.ts <= opened_at`).
+USE GRAPH assay
+
+CREATE OR REPLACE QUERY r2_micro_drip_cohort(
+  STRING flagged_txn_id,
+  DATETIME opened_at,
+  DOUBLE max_amt = 6.50,
+  INT min_charges = 4,
+  DOUBLE min_span_days = 7.0,
+  INT window_days = 30,
+  INT quiet_days = 60,
+  INT min_other_cards = 6
+) FOR GRAPH assay SYNTAX v2 {
+  TYPEDEF TUPLE<INT ts_sec, INT tid> ChargeItem;
+
+  HeapAccum<ChargeItem>(10000, ts_sec ASC, tid ASC) @charges;
+  ListAccum<ChargeItem> @clist;
+
+  MapAccum<STRING, ListAccum<INT>> @@per_card_txns;
+  SetAccum<STRING> @@member_cards;
+  SumAccum<INT> @@n_cohort_cards;
+  SumAccum<INT> @@n_other_cards;
+  OrAccum @@fired;
+  MaxAccum<STRING> @@flagged_card;
+
+  INT open_sec;
+  INT win_sec;
+  INT quiet_sec;
+  INT min_span_sec;
+  INT one_hour_sec;
+  INT ov_start_sec;
+  INT f_tid;
+
+  open_sec = datetime_to_epoch(opened_at);
+  win_sec = window_days * 86400;
+  quiet_sec = quiet_days * 86400;
+  min_span_sec = float_to_int(min_span_days * 86400.0);
+  one_hour_sec = 3600;
+  ov_start_sec = open_sec - win_sec;
+  f_tid = str_to_int(flagged_txn_id);
+
+  // 1. Resolve the flagged transaction as-of opened_at
+  Flagged = {Txn.*};
+  Flagged = SELECT t FROM Flagged:t
+            WHERE t.txn_id == flagged_txn_id AND t.ts <= opened_at
+            ACCUM @@flagged_card += t.card_id;
+
+  IF @@flagged_card != "" THEN
+    // 2. Collect all online ProductCD == "C" micro-charges (< max_amt) up to opened_at per card
+    AllCards = {Card.*};
+    MicroCards = SELECT c FROM AllCards:c -(MADE>)- Txn:t
+                 WHERE t.ts <= opened_at
+                   AND t.channel == "online"
+                   AND t.product == "C"
+                   AND t.amount < max_amt
+                 ACCUM c.@charges += ChargeItem(datetime_to_epoch(t.ts), str_to_int(t.txn_id))
+                 POST-ACCUM
+                   WHILE c.@charges.size() > 0 DO
+                     c.@clist += c.@charges.pop()
+                   END
+                 HAVING c.@clist.size() >= min_charges;
+
+    // 3. Evaluate candidate window starts per card exactly as in micro_charge.py:_find_card_new_drips
+    MicroCards = SELECT c FROM MicroCards:c
+                 POST-ACCUM
+                   INT n = c.@clist.size(),
+                   INT best_i = -1,
+                   INT best_j = -1,
+                   FOREACH i IN RANGE[0, n - min_charges] DO
+                     INT t0 = c.@clist.get(i).ts_sec,
+                     BOOL quiet_ok = TRUE,
+                     IF i > 0 THEN
+                       INT prev_t = c.@clist.get(i - 1).ts_sec,
+                       IF (t0 - prev_t) < quiet_sec THEN
+                         quiet_ok = FALSE
+                       END
+                     END,
+                     IF quiet_ok THEN
+                       INT t_lim = t0 + win_sec,
+                       IF open_sec < t_lim THEN
+                         t_lim = open_sec
+                       END,
+                       INT j = i,
+                       FOREACH k IN RANGE[i, n - 1] DO
+                         IF c.@clist.get(k).ts_sec <= t_lim THEN
+                           j = k + 1
+                         END
+                       END,
+                       INT n_in = j - i,
+                       IF n_in >= min_charges THEN
+                         INT t_last = c.@clist.get(j - 1).ts_sec,
+                         INT span_sec = t_last - t0,
+                         IF span_sec >= min_span_sec AND span_sec > one_hour_sec THEN
+                           IF t_lim >= ov_start_sec AND t0 <= open_sec THEN
+                             best_i = i,
+                             best_j = j
+                           END
+                         END
+                       END
+                     END
+                   END,
+                   IF best_i >= 0 THEN
+                     @@member_cards += c.card_id,
+                     FOREACH k IN RANGE[best_i, best_j - 1] DO
+                       @@per_card_txns += (c.card_id -> c.@clist.get(k).tid)
+                     END
+                   END;
+
+    // 4. Check that the flagged card is in the drips and the flagged_txn_id belongs to its episode
+    IF @@member_cards.contains(@@flagged_card) THEN
+      BOOL has_flagged_txn = FALSE;
+      FOREACH tid IN @@per_card_txns.get(@@flagged_card) DO
+        IF tid == f_tid THEN
+          has_flagged_txn = TRUE;
+        END;
+      END;
+      IF has_flagged_txn THEN
+        @@n_cohort_cards += @@member_cards.size();
+        @@n_other_cards += (@@member_cards.size() - 1);
+        IF @@n_other_cards >= min_other_cards THEN
+          @@fired += TRUE;
+        ELSE
+          @@member_cards.clear();
+          @@per_card_txns.clear();
+        END;
+      ELSE
+        @@member_cards.clear();
+        @@per_card_txns.clear();
+      END;
+    ELSE
+      @@member_cards.clear();
+      @@per_card_txns.clear();
+    END;
+  END;
+
+  PRINT @@fired AS fired,
+        @@flagged_card AS flagged_card,
+        @@n_cohort_cards AS n_cohort_cards,
+        @@n_other_cards AS n_other_cards,
+        @@member_cards AS member_cards,
+        @@per_card_txns AS per_card_txns;
+}
+
+CREATE OR REPLACE QUERY r2_recipient_fanin(
+  STRING flagged_txn_id,
+  DATETIME opened_at,
+  SET<STRING> freemail,
+  INT window_days = 21,
+  DOUBLE min_amount = 100.0,
+  INT min_k_now = 5,
+  DOUBLE burst_mult = 3.0,
+  DOUBLE max_p = 0.0001
+) FOR GRAPH assay SYNTAX v2 {
+  MinAccum<INT> @first_any_sec;
+  MinAccum<INT> @first_qual_sec;
+  OrAccum @has_any;
+  OrAccum @has_qual;
+  SetAccum<INT> @win_qual_tids;
+
+  SetAccum<STRING> @@member_cards;
+  MapAccum<STRING, SetAccum<INT>> @@per_card_txns;
+  ListAccum<INT> @@first_qual_list;
+
+  MaxAccum<STRING> @@flagged_card;
+  MaxAccum<STRING> @@r_dom;
+  MaxAccum<STRING> @@f_channel;
+  MaxAccum<STRING> @@f_product;
+  MaxAccum<DOUBLE> @@f_amount;
+  MinAccum<DATETIME> @@min_bank_ts;
+
+  SumAccum<INT> @@k_now;
+  MaxAccum<INT> @@baseline_max;
+  SumAccum<DOUBLE> @@baseline_mean;
+  SumAccum<DOUBLE> @@p_value;
+  OrAccum @@flagged_qualifies;
+  OrAccum @@flagged_in_cohort;
+  OrAccum @@fired;
+
+  INT open_sec;
+  INT win_sec;
+  INT win_start_sec;
+  DATETIME jan1_dt;
+  open_sec = datetime_to_epoch(opened_at);
+  win_sec = window_days * 86400;
+  win_start_sec = open_sec - win_sec;
+  jan1_dt = to_datetime("2017-01-01 00:00:00");
+
+  // 1. Inspect the flagged transaction as-of opened_at
+  Flagged = {Txn.*};
+  Flagged = SELECT t FROM Flagged:t
+            WHERE t.txn_id == flagged_txn_id AND t.ts <= opened_at
+            ACCUM
+              @@flagged_card += t.card_id,
+              @@r_dom += t.r_email,
+              @@f_channel += t.channel,
+              @@f_product += t.product,
+              @@f_amount += t.amount;
+
+  IF @@flagged_card != "" THEN
+    STRING dom_low = lower(@@r_dom);
+    BOOL is_free = FALSE;
+    IF dom_low == "" OR dom_low == "none" OR dom_low == "nan" OR dom_low == "?"
+       OR dom_low == "anonymous.com" OR dom_low == "me.com" THEN
+      is_free = TRUE;
+    END;
+    IF freemail.contains(dom_low) OR freemail.contains(@@r_dom) THEN
+      is_free = TRUE;
+    END;
+    IF dom_low LIKE "gmail.%" OR dom_low LIKE "yahoo.%" OR dom_low LIKE "hotmail.%"
+       OR dom_low LIKE "outlook.%" OR dom_low LIKE "aol.%" OR dom_low LIKE "anonymous.%"
+       OR dom_low LIKE "icloud.%" OR dom_low LIKE "live.%" OR dom_low LIKE "msn.%"
+       OR dom_low LIKE "me.com%" OR dom_low LIKE "ymail.%" OR dom_low LIKE "mail.com%"
+       OR dom_low LIKE "gmx.%" OR dom_low LIKE "protonmail.%" OR dom_low LIKE "rocketmail.%" THEN
+      is_free = TRUE;
+    END;
+
+    IF @@f_channel == "online" AND @@f_product == "C" AND @@f_amount >= min_amount AND NOT is_free THEN
+      @@flagged_qualifies += TRUE;
+
+      // 2. Find earliest bank timestamp as-of opened_at AND accumulate per-card charges to @@r_dom
+      AllCards = {Card.*};
+      AllTxns = SELECT t FROM AllCards:c -(MADE>)- Txn:t
+                WHERE t.ts <= opened_at
+                ACCUM
+                  @@min_bank_ts += t.ts,
+                  IF t.channel == "online" AND t.product == "C" AND t.r_email == @@r_dom THEN
+                    INT t_sec = datetime_to_epoch(t.ts),
+                    c.@first_any_sec += t_sec,
+                    c.@has_any += TRUE,
+                    IF t.amount >= min_amount THEN
+                      c.@first_qual_sec += t_sec,
+                      c.@has_qual += TRUE,
+                      IF t_sec >= win_start_sec AND t_sec <= open_sec THEN
+                        c.@win_qual_tids += str_to_int(t.txn_id)
+                      END
+                    END
+                  END;
+
+      // 3. Identify cohort cards (first charge to @@r_dom in [win_start_sec, open_sec] AND qualified charge in window)
+      DomCards = SELECT c FROM AllCards:c
+                 WHERE c.@has_any == TRUE
+                 POST-ACCUM
+                   IF c.@first_any_sec >= win_start_sec AND c.@first_any_sec <= open_sec
+                      AND c.@win_qual_tids.size() > 0 THEN
+                     @@member_cards += c.card_id
+                   END;
+
+      IF @@member_cards.contains(@@flagged_card) THEN
+        @@flagged_in_cohort += TRUE;
+        @@k_now += @@member_cards.size();
+
+        // 4. Causal 21-day baseline windows before win_start_sec (capped at 2017-01-01 00:00:00)
+        INT t_min_sec = datetime_to_epoch(@@min_bank_ts);
+        INT jan1_sec = datetime_to_epoch(jan1_dt);
+        INT base_cut_sec = win_start_sec;
+        IF jan1_sec < base_cut_sec THEN
+          base_cut_sec = jan1_sec;
+        END;
+
+        QualCards = SELECT c FROM AllCards:c
+                    WHERE c.@has_qual == TRUE
+                    POST-ACCUM @@first_qual_list += c.@first_qual_sec;
+
+        INT cur_end = base_cut_sec;
+        INT n_wins = 0;
+        INT sum_cnt = 0;
+        WHILE cur_end >= (t_min_sec + 7 * 86400) LIMIT 100 DO
+          INT cur_start = cur_end - win_sec;
+          INT c_cnt = 0;
+          FOREACH fq IN @@first_qual_list DO
+            IF fq >= cur_start AND fq < cur_end THEN
+              c_cnt = c_cnt + 1;
+            END;
+          END;
+          sum_cnt = sum_cnt + c_cnt;
+          @@baseline_max += c_cnt;
+          n_wins = n_wins + 1;
+          cur_end = cur_start;
+        END;
+
+        DOUBLE b_mean = 0.0;
+        IF n_wins > 0 THEN
+          b_mean = (sum_cnt * 1.0) / (n_wins * 1.0);
+        END;
+        @@baseline_mean += b_mean;
+
+        // 5. Poisson tail P(X >= k_now) for lam = max(b_mean, 0.05)
+        DOUBLE rate = b_mean;
+        IF rate < 0.05 THEN
+          rate = 0.05;
+        END;
+        INT k_int = @@k_now;
+        DOUBLE p_val = 1.0;
+        IF k_int > 0 THEN
+          DOUBLE term = exp(-rate);
+          DOUBLE cdf = term;
+          IF k_int > 1 THEN
+            FOREACH idx IN RANGE[1, k_int - 1] DO
+              term = term * rate / (idx * 1.0);
+              cdf = cdf + term;
+            END;
+          END;
+          p_val = 1.0 - cdf;
+          IF p_val < 0.0 THEN
+            p_val = 0.0;
+          END;
+        END;
+        @@p_value += p_val;
+
+        INT eff_max = @@baseline_max;
+        IF eff_max < 1 THEN
+          eff_max = 1;
+        END;
+
+        IF @@k_now >= min_k_now AND (@@k_now * 1.0) >= (burst_mult * eff_max) AND p_val < max_p THEN
+          @@fired += TRUE;
+          CohortCards = SELECT c FROM AllCards:c
+                        WHERE @@member_cards.contains(c.card_id)
+                        POST-ACCUM
+                          FOREACH tid IN c.@win_qual_tids DO
+                            @@per_card_txns += (c.card_id -> tid)
+                          END;
+        ELSE
+          @@member_cards.clear();
+          @@per_card_txns.clear();
+        END;
+      ELSE
+        @@member_cards.clear();
+        @@per_card_txns.clear();
+      END;
+    END;
+  END;
+
+  PRINT @@fired AS fired,
+        @@flagged_qualifies AS flagged_qualifies,
+        @@flagged_in_cohort AS flagged_card_in_first_time_cohort,
+        @@flagged_card AS flagged_card,
+        @@r_dom AS R_emaildomain,
+        @@k_now AS k_now,
+        @@baseline_mean AS baseline_mean,
+        @@baseline_max AS baseline_max,
+        @@p_value AS p_value,
+        @@member_cards AS member_cards,
+        @@per_card_txns AS per_card_txns;
+}

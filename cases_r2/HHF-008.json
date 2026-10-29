@@ -1,6 +1,8 @@
 {
   "case": {
-    "affected_txn_ids": [],
+    "affected_txn_ids": [
+      "3660353"
+    ],
     "connected_card_ids": [],
     "connected_device_profiles": [],
     "evidence": [
@@ -37,9 +39,27 @@
         "source": "graph"
       },
       {
-        "claim": "Policy §6: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
+        "claim": "Simulated analyst info: Escalated for analyst review: The alert describes transaction 3660353 as online but the bank records it as in-person, so the alert and the record disagree on how the card was used.",
         "entity_ids": [],
-        "ref": "document:fraud-policy#§6",
+        "ref": "evidence_request:1",
+        "source": "external"
+      },
+      {
+        "claim": "Out-of-region use: card-present purchases in a billing region the cardholder has no history in, while their normal activity continues at home.",
+        "entity_ids": [],
+        "ref": "document:brief#known-fraud-patterns/out_of_region_use",
+        "source": "document"
+      },
+      {
+        "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#§3a",
+        "source": "document"
+      },
+      {
+        "claim": "Policy R8: Uncertain and exposed (over $500) or conflicting evidence: ESCALATE_TO_ANALYST.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#R8",
         "source": "document"
       },
       {
@@ -51,56 +71,74 @@
         "source": "document"
       }
     ],
-    "exposure_usd": 0.0,
-    "first_suspicious_txn_id": "",
+    "exposure_usd": 165.65,
+    "first_suspicious_txn_id": "3660353",
     "fraud_probability": 0.01,
     "graph_case_id": "ASSAY-HHF-008",
     "pattern": "none",
     "pattern_description": "",
     "similar_prior_cases": [
-      "CC-0270",
-      "CC-1645"
+      "CC-1638",
+      "CC-2118",
+      "CC-4240"
     ],
-    "status": "closed_legitimate",
-    "summary": "Alert on transaction 3660353 ($165.65) on card C07871-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.01. Closed as legitimate; no report.",
-    "verdict": "legitimate",
+    "status": "escalated",
+    "summary": "Out of region use on card C07871-K1: 1 transaction(s) from 2017-01-21 to 2017-01-21 totalling $165.65, probability 0.01. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: The alert describes transaction 3660353 as online but the bank records it as in-person, so the alert and the record disagree on how the card was used.",
+    "verdict": "uncertain",
     "written_to_graph": true
   },
   "case_id": "HHF-008",
-  "evidence_requests": [],
+  "evidence_requests": [
+    {
+      "asked_after_step": 8,
+      "assumed_response": "Escalated for analyst review: The alert describes transaction 3660353 as online but the bank records it as in-person, so the alert and the record disagree on how the card was used.",
+      "question": "",
+      "type": "analyst_info"
+    }
+  ],
   "latency_s": 0.0,
   "next_best_actions": {
     "final": [
       {
-        "action": "ALLOW_TRANSACTION",
-        "reason": "Policy §0: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history.",
+        "action": "VERIFY_WITH_CUSTOMER",
+        "reason": "§5 and §3b: probability 0.01 is outside 0.15-0.85 but the case is not settled: The alert describes transaction 3660353 as online but the bank records it as in-person, so the alert and the record disagree on how the card was used, so ask the cardholder before deciding.",
         "route": "auto"
       },
       {
-        "action": "CLOSE_NO_FRAUD",
-        "reason": "Policy §6: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate.",
+        "action": "CREATE_CASE",
+        "reason": "Policy §3a: evidence was requested, so the investigation is recorded as an internal case and written to the graph.",
+        "route": "auto"
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "reason": "R8: the verdict is uncertain and the evidence conflicts.",
         "route": "auto"
       }
     ],
     "initial": [
       {
-        "action": "ALLOW_TRANSACTION",
-        "reason": "Policy §0: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history.",
+        "action": "VERIFY_WITH_CUSTOMER",
+        "reason": "§5 and §3b: probability 0.01 is outside 0.15-0.85 but the case is not settled: The alert describes transaction 3660353 as online but the bank records it as in-person, so the alert and the record disagree on how the card was used, so ask the cardholder before deciding.",
         "route": "auto"
       },
       {
-        "action": "CLOSE_NO_FRAUD",
-        "reason": "Policy §6: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate.",
+        "action": "CREATE_CASE",
+        "reason": "Policy §3a: evidence was requested, so the investigation is recorded as an internal case and written to the graph.",
+        "route": "auto"
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "reason": "R8: the verdict is uncertain and the evidence conflicts.",
         "route": "auto"
       }
     ],
-    "what_changed": "nothing"
+    "what_changed": "The evidence request did not change the recommendation; probability 0.01 -> 0.01."
   },
   "sar": {
     "activity_dates": [],
     "file": false,
     "narrative": "",
-    "reason": "Policy §3a: activity is assessed as legitimate; no SAR is owed.",
+    "reason": "Policy §3a: verdict is 'uncertain' with fraud probability 0.01 (< 0.70); fraud is neither confirmed nor strongly suspected.",
     "subjects": [],
     "total_amount_usd": 0
   },

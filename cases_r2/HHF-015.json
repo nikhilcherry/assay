@@ -29,6 +29,14 @@
         "source": "graph"
       },
       {
+        "claim": "Vector precedent search (tigergraph:similar_cases_vec, variant=pure, k=20, theta=0.9091) on card C00543-K1 as-of 2017-01-22 12:21:48 retrieved 20/20 confirmed-fraud neighbours (Laplace score 0.9545 >= 0.9091): CC-2892:confirmed_fraud(d=0.0605), CC-3442:confirmed_fraud(d=0.0769), CC-1894:confirmed_fraud(d=0.0347), CC-3248:confirmed_fraud(d=0.0749), CC-5017:confirmed_fraud(d=0.0636).",
+        "entity_ids": [
+          "3601725"
+        ],
+        "ref": "query:similar_cases_vec(as_of=2017-01-22 12:21:48, backend=tigergraph:similar_cases_vec, k=20, neighbor_case_ids=['CC-2892', 'CC-3442', 'CC-1894', 'CC-3248', 'CC-5017', 'CC-3315', 'CC-4827', 'CC-4861', 'CC-4867', 'CC-4649', 'CC-4003', 'CC-0369', 'CC-5225', 'CC-3825', 'CC-4569', 'CC-5283', 'CC-3609', 'CC-4279', 'CC-3349', 'CC-4007'], neighbor_distances=[0.060493, 0.076935, 0.034667, 0.074926, 0.06363, 0.080289, 0.075149, 0.054723, 0.052811, 0.076009, 0.075944, 0.075593, 0.068414, 0.049718, 0.062, 0.069337, 0.066934, 0.072713, 0.060961, 0.053957], neighbor_outcomes=['confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud'], precedent=True, qv=[0.117864, 0.039838, -0.059956, 0.021192, -0.084004, -0.057918, 0.113421, -0.307045, -0.060849, 0.144096, 0.114907, -0.105767, -0.300868, 0.300868, -0.131392, -0.115225, -0.114342, -0.052636, -0.292381, -0.273833, -0.210012, 0.334885, 0.40379, -0.32691], score=0.9545, theta=0.9091, variant=pure)",
+        "source": "graph"
+      },
+      {
         "claim": "Policy §6: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
         "entity_ids": [],
         "ref": "document:fraud-policy#§6",
@@ -90,5 +98,5 @@
   },
   "stop_reason": "Policy §6: fraud probability 0.00 is at or below 0.15 on 2 independent pieces of evidence.",
   "tokens": 0,
-  "tool_calls": 10
+  "tool_calls": 11
 }

@@ -150,6 +150,8 @@ def test_fail_closed_when_tg_unreachable(monkeypatch):
 
     monkeypatch.setenv("ASSAY_TG", "1")
     monkeypatch.setenv("ASSAY_TG_HOST", "http://127.0.0.1:59999")
+    import assay.tg
+    monkeypatch.setattr(assay.tg, "HOST", "http://127.0.0.1:59999")   # read at import time
     with pytest.raises(TigerGraphUnavailableError):
         idx.similar_cases_vec(cc_emb["embedding"].iloc[0], k=3)
     with pytest.raises(TigerGraphUnavailableError):

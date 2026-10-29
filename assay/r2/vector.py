@@ -675,8 +675,9 @@ def _tg_run_query(query_name: str, params: dict) -> list[dict]:
 
         store = TigerGraphStore()
         res = store.conn.runInstalledQuery(query_name, params=params, timeout=30000)
-        if not res or not isinstance(res, list) or not isinstance(res[0], dict):
-            return []
+        if not res or not isinstance(res, list) or not isinstance(res[0], dict) or not res[0]:
+            # a reply with no result body is garbage, not "no neighbours"
+            raise ValueError(f"malformed reply: {str(res)[:200]}")
         first_key = next(iter(res[0]))
         rows = res[0][first_key]
         return rows if isinstance(rows, list) else []
@@ -795,8 +796,8 @@ class LocalVectorIndex:
                 out_tg.append(
                     VectorNeighbor(
                         case_id=vid,
-                        outcome=str(attrs.get("outcome", "")),
-                        pattern=str(attrs.get("pattern", "")),
+                        outcome=str(attrs.get("outcome", attrs.get("Hits.outcome", ""))),
+                        pattern=str(attrs.get("pattern", attrs.get("Hits.pattern", ""))),
                         distance=dist_val,
                         connecting_path="tigergraph_vectorSearch",
                         shared_cards=tuple(str(x) for x in sc if x),
@@ -994,8 +995,8 @@ class LocalVectorIndex:
                 out_tg.append(
                     VectorNeighbor(
                         case_id=vid,
-                        outcome=str(attrs.get("outcome", "")),
-                        pattern=str(attrs.get("pattern", "")),
+                        outcome=str(attrs.get("outcome", attrs.get("Hits.outcome", ""))),
+                        pattern=str(attrs.get("pattern", attrs.get("Hits.pattern", ""))),
                         distance=dist_val,
                         connecting_path=str(attrs.get("connecting_path", attrs.get("@connecting_path", ""))),
                         shared_cards=tuple(str(x) for x in sc if x),

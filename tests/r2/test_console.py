@@ -126,3 +126,16 @@ def test_console_end_to_end():
         f"HHF-007_calls={len(data['calls'])} HHF-007_findings={len(data['ledger'])} "
         f"HHF-007_elapsed_ms={data['elapsed_ms']}ms"
     )
+
+
+def test_verify_endpoint_reruns_claims():
+    client = TestClient(create_app())
+    r = client.get("/verify/HHF-007")
+    assert r.status_code == 200
+    d = r.json()
+    assert {"VERIFIED", "MISMATCH", "UNVERIFIED", "UNRESOLVABLE"} <= set(d["counts"])
+    assert d["counts"]["MISMATCH"] == 0
+    assert d["total"] == len(d["claims"]) > 0
+    assert d["elapsed_ms"] >= 0
+    assert {"section", "index", "ref", "status", "reason", "claim"} <= set(d["claims"][0])
+    assert client.get("/verify/BAD").status_code == 400

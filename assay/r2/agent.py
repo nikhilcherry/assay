@@ -109,13 +109,29 @@ EXTRA_SECRET_PII_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 # Strict safe case_id pattern: no slashes, no '..', no NUL, no whitespace
 SAFE_CASE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
 
+def _safe_label(raw: Any) -> str:
+    """Log label for a caller-supplied case id: the id itself if it is a well-formed id, otherwise an opaque
+    hash, so a hostile id (carrying a token, email, ...) never lands in the audit log or a lock filename."""
+    t = str(raw or "").strip()
+    if SAFE_CASE_ID_RE.fullmatch(t):
+        return t
+    return "invalid_" + hashlib.sha256(t.encode("utf-8", "replace")).hexdigest()[:10] if t else "invalid_case"
+
+
 # Process-wide lock for thread-safe investigator & file operations
 _INVESTIGATOR_LOCK = threading.RLock()
 _FILE_LOCKS_GUARD = threading.Lock()
 _FILE_LOCKS: dict[str, threading.RLock] = {}
 
 # Initialize process-global dispute override weight ONCE at module startup (never mutated per case)
-_STARTUP_W_OVERRIDE, _STARTUP_DISPUTE_BASIS = measured_exam_dispute_weight()
+# A missing/corrupt closed_cases file must not crash at import with a traceback (exit 1): the error is kept
+# and re-raised inside `run_agent_case`, which turns it into a clear FAIL CLOSED exit 3.
+_STARTUP_ERROR: BaseException | None = None
+try:
+    _STARTUP_W_OVERRIDE, _STARTUP_DISPUTE_BASIS = measured_exam_dispute_weight()
+except Exception as _exc:  # noqa: BLE001
+    _STARTUP_ERROR = _exc
+    _STARTUP_W_OVERRIDE, _STARTUP_DISPUTE_BASIS = 0.5, {}
 disputes.W_OVERRIDE = _STARTUP_W_OVERRIDE
 
 
@@ -379,7 +395,9 @@ def _sanitize_trigger_for_row(case_row: pd.Series, facts: TriggerFacts) -> pd.Se
         amt = facts.stated_amount if facts.stated_amount is not None else 0.0
         sc = facts.stated_score if facts.stated_score is not None else float(row.get("risk_score") or 0.0)
         row["trigger_text"] = (
-            f"Real-time model scored transaction {fid} (${amt:,.2f}) at {sc:.2f}. Review and decide."
+            f"Real-time model scored transaction {fid} (${amt:,.2f}"
+            + (f", {facts.stated_channel.replace('_', ' ')}" if facts.stated_channel else "")
+            + f") at {sc:.2f}. Review and decide."
         )
     elif ttype == "analyst_request":
         row["trigger_text"] = (
@@ -739,6 +757,48 @@ def run_agent_case(
     role: str = "analyst",
     timeout_s: float = 20.0,
 ) -> int:
+    """Fail-closed wrapper around `_run_agent_case_impl`: any unexpected exception that escapes the
+    pipeline (missing or corrupt data files under `data/`, unreadable closed-case history, a store that
+    cannot be built, ...) becomes exit 3 with a clear message and NO answer file, never a traceback / exit 1."""
+    try:
+        if _STARTUP_ERROR is not None:
+            raise _STARTUP_ERROR
+        return _run_agent_case_impl(case_input, out_dir, fault, role, timeout_s)
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except BaseException as exc:  # noqa: BLE001 - the contract is "never a traceback"
+        err_type = type(exc).__name__
+        cid = ""
+        if isinstance(case_input, str):
+            cid = _safe_label(case_input)
+        elif isinstance(case_input, dict):
+            cid = _safe_label(case_input.get("case_id", ""))
+        cid = cid or "unknown_case"
+        msg = scrub_secrets_and_pii(f"{exc}")[:300]
+        try:
+            ans_file = Path(out_dir) / f"{cid}.json"
+            if ans_file.exists():
+                ans_file.unlink()
+            audit = AuditLog(Path(out_dir) / "audit.jsonl")
+            audit.log_error(cid, f"FAIL_CLOSED ({err_type}): {msg}", {"error_type": err_type, "stage": "startup_or_data"})
+            audit.log_run_end(cid, status="failed_closed", metadata={"error_type": err_type})
+        except Exception:
+            pass
+        print(
+            f"FAIL CLOSED [EXIT 3] case={cid} error_type={err_type}: required data/dependency unavailable "
+            f"or unreadable ({msg}); no answer written",
+            file=sys.stderr,
+        )
+        return 3
+
+
+def _run_agent_case_impl(
+    case_input: str | dict[str, Any] | pd.Series,
+    out_dir: str | Path = DEFAULT_OUT,
+    fault: str = "none",
+    role: str = "analyst",
+    timeout_s: float = 20.0,
+) -> int:
     """Runs the full N1 agent pipeline on a single case and returns the process exit code:
       - 0: Success (valid answer written idempotently).
       - 2: Invalid case input or case_id collision/path traversal (no answer file written).
@@ -757,7 +817,7 @@ def run_agent_case(
     if isinstance(case_input, str):
         raw_row, resolve_err = _resolve_case_input(case_input)
         if raw_row is None:
-            safe_cid = re.sub(r"[^A-Za-z0-9_-]", "_", str(case_input))[:32] or "invalid_case"
+            safe_cid = _safe_label(case_input)
             with _case_execution_lock(out_path, safe_cid):
                 audit = AuditLog(audit_path)
                 audit.log_error(safe_cid, resolve_err or "Invalid case_id", {"stage": "resolve_case"})
@@ -773,7 +833,7 @@ def run_agent_case(
 
     raw_cid = str(raw_row.get("case_id", "") or "")
     if _has_Unsafe_path_chars(raw_cid) or not SAFE_CASE_ID_RE.fullmatch(raw_cid.strip()):
-        safe_cid = re.sub(r"[^A-Za-z0-9_-]", "_", raw_cid)[:32] or "invalid_case"
+        safe_cid = _safe_label(raw_cid)
         with _case_execution_lock(out_path, safe_cid):
             audit = AuditLog(audit_path)
             audit.log_error(safe_cid, f"Rejected unsafe case_id: {raw_cid!r}", {"stage": "path_check"})
