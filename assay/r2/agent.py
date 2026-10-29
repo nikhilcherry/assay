@@ -32,6 +32,7 @@ import fcntl
 import hashlib
 import json
 import re
+import signal
 import sys
 import threading
 import time
@@ -750,6 +751,10 @@ def _record_case_id_key(out_dir: Path, case_id: str, idem_key: str) -> None:
     idx_file.write_text(idem_key, encoding="utf-8")
 
 
+class Interrupted(Exception):
+    """The operator stopped the run (SIGTERM); handled like any other failure: no answer, exit 3."""
+
+
 def run_agent_case(
     case_input: str | dict[str, Any] | pd.Series,
     out_dir: str | Path = DEFAULT_OUT,
@@ -784,11 +789,15 @@ def run_agent_case(
             audit.log_run_end(cid, status="failed_closed", metadata={"error_type": err_type})
         except Exception:
             pass
-        print(
-            f"FAIL CLOSED [EXIT 3] case={cid} error_type={err_type}: required data/dependency unavailable "
-            f"or unreadable ({msg}); no answer written",
-            file=sys.stderr,
-        )
+        if isinstance(exc, Interrupted):
+            print(f"FAIL CLOSED [EXIT 3] case={cid} stopped by {msg} before completing; no answer written",
+                  file=sys.stderr)
+        else:
+            print(
+                f"FAIL CLOSED [EXIT 3] case={cid} error_type={err_type}: required data/dependency unavailable "
+                f"or unreadable ({msg}); no answer written",
+                file=sys.stderr,
+            )
         return 3
 
 
@@ -1118,9 +1127,15 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _on_sigterm(signum, frame):
+    raise Interrupted("SIGTERM")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    # a stop request ends the run through the same fail-closed path as any failure (chaos drill C9)
+    signal.signal(signal.SIGTERM, _on_sigterm)
     return run_agent_case(
         case_input=args.case_id,
         out_dir=args.out,
