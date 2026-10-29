@@ -6,7 +6,15 @@ import re
 from pathlib import Path
 
 import pandas as pd
+import json
+
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _rules_router(monkeypatch):
+    """Deterministic by default: the keyword rules route. Gemini routing is tested with a mock below."""
+    monkeypatch.setenv("ASSAY_ASK_LLM", "0")
 from fastapi.testclient import TestClient
 
 from assay.r2 import ask
@@ -69,7 +77,7 @@ def test_unsupported_and_bad_input():
     with pytest.raises(ValueError):
         ask.answer("HHF-005", "")
     with pytest.raises(ValueError):
-        ask.answer("HHF-005", "x" * 301)
+        ask.answer("HHF-005", "x" * (ask.MAX_Q + 1))
     with pytest.raises(ValueError):
         ask.answer("../etc", "device")
 
@@ -88,7 +96,7 @@ def test_endpoint():
     assert ok.status_code == 200 and ok.json()["tool"] == "prior_cases"
     assert c.post("/ask", json={"case_id": "bad", "question": "device"}).status_code == 400
     assert c.post("/ask", json={"case_id": "HHF-008", "question": ""}).status_code == 400
-    assert c.post("/ask", json={"case_id": "HHF-008", "question": "a" * 301}).status_code == 400
+    assert c.post("/ask", json={"case_id": "HHF-008", "question": "a" * (ask.MAX_Q + 1)}).status_code == 400
 
 
 @pytest.mark.parametrize("q", [
@@ -113,3 +121,31 @@ def test_out_of_scope_questions_are_refused_not_answered_differently(q):
 def test_example_chips_still_route(q, intent):
     from assay.r2.ask import classify
     assert classify(q) == intent
+
+
+def test_gemini_router_multi_ask_and_enum_is_enforced(monkeypatch):
+    import assay.r2.ask as ask
+    monkeypatch.setenv("ASSAY_ASK_LLM", "1")
+    # a reply naming an off-menu "tool" and a raw query must not get through
+    monkeypatch.setattr(ask, "_gemini_route", lambda q: (
+        [i for i in ["device_neighbors", "DROP GRAPH assay", "card_history"] if i in ask.INTENTS],
+        ["travel history"]))
+    r = ask.answer("HHF-005", "who else used this phone, is this amount normal, did they travel?")
+    assert r["router"].startswith("gemini:")
+    assert [p["intent"] for p in r["parts"]] == ["device_neighbors", "card_history"]
+    assert r["cannot_answer"] == ["travel history"]
+    for p in r["parts"]:
+        assert "C00001" not in json.dumps(p["params"]) and "DROP" not in json.dumps(p["params"])
+        assert p["params"].get("card_id", "C00348-K1") == "C00348-K1"
+
+
+def test_gemini_failure_falls_back_to_rules_and_says_so(monkeypatch):
+    import assay.r2.ask as ask
+    monkeypatch.setenv("ASSAY_ASK_LLM", "1")
+
+    def boom(q):
+        raise TimeoutError("slow")
+    monkeypatch.setattr(ask, "_gemini_route", boom)
+    r = ask.answer("HHF-005", "Show the flagged transaction")
+    assert r["router"] == "rules (gemini unavailable: TimeoutError)"
+    assert r["intent"] == "get_transaction"

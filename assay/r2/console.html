@@ -1007,6 +1007,8 @@
   details.fold:not([open]) > summary { border-bottom-color: transparent; }
   details.fold > .panel-body { max-height: 440px; }
   .right-stack > details.fold, .replay-grid > details.fold { flex: 0 0 auto; }
+  .ask-sep { border-top: 1px solid var(--rule); margin: 10px 0; }
+  .ask-cannot { color: var(--bank); }
   .fold-hint { font-weight: 400; color: var(--ink-3); font-size: 10px; letter-spacing: 0.02em; }
 
   @media (max-width: 1180px) {
@@ -1099,11 +1101,11 @@
 
     <details id="ask-box" class="panel-card fold" data-fold="ask">
       <summary class="panel-header">
-        <span class="fold-title">Ask about this case <span class="fold-hint">&middot; fixed read-only tools, no free-text queries</span></span>
+        <span class="fold-title">Ask about this case <span class="fold-hint">&middot; Gemini Flash reads the question; only fixed read-only tools run</span></span>
       </summary>
       <div class="panel-body" style="max-height:none; overflow:visible;">
         <div class="ask-row">
-          <input id="ask-input" type="text" maxlength="300" placeholder="e.g. what other cards used this device?" onkeydown="if(event.key==='Enter'){askCase()}">
+          <input id="ask-input" type="text" maxlength="1000" placeholder="Ask in your own words, e.g. who else used this device, and is this card normally this busy?" onkeydown="if(event.key==='Enter'){askCase()}">
           <button class="btn btn-secondary" onclick="askCase()">Ask</button>
         </div>
         <div class="ask-chips" id="ask-chips"></div>
@@ -1323,19 +1325,29 @@
       const d = await r.json();
       if (caseId !== SELECTED_CASE_ID) return;
       if (!r.ok) { out.innerHTML = `<div class="ask-ans">${escapeHtml(d.detail || r.status)}</div>`; return; }
-      let h = "";
-      if (d.tool) {
-        const ps = Object.entries(d.params || {}).map(([k, v]) => `${k}=${v}`).join(", ");
-        h += `<div class="ask-ran">ran: ${escapeHtml(d.tool)}(${escapeHtml(ps)})</div>`;
-      }
-      h += `<div class="ask-ans">${escapeHtml(d.answer)}</div>`;
+      const part = x => {
+        let h = "";
+        if (x.tool) {
+          const ps = Object.entries(x.params || {}).map(([k, v]) => `${k}=${v}`).join(", ");
+          h += `<div class="ask-ran">ran: ${escapeHtml(x.tool)}(${escapeHtml(ps)})</div>`;
+        }
+        h += `<div class="ask-ans">${escapeHtml(x.answer)}</div>`;
+        if (x.rows && x.rows.length) {
+          const cols = [...new Set(x.rows.flatMap(r => Object.keys(r)))];
+          h += `<div class="ask-wrap"><table class="ask-tbl"><tr>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join("")}</tr>` +
+            x.rows.map(r => `<tr>${cols.map(c => `<td title="${escapeHtml(r[c])}">${escapeHtml(r[c])}</td>`).join("")}</tr>`).join("") +
+            `</table></div><div class="ask-ran">${x.rows.length} of ${x.total} rows shown</div>`;
+        }
+        return h;
+      };
+      let h = `<div class="ask-ran">understood by ${escapeHtml(d.router || "rules")}` +
+        (d.parts && d.parts.length > 1 ? ` &middot; ${d.parts.length} questions found` : "") + `</div>`;
+      const parts = d.parts && d.parts.length ? d.parts : (d.tool ? [d] : []);
+      h += parts.map(part).join('<div class="ask-sep"></div>');
+      if (!parts.length) h += `<div class="ask-ans">${escapeHtml(d.answer)}</div>`;
+      if (d.cannot_answer && d.cannot_answer.length)
+        h += `<div class="ask-ans ask-cannot">Not answerable from the bank's data: ${d.cannot_answer.map(escapeHtml).join("; ")}</div>`;
       if (d.supported) h += `<ul class="ask-ans">${d.supported.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ul>`;
-      if (d.rows && d.rows.length) {
-        const cols = [...new Set(d.rows.flatMap(r => Object.keys(r)))];
-        h += `<div class="ask-wrap"><table class="ask-tbl"><tr>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join("")}</tr>` +
-          d.rows.map(r => `<tr>${cols.map(c => `<td title="${escapeHtml(r[c])}">${escapeHtml(r[c])}</td>`).join("")}</tr>`).join("") +
-          `</table></div><div class="ask-ran">${d.rows.length} of ${d.total} rows shown</div>`;
-      }
       out.innerHTML = h;
     } catch (e) {
       out.innerHTML = `<div class="ask-ans">${escapeHtml(e.message)}</div>`;

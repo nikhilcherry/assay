@@ -768,7 +768,7 @@ def create_app() -> FastAPI:
 
     @app.post("/ask")
     async def ask_case(payload: AskPayload) -> Dict[str, Any]:
-        """Closed-menu question about a case: keywords pick one fixed tool; free text is never a query."""
+        """Closed-menu question about a case: Gemini Flash (or the keyword rules) picks fixed tools; free text is never a query."""
         from assay.r2 import ask as ask_mod
 
         if not re.fullmatch(r"HHF-\d{3}", payload.case_id or ""):
