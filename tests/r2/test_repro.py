@@ -51,7 +51,7 @@ def test_makefile_required_commands() -> None:
     assert "assay.data" in mf
     assert "assay.r2.frames" in mf
     assert "assay.r2.score_jan" in mf
-    assert "assay.r2.run_r2" in mf
+    assert "assay.r2.agent" in mf
     assert "grade.py" in mf
     assert "pytest" in mf
     assert "tigergraph/community:4.2.5" in mf
@@ -78,7 +78,7 @@ def test_makefile_modules_importable() -> None:
         "assay.data",
         "assay.r2.frames",
         "assay.r2.score_jan",
-        "assay.r2.run_r2",
+        "assay.r2.agent",
         "assay.tg",
         "assay.r2.tg_load",
     }
