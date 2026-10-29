@@ -6,8 +6,8 @@ Sources: `docs/r2/FACTS.md` and `docs/r2/B30_drills.md`.
 - **Local frames** (`assay/r2/frames.py`): `tx_all.parquet` (Jul 2016 – Jan 2017), 5,585 closed cases,
   18 exam cases. An investigation sees only rows with `t <= opened_at`.
 - **Local scorers**: a calibrated LightGBM transaction model and a pattern classifier.
-- **TigerGraph 4.2 CE**: under `ASSAY_TG=1` (how `cases_r2/` is produced) the graph decides the ring
-  (`r2_ring_wcc`) and both cohorts (`r2_micro_drip_cohort`, `r2_recipient_fanin`). TigerVector
+- **TigerGraph 4.2 CE**: under `ASSAY_TG=1` (how `cases_r2/` is produced) the graph decides the compromise
+  cohort (`r2_cpc_*`), the ring (`r2_ring_wcc`) and both cohorts (`r2_micro_drip_cohort`, `r2_recipient_fanin`). TigerVector
   precedent (`similar_cases_vec`) is queried and abstains by measurement (`docs/r2/C5_vector_vote.md`).
   Cases are written back as `FraudCase`. Graph and local code agree on all 18 cases
   (`docs/r2/C6_tg_cohorts.md`).

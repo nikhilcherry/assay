@@ -63,7 +63,7 @@
           "3660126",
           "3660127"
         ],
-        "ref": "query:cpc_origin_search(card_id=C06220-K1, cohort_size_bucket=6+, flagged_txn_id=3660127, lookback_days=60, origin_key=ProductCD_addr1:W_122)",
+        "ref": "query:cpc_origin_search(backend=tigergraph, card_id=C06220-K1, cohort_size_bucket=6+, flagged_txn_id=3660127, lookback_days=60, origin_key=ProductCD_addr1:W_122)",
         "source": "graph"
       },
       {

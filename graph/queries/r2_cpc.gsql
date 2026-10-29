@@ -1,0 +1,516 @@
+// C10 -- Common-point-of-compromise (CPC) graph-shaped detectors on TigerGraph
+// (Community Edition 4.2, GSQL V2 syntax).
+//
+// Schema alignment (graph/schema.gsql & graph/load_r2.gsql):
+//   - Vertex `Txn` has attributes:
+//       txn_id (STRING), ts (DATETIME), amount (DOUBLE), product (STRING),
+//       channel (STRING), addr1 (INT, -1 when missing), dist1 (DOUBLE, -1.0 when missing),
+//       p_email (STRING), r_email (STRING), device_profile (STRING), card_id (STRING).
+//   - All 6 candidate origin key families used by `cpc.py` (`extract_features_sub` /
+//     `compute_origin_lifts`) are formed from attributes stored on `Txn`:
+//       1. ProductCD_amount:<product>_<amount_2dp>
+//       2. ProductCD_addr1:<product>_<addr1>             (when addr1 >= 0)
+//       3. R_emaildomain:<r_email>                       (when non-empty and not in freemail)
+//       4. P_emaildomain_ProductCD:<p_email>_<product>   (when non-empty and not in freemail)
+//       5. device_profile:<device_profile>               (when specific device)
+//       6. merchant_like:<product>_<amount_2dp>_<dist1>  (when dist1 >= 0)
+//   - Note on `global_card_counts` in `cpc.py`: `PrecomputedIndex.global_card_counts`
+//     stores full-dataset (`tx_all()`) distinct card counts for `ProductCD_amount`,
+//     `R_emaildomain`, and `ProductCD_addr1`. In `r2_cpc_origin_counts`, we compute both
+//     the full-graph distinct card count per origin key (`origin_total_cardinality`) and
+//     the as-of (`t.ts <= opened_at`) distinct card count (`origin_asof_cardinality`),
+//     returning both so Python callers have exact parity with `cpc.py` as well as strict
+//     as-of cardinality.
+USE GRAPH assay
+
+CREATE OR REPLACE QUERY r2_cpc_loss_cohort(
+  STRING flagged_txn_id,
+  DATETIME opened_at,
+  INT near_days = 3,
+  INT pre_window_days = 15,
+  INT post_window_days = 10,
+  INT max_span_days = 4,
+  INT min_prior_txns = 5,
+  DOUBLE prior_c_cap = 250.0
+) FOR GRAPH assay SYNTAX v2 {
+  TYPEDEF TUPLE<INT ts_sec, INT tid, STRING dev> BurstTxn;
+
+  HeapAccum<BurstTxn>(10000, ts_sec ASC, tid ASC) @win_txns;
+  ListAccum<BurstTxn> @wlist;
+  ListAccum<BurstTxn> @chosen_burst;
+
+  SumAccum<INT> @prior_cnt;
+  MinAccum<INT> @first_c250_sec;
+  MapAccum<STRING, MinAccum<INT>> @dev_first_sec;
+  SetAccum<STRING> @burst_devs;
+  MinAccum<INT> @burst_start_sec;
+  OrAccum @qualifies;
+
+  MaxAccum<STRING> @@flagged_card;
+  MaxAccum<STRING> @@f_prod;
+  MaxAccum<STRING> @@f_chan;
+  MaxAccum<INT> @@t0_sec;
+  OrAccum @@has_flagged;
+
+  SumAccum<INT> @@near_cnt;
+  SumAccum<INT> @@near_250_2200_cnt;
+  MinAccum<DOUBLE> @@near_min_amt;
+  MaxAccum<DOUBLE> @@near_max_amt;
+
+  OrAccum @@has_shape;
+  MaxAccum<DOUBLE> @@min_amt;
+  MaxAccum<DOUBLE> @@max_amt;
+  MaxAccum<INT> @@min_count;
+  MaxAccum<INT> @@max_count;
+
+  SetAccum<STRING> @@cand_cards;
+  MapAccum<STRING, SetAccum<STRING>> @@dev_to_cards;
+  SetAccum<STRING> @@shared_cards;
+
+  SetAccum<STRING> @@member_cards;
+  MapAccum<STRING, ListAccum<INT>> @@burst_txns;
+  MapAccum<STRING, INT> @@first_loss_sec;
+
+  INT open_sec = datetime_to_epoch(opened_at);
+
+  // 1. Inspect the flagged transaction as-of opened_at
+  Flagged = {Txn.*};
+  Flagged = SELECT t FROM Flagged:t
+            WHERE t.txn_id == flagged_txn_id AND t.ts <= opened_at
+            ACCUM
+              @@has_flagged += TRUE,
+              @@flagged_card += t.card_id,
+              @@f_prod += t.product,
+              @@f_chan += t.channel,
+              @@t0_sec += datetime_to_epoch(t.ts);
+
+  IF @@has_flagged THEN
+    INT t0 = @@t0_sec;
+    INT near_lo = t0 - near_days * 86400;
+    INT near_hi = t0 + near_days * 86400;
+    IF open_sec < near_hi THEN
+      near_hi = open_sec;
+    END;
+
+    // 2. Inspect near-window transactions on the flagged card to determine loss shape
+    FCard = {Card.*};
+    FCard = SELECT c FROM FCard:c
+            WHERE c.card_id == @@flagged_card;
+
+    NearTxns = SELECT t FROM FCard:c -(MADE>)- Txn:t
+               WHERE t.ts <= opened_at
+                 AND datetime_to_epoch(t.ts) >= near_lo
+                 AND datetime_to_epoch(t.ts) <= near_hi
+                 AND t.product == @@f_prod
+                 AND t.channel == @@f_chan
+               ACCUM
+                 @@near_cnt += 1,
+                 @@near_min_amt += t.amount,
+                 @@near_max_amt += t.amount,
+                 IF t.amount >= 250.0 AND t.amount <= 2200.0 THEN
+                   @@near_250_2200_cnt += 1
+                 END;
+
+    IF @@f_prod == "C" AND @@f_chan == "online" AND @@near_250_2200_cnt >= 2 THEN
+      @@has_shape += TRUE;
+      @@min_amt += 250.0;
+      @@max_amt += 2200.0;
+      @@min_count += 2;
+      @@max_count += 5;
+    ELSE IF @@near_cnt >= 2 AND @@f_prod == "C" AND @@f_chan == "online" THEN
+      DOUBLE min_a = @@near_min_amt * 0.65;
+      DOUBLE max_a = @@near_max_amt * 1.5;
+      IF min_a >= 250.0 THEN
+        @@has_shape += TRUE;
+        IF min_a > 250.0 THEN
+          @@min_amt += min_a;
+        ELSE
+          @@min_amt += 250.0;
+        END;
+        IF max_a < 2200.0 THEN
+          @@max_amt += max_a;
+        ELSE
+          @@max_amt += 2200.0;
+        END;
+        @@min_count += 2;
+        @@max_count += 5;
+      END;
+    END;
+
+    IF @@has_shape THEN
+      INT w_lo = t0 - pre_window_days * 86400;
+      INT w_hi = t0 + post_window_days * 86400;
+      IF open_sec < w_hi THEN
+        w_hi = open_sec;
+      END;
+
+      IF w_hi >= w_lo THEN
+        INT span_max_sec = max_span_days * 86400;
+
+        // 3. Collect matching burst transactions in [w_lo, w_hi] across all cards
+        AllCards = {Card.*};
+        HitCards = SELECT c FROM AllCards:c -(MADE>)- Txn:t
+                   WHERE t.ts <= opened_at
+                     AND datetime_to_epoch(t.ts) >= w_lo
+                     AND datetime_to_epoch(t.ts) <= w_hi
+                     AND t.product == @@f_prod
+                     AND t.channel == @@f_chan
+                     AND t.amount >= @@min_amt
+                     AND t.amount <= @@max_amt
+                   ACCUM
+                     STRING d_raw = t.device_profile,
+                     STRING d_spec = "",
+                     IF d_raw != "" AND d_raw != "Windows" AND d_raw != "iOS Device"
+                        AND d_raw != "MacOS" AND d_raw != "Android"
+                        AND d_raw != "None" AND d_raw != "nan"
+                        AND NOT (d_raw LIKE "Windows | ?%")
+                        AND NOT (d_raw LIKE "iOS Device | ?%")
+                        AND NOT (d_raw LIKE "MacOS | ?%") THEN
+                       d_spec = d_raw
+                     END,
+                     c.@win_txns += BurstTxn(datetime_to_epoch(t.ts), str_to_int(t.txn_id), d_spec)
+                   POST-ACCUM
+                     WHILE c.@win_txns.size() > 0 DO
+                       c.@wlist += c.@win_txns.pop()
+                     END,
+                     INT cnt = c.@wlist.size(),
+                     IF (cnt >= @@min_count AND cnt <= @@max_count)
+                        OR (c.card_id == @@flagged_card AND cnt >= 2) THEN
+                       @@cand_cards += c.card_id
+                     END;
+
+        IF @@cand_cards.size() >= 3 THEN
+          // 4. Select the burst window (span <= 4 days) for each candidate card
+          CandCards = SELECT c FROM AllCards:c
+                      WHERE @@cand_cards.contains(c.card_id)
+                      POST-ACCUM
+                        INT n = c.@wlist.size(),
+                        INT first_ts = c.@wlist.get(0).ts_sec,
+                        INT last_ts = c.@wlist.get(n - 1).ts_sec,
+                        IF (last_ts - first_ts) <= span_max_sec THEN
+                          c.@qualifies += TRUE,
+                          c.@burst_start_sec += first_ts,
+                          FOREACH item IN c.@wlist DO
+                            c.@chosen_burst += item,
+                            IF item.dev != "" THEN
+                              c.@burst_devs += item.dev
+                            END
+                          END
+                        ELSE
+                          BOOL found_sub = FALSE,
+                          FOREACH j IN RANGE[0, n - @@min_count] DO
+                            IF NOT found_sub THEN
+                              INT sub_first = c.@wlist.get(j).ts_sec,
+                              INT sub_last = c.@wlist.get(j + @@min_count - 1).ts_sec,
+                              IF (sub_last - sub_first) <= span_max_sec THEN
+                                found_sub = TRUE,
+                                c.@qualifies += TRUE,
+                                c.@burst_start_sec += sub_first,
+                                FOREACH k IN RANGE[j, j + @@min_count - 1] DO
+                                  BurstTxn b_item = c.@wlist.get(k),
+                                  c.@chosen_burst += b_item,
+                                  IF b_item.dev != "" THEN
+                                    c.@burst_devs += b_item.dev
+                                  END
+                                END
+                              END
+                            END
+                          END
+                        END
+                      HAVING c.@qualifies == TRUE;
+
+          // 5. Check prior history (< @burst_start_sec) for each qualifying card:
+          //    >= 5 prior txns, no prior ProductCD=='C' >= $250, and novel specific device
+          CandTxns = SELECT t FROM CandCards:c -(MADE>)- Txn:t
+                     WHERE t.ts <= opened_at
+                     ACCUM
+                       INT t_sec = datetime_to_epoch(t.ts),
+                       IF t_sec < c.@burst_start_sec THEN
+                         c.@prior_cnt += 1,
+                         IF t.product == "C" AND t.amount >= prior_c_cap THEN
+                           c.@first_c250_sec += t_sec
+                         END,
+                         STRING d_raw = t.device_profile,
+                         IF d_raw != "" AND d_raw != "Windows" AND d_raw != "iOS Device"
+                            AND d_raw != "MacOS" AND d_raw != "Android"
+                            AND d_raw != "None" AND d_raw != "nan"
+                            AND NOT (d_raw LIKE "Windows | ?%")
+                            AND NOT (d_raw LIKE "iOS Device | ?%")
+                            AND NOT (d_raw LIKE "MacOS | ?%") THEN
+                           c.@dev_first_sec += (d_raw -> t_sec)
+                         END
+                       END;
+
+          ValidCards = SELECT c FROM CandCards:c
+                       POST-ACCUM
+                         BOOL ok = TRUE,
+                         IF c.@prior_cnt < min_prior_txns THEN
+                           ok = FALSE
+                         END,
+                         IF c.@first_c250_sec > 0 AND c.@first_c250_sec < c.@burst_start_sec THEN
+                           ok = FALSE
+                         END,
+                         FOREACH d IN c.@burst_devs DO
+                           IF c.@dev_first_sec.containsKey(d) THEN
+                             IF c.@dev_first_sec.get(d) < c.@burst_start_sec THEN
+                               ok = FALSE
+                             END
+                           END
+                         END,
+                         IF ok THEN
+                           @@member_cards += c.card_id,
+                           FOREACH d IN c.@burst_devs DO
+                             @@dev_to_cards += (d -> c.card_id)
+                           END
+                         ELSE
+                           c.@qualifies = FALSE
+                         END
+                       HAVING c.@qualifies == TRUE;
+
+          // 6. Prune cards that share a specific device in the burst (except flagged_card)
+          FOREACH (d, cs) IN @@dev_to_cards DO
+            IF cs.size() > 1 THEN
+              FOREACH cid IN cs DO
+                IF cid != @@flagged_card THEN
+                  @@shared_cards += cid;
+                END;
+              END;
+            END;
+          END;
+
+          FOREACH cid IN @@shared_cards DO
+            @@member_cards.remove(cid);
+          END;
+
+          FinalCards = SELECT c FROM ValidCards:c
+                       WHERE @@member_cards.contains(c.card_id)
+                       POST-ACCUM
+                         @@first_loss_sec += (c.card_id -> c.@burst_start_sec),
+                         FOREACH item IN c.@chosen_burst DO
+                           @@burst_txns += (c.card_id -> item.tid)
+                         END;
+        END;
+      END;
+    END;
+  END;
+
+  PRINT @@has_shape AS has_shape,
+        @@flagged_card AS flagged_card,
+        @@f_prod AS ProductCD,
+        @@f_chan AS channel,
+        @@min_amt AS min_amt,
+        @@max_amt AS max_amt,
+        @@min_count AS min_count,
+        @@max_count AS max_count,
+        @@t0_sec AS t0_sec,
+        @@member_cards AS member_cards,
+        @@first_loss_sec AS first_loss_sec,
+        @@burst_txns AS burst_txns;
+}
+
+CREATE OR REPLACE QUERY r2_cpc_origin_counts(
+  SET<STRING> card_ids,
+  SET<STRING> card_loss_epochs,
+  DATETIME opened_at,
+  SET<STRING> freemail,
+  INT lookback_days = 60
+) FOR GRAPH assay SYNTAX v2 {
+  // Note on `card_loss_epochs`: passed as "card_id:loss_epoch_sec" strings so REST++
+  // GET/POST query parameters require only primitive / SET<STRING> types.
+  MaxAccum<INT> @loss_sec;
+
+  MapAccum<STRING, SetAccum<STRING>> @@origin_cards;
+  MapAccum<STRING, SetAccum<INT>> @@origin_txns;
+  MapAccum<STRING, SetAccum<STRING>> @@origin_card_txns;
+
+  MapAccum<STRING, SetAccum<STRING>> @@global_cards_all;
+  MapAccum<STRING, SetAccum<STRING>> @@global_cards_asof;
+
+  MapAccum<STRING, INT> @@origin_card_count;
+  MapAccum<STRING, INT> @@origin_total_cardinality;
+  MapAccum<STRING, INT> @@origin_asof_cardinality;
+
+  INT lookback_sec = lookback_days * 86400;
+
+  // 1. Resolve each target card's first-loss epoch timestamp via its loss transaction
+  TargetCards = {Card.*};
+  TargetCards = SELECT c FROM TargetCards:c
+                WHERE card_ids.contains(c.card_id);
+
+  LossTxns = SELECT t FROM TargetCards:c -(MADE>)- Txn:t
+             WHERE t.ts <= opened_at
+             ACCUM
+               INT t_sec = datetime_to_epoch(t.ts),
+               STRING tag = c.card_id + ":" + to_string(t_sec),
+               IF card_loss_epochs.contains(tag) THEN
+                 c.@loss_sec += t_sec
+               END;
+
+  // 2. Traverse TargetCards -(MADE>)- Txn in [c.@loss_sec - lookback_sec, c.@loss_sec)
+  //    and extract all 6 candidate origin feature families
+  LookbackTxns = SELECT t FROM TargetCards:c -(MADE>)- Txn:t
+                 WHERE t.ts <= opened_at
+                   AND c.@loss_sec > 0
+                   AND datetime_to_epoch(t.ts) >= (c.@loss_sec - lookback_sec)
+                   AND datetime_to_epoch(t.ts) < c.@loss_sec
+                 ACCUM
+                   INT tid_int = str_to_int(t.txn_id),
+                   STRING cid = c.card_id,
+                   STRING cid_tid = cid + ":" + t.txn_id,
+                   // Format amount to 2 decimal places ("%.2f") in GSQL
+                   INT cents = float_to_int( round(t.amount * 100.0) ),
+                   INT dollars = cents / 100,
+                   INT rem = cents % 100,
+                   STRING rem_s = to_string(rem),
+                   IF rem < 10 THEN
+                     rem_s = "0" + rem_s
+                   END,
+                   STRING amt_s = to_string(dollars) + "." + rem_s,
+
+                   // (1) ProductCD_amount
+                   STRING k_pa = "ProductCD_amount:" + t.product + "_" + amt_s,
+                   @@origin_cards += (k_pa -> cid),
+                   @@origin_txns += (k_pa -> tid_int),
+                   @@origin_card_txns += (k_pa -> cid_tid),
+
+                   // (2) ProductCD_addr1 (addr1 == -1 means NaN in load_r2.gsql)
+                   IF t.addr1 >= 0 THEN
+                     STRING k_addr = "ProductCD_addr1:" + t.product + "_" + to_string(t.addr1),
+                     @@origin_cards += (k_addr -> cid),
+                     @@origin_txns += (k_addr -> tid_int),
+                     @@origin_card_txns += (k_addr -> cid_tid)
+                   END,
+
+                   // (3) R_emaildomain
+                   IF t.r_email != "" AND t.r_email != "None" AND t.r_email != "nan"
+                      AND NOT freemail.contains(t.r_email) THEN
+                     STRING k_rem = "R_emaildomain:" + t.r_email,
+                     @@origin_cards += (k_rem -> cid),
+                     @@origin_txns += (k_rem -> tid_int),
+                     @@origin_card_txns += (k_rem -> cid_tid)
+                   END,
+
+                   // (4) P_emaildomain_ProductCD
+                   IF t.p_email != "" AND t.p_email != "None" AND t.p_email != "nan"
+                      AND NOT freemail.contains(t.p_email) THEN
+                     STRING k_pem = "P_emaildomain_ProductCD:" + t.p_email + "_" + t.product,
+                     @@origin_cards += (k_pem -> cid),
+                     @@origin_txns += (k_pem -> tid_int),
+                     @@origin_card_txns += (k_pem -> cid_tid)
+                   END,
+
+                   // (5) device_profile (specific device)
+                   STRING d_raw = t.device_profile,
+                   IF d_raw != "" AND d_raw != "Windows" AND d_raw != "iOS Device"
+                      AND d_raw != "MacOS" AND d_raw != "Android"
+                      AND d_raw != "None" AND d_raw != "nan"
+                      AND NOT (d_raw LIKE "Windows | ?%")
+                      AND NOT (d_raw LIKE "iOS Device | ?%")
+                      AND NOT (d_raw LIKE "MacOS | ?%") THEN
+                     STRING k_dev = "device_profile:" + d_raw,
+                     @@origin_cards += (k_dev -> cid),
+                     @@origin_txns += (k_dev -> tid_int),
+                     @@origin_card_txns += (k_dev -> cid_tid)
+                   END,
+
+                   // (6) merchant_like (dist1 == -1.0 means NaN in load_r2.gsql)
+                   IF t.dist1 >= 0.0 THEN
+                     INT dist_int = float_to_int(t.dist1),
+                     STRING k_ml = "merchant_like:" + t.product + "_" + amt_s + "_" + to_string(dist_int),
+                     @@origin_cards += (k_ml -> cid),
+                     @@origin_txns += (k_ml -> tid_int),
+                     @@origin_card_txns += (k_ml -> cid_tid)
+                   END;
+
+  // 3. For candidate origins touched by >= 1 card in `card_ids`, compute total cardinality
+  //    across the graph (both full-graph to match `PrecomputedIndex.global_card_counts`
+  //    and as-of `t.ts <= opened_at`).
+  IF @@origin_cards.size() > 0 THEN
+    AllTxns = {Txn.*};
+    ScanTxns = SELECT t FROM AllTxns:t
+               ACCUM
+                 STRING cid = t.card_id,
+                 BOOL is_asof = (t.ts <= opened_at),
+                 INT cents = float_to_int( round(t.amount * 100.0) ),
+                 INT dollars = cents / 100,
+                 INT rem = cents % 100,
+                 STRING rem_s = to_string(rem),
+                 IF rem < 10 THEN
+                   rem_s = "0" + rem_s
+                 END,
+                 STRING amt_s = to_string(dollars) + "." + rem_s,
+
+                 STRING k_pa = "ProductCD_amount:" + t.product + "_" + amt_s,
+                 IF @@origin_cards.containsKey(k_pa) THEN
+                   @@global_cards_all += (k_pa -> cid),
+                   IF is_asof THEN
+                     @@global_cards_asof += (k_pa -> cid)
+                   END
+                 END,
+
+                 IF t.addr1 >= 0 THEN
+                   STRING k_addr = "ProductCD_addr1:" + t.product + "_" + to_string(t.addr1),
+                   IF @@origin_cards.containsKey(k_addr) THEN
+                     @@global_cards_all += (k_addr -> cid),
+                     IF is_asof THEN
+                       @@global_cards_asof += (k_addr -> cid)
+                     END
+                   END
+                 END,
+
+                 IF t.r_email != "" AND t.r_email != "None" AND t.r_email != "nan" THEN
+                   STRING k_rem = "R_emaildomain:" + t.r_email,
+                   IF @@origin_cards.containsKey(k_rem) THEN
+                     @@global_cards_all += (k_rem -> cid),
+                     IF is_asof THEN
+                       @@global_cards_asof += (k_rem -> cid)
+                     END
+                   END
+                 END,
+
+                 IF t.p_email != "" AND t.p_email != "None" AND t.p_email != "nan" THEN
+                   STRING k_pem = "P_emaildomain_ProductCD:" + t.p_email + "_" + t.product,
+                   IF @@origin_cards.containsKey(k_pem) THEN
+                     @@global_cards_all += (k_pem -> cid),
+                     IF is_asof THEN
+                       @@global_cards_asof += (k_pem -> cid)
+                     END
+                   END
+                 END,
+
+                 STRING d_raw = t.device_profile,
+                 IF d_raw != "" THEN
+                   STRING k_dev = "device_profile:" + d_raw,
+                   IF @@origin_cards.containsKey(k_dev) THEN
+                     @@global_cards_all += (k_dev -> cid),
+                     IF is_asof THEN
+                       @@global_cards_asof += (k_dev -> cid)
+                     END
+                   END
+                 END,
+
+                 IF t.dist1 >= 0.0 THEN
+                   INT dist_int = float_to_int(t.dist1),
+                   STRING k_ml = "merchant_like:" + t.product + "_" + amt_s + "_" + to_string(dist_int),
+                   IF @@origin_cards.containsKey(k_ml) THEN
+                     @@global_cards_all += (k_ml -> cid),
+                     IF is_asof THEN
+                       @@global_cards_asof += (k_ml -> cid)
+                     END
+                   END
+                 END;
+
+    FOREACH (k, cset) IN @@origin_cards DO
+      @@origin_card_count += (k -> cset.size());
+      @@origin_total_cardinality += (k -> @@global_cards_all.get(k).size());
+      @@origin_asof_cardinality += (k -> @@global_cards_asof.get(k).size());
+    END;
+  END;
+
+  PRINT @@origin_card_count AS origin_card_count,
+        @@origin_total_cardinality AS origin_total_cardinality,
+        @@origin_asof_cardinality AS origin_asof_cardinality,
+        @@origin_cards AS origin_cards,
+        @@origin_txns AS origin_txns,
+        @@origin_card_txns AS origin_card_txns;
+}
