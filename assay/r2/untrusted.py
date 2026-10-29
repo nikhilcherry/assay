@@ -205,10 +205,10 @@ def _extract_txn_ids(text: str) -> list[int]:
         re.IGNORECASE,
     )
     if explicit:
-        return [int( explicit[0] )]
+        return list(dict.fromkeys(int(x) for x in explicit))
     fallback = re.findall(r"\b(\d{6,10})\b", text)
     if fallback:
-        return [int(fallback[0])]
+        return list(dict.fromkeys(int(x) for x in fallback))
     return []
 
 
