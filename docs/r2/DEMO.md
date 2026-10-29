@@ -65,8 +65,10 @@ Other likely questions:
   neighbours fraud" is mostly base rate (`docs/r2/C5_vector_vote.md`). So HHF-013 closes at p=0.05.
 - *What if TigerGraph is down or answers garbage?* Exit 3 and no answer, never a silent fallback.
   Local mode is the default for a clean clone and decides identically.
-- *What leaves the bank?* Nothing at decision time (tokens = 0). At build time a Gemini model only
-  played red-team attackers, and was sent no customer row (`docs/r2/REDTEAM.md`).
+- *What leaves the bank?* Nothing on the decision path (tokens = 0). The console's Ask box sends only the
+  analyst's question text (secrets redacted) to `gemini-3.5-flash`, which picks fixed tools. At build time
+  `gemini-4-argon` saw the policy, our write-ups, statistics, a few sample rows and, in design debates,
+  pseudonymous card/transaction ids and amounts (`docs/r2/RESILIENCE.md` §2).
 - *Same case twice?* Identical bytes apart from `latency_s` (drill D6).
 - *How do you know it holds up?* `docs/r2/REDTEAM.md`: 80 scenarios from ten Argon personas, run blind.
   They found the hostile-input gaps and the cap bypass that we fixed. Rerunning the injector's cases

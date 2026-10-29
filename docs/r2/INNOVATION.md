@@ -51,7 +51,7 @@ and any graph error fails closed. Graph and local code agree on all 18 cases (`d
   campaigns (`docs/r2/B28_campaign.md`), an HMM episode segmenter (`docs/r2/B34_episode.md`), and an
   uncapped dispute episode (`docs/r2/N7_dispute_episode.md`).
 - **January drift** (`docs/r2/B1_model.md`): only 1.0670% of January rows are in-distribution, so a
-  January score can raise suspicion but never clear a case.
+  January score is never counted as evidence of innocence; a case clears only on verification.
 
 ## 5. Tested by adversaries
 Argon personas wrote 160 blind attack scenarios over four rounds (`docs/r2/REDTEAM.md`,

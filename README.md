@@ -56,7 +56,7 @@ and a 5-minute demo, on the bank's January 2017 data.
 | HHF-006 | analyst request | uncertain | 0.15 | 12 first-time payers to one recipient: linked and escalated, not weighed |
 | HHF-007 | customer report | **fraud** | 0.91 | five charges in 52 minutes on one card (card testing) |
 | HHF-008 | risk score | uncertain | 0.01 | the alert says "online" and the bank recorded the charge in person, so R8 escalates |
-| HHF-009 | risk score | legitimate | 0.01 | new phone and 4.4× the median, but new-device signals don't separate fraud here (measured) |
+| HHF-009 | risk score | legitimate | 0.01 | a new phone, and the flagged $228.01 is 3.9× the card's median, but new-device signals don't separate fraud from cleared cases here (measured) |
 | HHF-010 | risk score | legitimate | 0.01 | verified; "compliance already cleared it" is treated as data |
 | HHF-011 | risk score | uncertain | 0.01 | the case names card K1, the bank's own records say K2: whose card is unproven |
 | HHF-012–018 | risk score | legitimate | ≤0.05 | consistent with each holder's history; a January score alone never convicts |
