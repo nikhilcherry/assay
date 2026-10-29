@@ -296,14 +296,15 @@ def _real_ledger_steps(last: Dict[str, Any], ans: Dict[str, Any]) -> List[Dict[s
     p = float(last["p_model"])
     steps = [{"step": 1, "claim": "Calibrated transaction model score (trained on the bank's closed cases).",
               "ref": f"model:p_fraud(txn_id={int(last['flagged'].TransactionID)})", "ids": [],
-              "lr": 1.0, "probability_after": round(p, 4), "kind": "prior"}]
+              "lr": 1.0, "probability_after": round(p, 4), "kind": "prior", "tag": "model"}]
     for f in last["findings"]:
         if f.lr != 1.0:
             o = odds(p) * f.lr
             p = o / (1 + o)
         steps.append({"step": len(steps) + 1, "claim": f.claim, "ref": f.ref,
                       "ids": [str(e) for e in f.entity_ids], "lr": round(float(f.lr), 4),
-                      "probability_after": round(p, 4), "kind": "evidence" if f.lr != 1.0 else "context"})
+                      "probability_after": round(p, 4), "kind": "evidence" if f.lr != 1.0 else "context",
+                      "tag": getattr(f, "tag", "finding") or "finding"})
     p2 = last.get("p2")
     if p2 is not None and abs(float(p2) - p) > 1e-9:
         lr = odds(float(p2)) / odds(p)
@@ -311,15 +312,229 @@ def _real_ledger_steps(last: Dict[str, Any], ans: Dict[str, Any]) -> List[Dict[s
         what = "; ".join(str(r.get("assumed_response", r.get("type", ""))) for r in reqs) or "requested evidence"
         steps.append({"step": len(steps) + 1, "claim": f"Evidence request answered: {what}",
                       "ref": "evidence_requests", "ids": [], "lr": round(lr, 4),
-                      "probability_after": round(float(p2), 4), "kind": "evidence_request"})
+                      "probability_after": round(float(p2), 4), "kind": "evidence_request",
+                      "tag": "evidence_request"})
         p = float(p2)
     reported = float(ans["case"]["fraud_probability"])
     steps.append({"step": len(steps) + 1,
                   "claim": f"Reported fraud_probability {reported:.2f} (ledger {p:.4f}, rounded to 2 places "
                            "and clipped to [0.01, 0.99]).",
                   "ref": "answer.case.fraud_probability", "ids": [], "lr": 1.0,
-                  "probability_after": reported, "kind": "reported"})
+                  "probability_after": reported, "kind": "reported", "tag": "reported"})
     return steps
+
+
+def _build_visual_payload(
+    case_row: pd.Series,
+    store: InstrumentedR2Store,
+    inv: R2Investigator,
+    ans: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Builds deterministic, attested visual telemetry for the Forensic Evidence Canvas."""
+    last = inv.last or {}
+    f = last.get("flagged")
+    fid = int(case_row.flagged_txn_id)
+    if f is None and fid in store.tx.index:
+        f = store.tx.loc[fid]
+
+    pack_card = str(case_row.card_id)
+    actual_card = str(f.card_id) if f is not None else pack_card
+    card_mismatch = pack_card != actual_card
+
+    tx_risk = round(float(f.risk_score), 4) if f is not None and pd.notna(f.risk_score) else 0.0
+    pack_risk = round(float(case_row.risk_score), 4) if pd.notna(case_row.risk_score) else None
+    bank_risk = pack_risk if pack_risk is not None else tx_risk
+    bank_risk_source = "alert" if pack_risk is not None else "txn"
+
+    opened_ts = pd.Timestamp(case_row.opened_at)
+    affected_ids = {int(x) for x in ans.get("case", {}).get("affected_txn_ids", []) if str(x).isdigit()}
+
+    card_tx = store.tx[(store.tx.card_id == actual_card) & (store.tx.t <= opened_ts)].sort_values(
+        "t", kind="stable"
+    )
+    if affected_ids:
+        aff_rows = card_tx[card_tx.TransactionID.isin(affected_ids)]
+        ep_start = aff_rows.t.min() if not aff_rows.empty else (pd.Timestamp(f.t) if f is not None else opened_ts)
+    else:
+        ep_start = pd.Timestamp(f.t) if f is not None else opened_ts
+
+    prior_tx = card_tx[card_tx.t < ep_start]
+    n_prior = int(len(prior_tx))
+    median_usd = round(float(prior_tx.TransactionAmt.median()), 2) if n_prior else 0.0
+    p95_usd = round(float(prior_tx.TransactionAmt.quantile(0.95)), 2) if n_prior else 0.0
+    max_prior_usd = round(float(prior_tx.TransactionAmt.max()), 2) if n_prior else 0.0
+    silence_days = (
+        round(float((ep_start - prior_tx.t.iloc[-1]).total_seconds() / 86400.0), 1)
+        if n_prior
+        else 0.0
+    )
+
+    after_tx = card_tx[card_tx.t >= ep_start]
+    must_keep = after_tx[after_tx.TransactionID.isin(affected_ids | {fid})]
+    pulse_df = (
+        pd.concat([prior_tx.tail(8), must_keep, after_tx.tail(10)])
+        .drop_duplicates("TransactionID")
+        .sort_values("t", kind="stable")
+        .tail(18)
+    )
+    pulse_txns: List[Dict[str, Any]] = []
+    for _, r in pulse_df.iterrows():
+        tid = int(r.TransactionID)
+        ts = pd.Timestamp(r.t)
+        dev_raw = "" if pd.isna(r.device_profile) else str(r.device_profile)
+        dev_short = dev_raw.split(" | ")[0].split(" Build")[0] if dev_raw else ""
+        pulse_txns.append(
+            {
+                "txn_id": tid,
+                "t": ts.strftime("%m-%d %H:%M"),
+                "full_t": ts.strftime("%Y-%m-%d %H:%M:%S"),
+                "amount": round(float(r.TransactionAmt), 2),
+                "product": str(r.ProductCD),
+                "channel": str(r.channel),
+                "device": dev_short,
+                "p_fraud": round(float(r.p_fraud), 4) if pd.notna(r.p_fraud) else 0.0,
+                "risk_score": round(float(r.risk_score), 4) if pd.notna(r.risk_score) else 0.0,
+                "is_flagged": tid == fid,
+                "is_affected": tid in affected_ids,
+                "in_episode_window": bool(ts >= ep_start),
+            }
+        )
+
+    # Multi-card / topology descriptors
+    multi_findings = getattr(inv, "_multi", []) or []
+    conn_cards = list(ans.get("case", {}).get("connected_card_ids", []))
+    if not conn_cards and multi_findings:
+        conn_cards = sorted({c for fd in multi_findings for c in fd.connected_card_ids if c != actual_card})
+
+    hub_type = "baseline"
+    hub_label = "Single-Card Assessment"
+    hub_sub = ""
+    hub_lr = 1.0
+
+    if card_mismatch:
+        hub_type = "mismatch"
+        hub_label = f"DQ GUARD: {pack_card} ≠ {actual_card}"
+        hub_sub = "Pack card ID disagrees with bank transaction record"
+    elif multi_findings:
+        top_fd = max(multi_findings, key=lambda x: float(getattr(x, "lr", 1.0)))
+        det_name = str(getattr(top_fd, "detector", "multi"))
+        hub_lr = round(float(getattr(top_fd, "lr", 1.0)), 2)
+        params = getattr(top_fd.claim, "params", {}) or {}
+        if det_name == "ring_wcc":
+            hub_type = "ring"
+            # The ring id lives in the claim text; the claim's query names who computed it
+            m = re.search(r"RING-[A-Z]+-[0-9a-f]{8}", str(getattr(top_fd.claim, "what", "")))
+            hub_label = m.group(0) if m else "SHARED-ELEMENT RING"
+            via_tg = str(getattr(top_fd.claim, "query", "")).startswith("r2_ring_wcc")
+            hub_sub = f"{len(conn_cards) + 1} cards · {'TigerGraph r2_ring_wcc' if via_tg else 'local WCC (TigerGraph off)'}"
+        elif det_name == "cpc":
+            hub_type = "cpc"
+            origin = params.get("common_origin") or params.get("origin")
+            if origin:
+                hub_label = f"CPC ORIGIN · {origin}"
+            else:
+                bucket = params.get("cohort_size_bucket", f"{len(conn_cards) + 1}")
+                hub_label = f"LOSS-SHAPE COHORT (bucket {bucket})"
+            hub_sub = f"{len(conn_cards) + 1} cards · Product {params.get('ProductCD', 'C')} online burst"
+        elif det_name == "FanIn":
+            hub_type = "fan_in"
+            recip = params.get("linking_value")
+            hub_label = f"FAN-IN HUB · {recip}" if recip else "FAN-IN HUB"
+            window = params.get("window_days", "?")
+            lr_kind = "assumed" if params.get("lr_assumption") else "measured"
+            hub_sub = f"{len(conn_cards) + 1} first-time cards in {window}d ({lr_kind} ×{hub_lr})"
+        else:
+            hub_type = det_name
+            hub_label = det_name.upper()
+            hub_sub = f"{len(conn_cards) + 1} linked cards"
+    else:
+        pat = str(ans.get("case", {}).get("pattern", "none"))
+        if pat == "card_testing":
+            hub_type = "card_testing"
+            hub_label = "MICRO-PROBE SEQUENCE"
+            hub_sub = f"{len(affected_ids)} charges in one burst (small probes, then a larger purchase)"
+        elif len(affected_ids) > 1:
+            hub_type = "episode"
+            hub_label = f"DISPUTE EPISODE ({len(affected_ids)} TXNS)"
+            hub_sub = f"1h/48h bounded episode · ${ans['case']['exposure_usd']:,.2f} total"
+        elif ans.get("case", {}).get("verdict") == "legitimate":
+            # Not proof of innocence (no exculpatory signal survived its backtest): nothing measured fired
+            hub_type = "cleared"
+            hub_label = "NO DETECTOR FIRED"
+            hub_sub = f"{n_prior} prior txns on this card id (median ${median_usd:,.2f})"
+
+    # Extract concise context checks for the forensic matrix
+    checks: List[Dict[str, str]] = []
+    if f is not None:
+        amt = float(f.TransactionAmt)
+        ratio = round(amt / median_usd, 1) if median_usd > 0 else 1.0
+        checks.append(
+            {
+                "label": "Amount vs Med/P95",
+                "value": f"${amt:,.2f} ({ratio}× med ${median_usd:,.0f}, p95 ${p95_usd:,.0f})",
+                "state": "warn" if (p95_usd > 0 and amt > p95_usd) else "ok",
+            }
+        )
+        checks.append(
+            {
+                "label": "Channel / Product",
+                "value": f"{str(f.channel).replace('_', ' ')} · Product {f.ProductCD}",
+                "state": "info",
+            }
+        )
+        dev_str = "" if pd.isna(f.device_profile) else str(f.device_profile)
+        proxy_str = "" if pd.isna(f.id_23) else str(f.id_23)
+        id15_str = "" if pd.isna(f.id_15) else str(f.id_15)
+        checks.append(
+            {
+                "label": "Device / Identity",
+                "value": (dev_str.split(" | ")[0][:22] or "in-person / none")
+                + (f" · {id15_str}" if id15_str else "")
+                + (f" · {proxy_str}" if proxy_str else ""),
+                "state": "warn" if ("ANONYMOUS" in proxy_str or id15_str == "New") else "ok",
+            }
+        )
+        jan_drift = pd.Timestamp(f.t) >= pd.Timestamp("2017-01-01")
+        checks.append(
+            {
+                "label": "Regime / Drift Guard",
+                "value": "Jan 2017 OOD (low score ≠ innocence)" if jan_drift else "In-distribution",
+                "state": "warn" if jan_drift else "ok",
+            }
+        )
+
+    return {
+        "pack_card_id": pack_card,
+        "actual_card_id": actual_card,
+        "card_mismatch": card_mismatch,
+        "customer_id": str(case_row.customer_id),
+        "bank_risk": bank_risk,
+        "bank_risk_source": bank_risk_source,
+        "tx_risk": tx_risk,
+        "p_model": round(float(last.get("p_model", 0.5)), 4),
+        "p_gate": round(float(last.get("p1", 0.5)), 4),
+        "p_final": round(float(last.get("p2", last.get("p1", 0.5))), 4),
+        "baseline": {
+            "n_prior": n_prior,
+            "median_usd": median_usd,
+            "p95_usd": p95_usd,
+            "max_prior_usd": max_prior_usd,
+            "silence_days": silence_days,
+        },
+        "pulse_txns": pulse_txns,
+        "topology": {
+            "hub_type": hub_type,
+            "hub_label": hub_label,
+            "hub_sub": hub_sub,
+            "hub_lr": hub_lr,
+            "connected_cards": conn_cards[:16],
+            "connected_count": len(conn_cards),
+            "similar_cases": list(ans.get("case", {}).get("similar_prior_cases", [])),
+            "graph_case_id": str(ans.get("case", {}).get("graph_case_id", "")),
+            "affected_count": len(affected_ids),
+        },
+        "checks": checks,
+    }
 
 
 class FaultPayload(BaseModel):
@@ -465,10 +680,15 @@ def create_app() -> FastAPI:
     @app.get("/cases")
     async def list_cases() -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
+        tx_df = app.state.store.tx
         for _, r in app.state.case_pack.iterrows():
             trig_text = "" if pd.isna(r.trigger_text) else str(r.trigger_text)
             q = quarantine_segments(trig_text)
             rs = None if pd.isna(r.risk_score) else float(r.risk_score)
+            fid = int(r.flagged_txn_id)
+            f_row = tx_df.loc[fid] if fid in tx_df.index else None
+            amt = round(float(f_row.TransactionAmt), 2) if f_row is not None else 0.0
+            tx_rs = round(float(f_row.risk_score), 4) if f_row is not None and pd.notna(f_row.risk_score) else None
             rows.append(
                 {
                     "case_id": str(r.case_id),
@@ -477,10 +697,12 @@ def create_app() -> FastAPI:
                     "trigger_text": trig_text,
                     "has_injection": q["has_injection"],
                     "segments": q["segments"],
-                    "flagged_txn_id": int(r.flagged_txn_id),
+                    "flagged_txn_id": fid,
                     "card_id": str(r.card_id),
                     "customer_id": str(r.customer_id),
                     "risk_score": rs,
+                    "tx_risk_score": tx_rs,
+                    "amount": amt,
                 }
             )
         return rows
@@ -572,6 +794,7 @@ def create_app() -> FastAPI:
         flagged_tx = store.tx.loc[fid] if fid in store.tx.index else None
         ledger_steps = _real_ledger_steps(inv.last, ans) if inv.last.get("findings") is not None else []
         proposals = _register_proposals_for_case(case_id, ans)
+        visual_payload = _build_visual_payload(case_row, store, inv, ans)
 
         prior_p = round(float(inv.last.get("p_model", 0.5)), 4)
 
@@ -589,6 +812,7 @@ def create_app() -> FastAPI:
             "actions": proposals,
             "calls": calls_out,
             "ledger": ledger_steps,
+            "visual": visual_payload,
             "answer": ans,
         }
 

@@ -3,29 +3,30 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ASSAY // Final Round Live Investigation Console</title>
+<title>ASSAY R2 // Forensic Fraud Investigation Console</title>
 <style>
   :root {
-    --bg-0: #090d16;
-    --bg-1: #0f1624;
-    --bg-2: #162033;
-    --bg-3: #1e2b44;
-    --border: #2a3956;
-    --text-main: #f0f4f8;
-    --text-dim: #9fb1cc;
-    --text-muted: #697d9c;
-    --accent: #38bdf8;
-    --accent-glow: rgba(56, 189, 248, 0.2);
-    --amber: #f59e0b;
-    --amber-bg: rgba(245, 158, 11, 0.16);
-    --amber-border: #fbbf24;
-    --red: #f43f5e;
-    --red-bg: rgba(244, 63, 94, 0.16);
-    --green: #10b981;
-    --green-bg: rgba(16, 185, 129, 0.16);
-    --purple: #a855f7;
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
-    --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --ground: #0b0e11;
+    --panel: #11161b;
+    --panel-2: #161d24;
+    --elevated: #1c252e;
+    --rule: #242f3b;
+    --rule-strong: #334252;
+    --ink: #ebeff2;
+    --ink-2: #a7b4c2;
+    --ink-3: #6c7a89;
+    --fraud: #f05a43;
+    --fraud-soft: rgba(240, 90, 67, 0.14);
+    --legit: #36b38a;
+    --legit-soft: rgba(54, 179, 138, 0.14);
+    --bank: #d99b38;
+    --bank-soft: rgba(217, 155, 56, 0.15);
+    --trace: #6e8bff;
+    --trace-soft: rgba(110, 139, 255, 0.14);
+    --font-display: "Familjen Grotesk", "Helvetica Neue", "Arial Narrow", Arial, sans-serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
   }
 
   * {
@@ -35,475 +36,755 @@
   body {
     margin: 0;
     padding: 0;
-    background: var(--bg-0);
-    color: var(--text-main);
+    background: var(--ground);
+    color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 15px;
-    line-height: 1.45;
+    font-size: 13.5px;
+    line-height: 1.4;
     height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    font-variant-numeric: tabular-nums;
   }
 
-  /* Header Bar */
+  /* Top Forensic Instrument Masthead */
   header {
-    background: var(--bg-1);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 18px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--rule);
+    padding: 7px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
     flex-shrink: 0;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 11px;
+    min-width: 0;
   }
 
   .brand-badge {
     white-space: nowrap;
-    background: var(--accent);
-    color: #030712;
+    background: var(--ink);
+    color: var(--ground);
     font-family: var(--font-mono);
     font-weight: 800;
-    font-size: 14px;
-    padding: 4px 10px;
-    border-radius: 4px;
-    letter-spacing: 0.06em;
+    font-size: 12px;
+    padding: 3px 8px;
+    letter-spacing: 0.08em;
   }
 
   .brand-title {
     white-space: nowrap;
+    font-family: var(--font-display);
     font-weight: 700;
-    font-size: 17px;
-    letter-spacing: 0.02em;
+    font-size: 15.5px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
   }
 
   .brand-sub {
     display: flex;
+    align-items: center;
     gap: 6px;
-    margin-top: 3px;
     white-space: nowrap;
-    color: var(--text-dim);
-    font-size: 13px;
+    color: var(--ink-2);
+    font-size: 11px;
     font-family: var(--font-mono);
+  }
+
+  .status-pill {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 2px 7px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-2);
+    background: var(--ground);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  .status-pill.on {
+    color: var(--legit);
+    border-color: rgba(54, 179, 138, 0.55);
+    background: var(--legit-soft);
+  }
+
+  .status-pill.wait {
+    color: var(--bank);
+    border-color: rgba(217, 155, 56, 0.55);
+    background: var(--bank-soft);
   }
 
   .controls-bar {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap;
   }
 
   .control-group {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    padding: 5px 10px;
-    border-radius: 6px;
+    gap: 6px;
+    background: var(--ground);
+    border: 1px solid var(--rule);
+    padding: 3px 8px;
   }
 
   .control-group label {
-    font-size: 12px;
+    font-size: 10.5px;
     font-family: var(--font-mono);
-    color: var(--text-dim);
+    color: var(--ink-3);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
   }
 
   .control-input {
-    background: var(--bg-0);
-    color: var(--text-main);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 4px 8px;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    padding: 3px 7px;
     font-family: var(--font-mono);
-    font-size: 13px;
-    width: 160px;
+    font-size: 12px;
+    width: 142px;
+  }
+
+  .control-input:focus {
+    outline: 1px solid var(--trace);
+    border-color: var(--trace);
+  }
+
+  .token-preset {
+    background: var(--panel-2);
+    color: var(--ink-2);
+    border: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 5px;
+    cursor: pointer;
+  }
+
+  .token-preset:hover {
+    border-color: var(--bank);
+    color: var(--bank);
   }
 
   .btn {
-    background: var(--accent);
-    color: #040914;
-    border: none;
-    border-radius: 5px;
-    padding: 6px 14px;
+    background: var(--ink);
+    color: var(--ground);
+    border: 1px solid var(--ink);
+    padding: 5px 11px;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 11.5px;
     font-family: var(--font-mono);
+    letter-spacing: 0.03em;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    white-space: nowrap;
   }
 
   .btn:hover:not(:disabled) {
-    filter: brightness(1.12);
+    background: var(--trace);
+    border-color: var(--trace);
+    color: #ffffff;
   }
 
   .btn:disabled {
-    opacity: 0.45;
+    opacity: 0.4;
     cursor: not-allowed;
   }
 
   .btn-secondary {
-    background: var(--bg-3);
-    color: var(--text-main);
-    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--ink);
+    border: 1px solid var(--rule-strong);
   }
 
   .btn-break {
-    background: var(--bg-2);
-    color: var(--text-dim);
-    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--ink-2);
+    border: 1px solid var(--rule-strong);
   }
 
   .btn-break.active {
-    background: var(--red-bg);
-    color: #fda4af;
-    border-color: var(--red);
-    box-shadow: 0 0 12px rgba(244, 63, 94, 0.35);
+    background: var(--fraud-soft);
+    color: var(--fraud);
+    border-color: var(--fraud);
   }
 
-  /* Main Workspace */
+  /* 1px Hairline Workspace Grid */
   .workspace {
     display: grid;
-    grid-template-columns: 390px 1fr;
+    grid-template-columns: 288px minmax(0, 1fr);
     flex: 1;
     min-height: 0;
+    background: var(--rule);
+    gap: 1px;
   }
 
-  /* Left Column: 18 Cases */
+  /* Left Column: Compact 18-Case Dossier Index */
   .sidebar {
-    background: var(--bg-1);
-    border-right: 1px solid var(--border);
+    background: var(--panel);
     display: flex;
     flex-direction: column;
     min-height: 0;
   }
 
   .sidebar-header {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border);
+    padding: 8px 11px;
+    border-bottom: 1px solid var(--rule);
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--text-dim);
-    background: var(--bg-2);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: var(--ground);
+  }
+
+  .control-input.case-filter {
+    margin: 6px 8px;
+    width: calc(100% - 16px);
   }
 
   .case-list {
     overflow-y: auto;
     flex: 1;
-    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    background: var(--rule);
+    gap: 1px;
+    border-top: 1px solid var(--rule);
   }
 
   .case-card {
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 12px;
+    background: var(--panel);
+    padding: 7px 10px;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: background 0.1s;
+    position: relative;
   }
-
-  .case-card:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .case-card.hidden { display: none; }
-
-  .control-input.case-filter {
-    margin: 8px 8px 0;
-    width: calc(100% - 16px);
-  }
-
-  .status-pill {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    padding: 4px 9px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    background: var(--bg-2);
-    white-space: nowrap;
-  }
-
-  .status-pill.on { color: var(--green); border-color: var(--green); background: var(--green-bg); }
-  .status-pill.wait { color: var(--amber); border-color: var(--amber); background: var(--amber-bg); }
-
-  .kbd-hint {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-muted);
-    padding: 6px 14px 8px;
-  }
-
-  .verdict-strip { display: none; }
-
-  .ring-link {
-    display: inline-block;
-    margin-top: 6px;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--accent);
-    text-decoration: none;
-  }
-
-  .ring-link:hover { text-decoration: underline; }
 
   .case-card:hover {
-    border-color: var(--accent);
+    background: var(--panel-2);
   }
 
   .case-card.selected {
-    background: var(--bg-3);
-    border-color: var(--accent);
-    box-shadow: inset 3px 0 0 var(--accent);
+    background: var(--elevated);
+    box-shadow: inset 3px 0 0 var(--trace);
+  }
+
+  .case-card:focus-visible {
+    outline: 1px solid var(--trace);
+    outline-offset: -1px;
+  }
+
+  .case-card.hidden {
+    display: none;
   }
 
   .case-card-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 6px;
+    gap: 6px;
+    margin-bottom: 2px;
   }
+
+  .case-id-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .case-vdot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--rule-strong);
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .case-vdot.fraud { background: var(--fraud); }
+  .case-vdot.legitimate { background: var(--legit); }
+  .case-vdot.uncertain { background: var(--bank); }
 
   .case-id {
     font-family: var(--font-mono);
-    font-weight: 800;
-    font-size: 15px;
-    color: var(--accent);
+    font-weight: 700;
+    font-size: 12.5px;
+    color: var(--ink);
+  }
+
+  .inj-pill {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 4px;
+    background: var(--bank-soft);
+    color: var(--bank);
+    border: 1px solid rgba(217, 155, 56, 0.5);
+    letter-spacing: 0.04em;
   }
 
   .trigger-badge {
     font-family: var(--font-mono);
-    font-size: 11px;
-    padding: 2px 7px;
-    border-radius: 4px;
-    background: var(--bg-0);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 5px;
+    background: var(--ground);
+    border: 1px solid var(--rule);
+    color: var(--ink-2);
+    white-space: nowrap;
   }
 
   .case-meta {
     font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 6px;
+    font-size: 10.5px;
+    color: var(--ink-3);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .case-card .trigger-text {
+    font-family: var(--font-serif);
+    font-size: 11.5px;
+    color: var(--ink-2);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .trigger-text {
-    font-size: 13px;
-    color: var(--text-main);
-    line-height: 1.4;
+    font-family: var(--font-serif);
+    font-size: 13.5px;
+    color: var(--ink);
+    line-height: 1.42;
     word-break: break-word;
   }
 
   .quarantined-span {
-    background: var(--amber-bg);
-    border: 1px solid var(--amber-border);
-    color: #fde68a;
-    padding: 2px 6px;
-    border-radius: 4px;
+    background: var(--bank-soft);
+    border: 1px solid var(--bank);
+    color: #f7d996;
+    padding: 1px 5px;
     display: inline-block;
-    margin-top: 4px;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .quarantined-tag {
-    background: var(--amber);
-    color: #090d16;
+    background: var(--bank);
+    color: var(--ground);
     font-weight: 800;
-    font-size: 10px;
+    font-size: 9.5px;
     text-transform: uppercase;
-    padding: 1px 5px;
-    border-radius: 3px;
-    margin-right: 6px;
-    letter-spacing: 0.04em;
+    padding: 0 4px;
+    margin-right: 5px;
+    letter-spacing: 0.05em;
   }
 
-  /* Right Main Panel */
+  .kbd-hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    padding: 5px 10px;
+    border-top: 1px solid var(--rule);
+    background: var(--ground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Right Main Panel: Dense Forensic Dossier */
   .main-panel {
+    background: var(--ground);
     overflow-y: auto;
-    padding: 16px 22px;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    min-height: 0;
+    min-width: 0;
   }
 
+  /* Band 1: Active Alert + Verdict Strip + Logit Slide Rule */
   .active-case-banner {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 18px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--rule);
+    padding: 9px 14px;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 14px;
   }
 
   .banner-left {
     flex: 1;
+    min-width: 0;
   }
 
   .banner-title {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 6px;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 3px;
+    flex-wrap: wrap;
   }
 
   .banner-case-id {
     white-space: nowrap;
-    font-family: var(--font-mono);
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
   }
 
   .banner-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-shrink: 0;
   }
 
   .btn-run {
-    font-size: 15px;
-    padding: 10px 22px;
-    background: var(--green);
-    color: #03120e;
+    font-size: 12.5px;
+    padding: 7px 16px;
+    background: var(--legit);
+    border-color: var(--legit);
+    color: #04130e;
   }
 
-  /* Probability Needle & Gauge */
+  .btn-run:hover:not(:disabled) {
+    background: #44c99d;
+    border-color: #44c99d;
+    color: #04130e;
+  }
+
+  /* Verdict Strip + Log-Odds Balance Combined Row */
+  .instrument-band {
+    display: grid;
+    grid-template-columns: 490px minmax(0, 1fr);
+    background: var(--rule);
+    gap: 1px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .verdict-strip {
+    background: var(--panel);
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .outcome-grid {
+    display: grid;
+    grid-template-columns: 0.85fr 1.65fr 0.92fr 0.68fr;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+
+  .metric-box {
+    background: var(--ground);
+    padding: 5px 7px;
+    min-width: 0;
+  }
+
+  .metric-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-3);
+    margin-bottom: 2px;
+    white-space: nowrap;
+  }
+
+  .metric-value {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  .verdict-fraud { color: var(--fraud); text-transform: uppercase; }
+  .verdict-legitimate { color: var(--legit); text-transform: uppercase; }
+  .verdict-uncertain { color: var(--bank); text-transform: uppercase; }
+
+  .verdict-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+
+  .ring-link {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--trace);
+    text-decoration: none;
+  }
+
+  .ring-link:hover {
+    text-decoration: underline;
+  }
+
+  /* True Log-Odds Slide Rule Panel */
   .needle-panel {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 18px;
+    background: var(--panel);
+    padding: 8px 14px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
   }
 
   .needle-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 8px;
+    gap: 8px;
+    margin-bottom: 2px;
   }
 
   .needle-label {
     font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--text-dim);
+    font-size: 10.5px;
+    color: var(--ink-3);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
   }
 
   .needle-readout {
     font-family: var(--font-mono);
-    font-size: 24px;
+    font-size: 15px;
     font-weight: 800;
-    color: var(--accent);
+    color: var(--ink);
+    white-space: nowrap;
   }
 
+  /* Keep #needle-marker in DOM for backwards-compatibility while rendering SVG Logit Slide Rule */
   .needle-track {
     position: relative;
-    height: 22px;
-    background: linear-gradient(90deg,
-      rgba(16, 185, 129, 0.35) 0%,
-      rgba(16, 185, 129, 0.35) 15%,
-      rgba(245, 158, 11, 0.35) 50%,
-      rgba(244, 63, 94, 0.45) 85%,
-      rgba(244, 63, 94, 0.65) 100%
-    );
-    border: 1px solid var(--border);
-    border-radius: 11px;
+    height: 62px;
+    width: 100%;
+  }
+
+  #logit-svg {
+    width: 100%;
+    height: 62px;
+    display: block;
     overflow: visible;
   }
 
   .needle-marker {
     position: absolute;
-    top: -5px;
-    bottom: -5px;
-    width: 6px;
-    background: #ffffff;
-    border: 2px solid var(--accent);
-    border-radius: 3px;
+    top: 22px;
+    height: 16px;
+    width: 2px;
+    background: transparent;
     transform: translateX(-50%);
-    transition: left 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-    box-shadow: 0 0 10px var(--accent);
+    pointer-events: none;
+    opacity: 0;
   }
 
-  .needle-ticks {
-    display: flex;
-    justify-content: space-between;
+  .whatif-strip {
     font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 6px;
-  }
-
-  /* Two-column Trace + Ledger */
-  .replay-grid {
-    display: grid;
-    grid-template-columns: 1fr 1.15fr;
-    gap: 16px;
-  }
-
-  .panel-card {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    min-height: 240px;
-  }
-
-  .panel-header {
-    padding: 10px 14px;
-    background: var(--bg-2);
-    border-bottom: 1px solid var(--border);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-dim);
+    color: var(--ink-2);
+    min-height: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
-
-  .panel-body {
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
     gap: 8px;
   }
 
+  .whatif-strip b {
+    color: var(--bank);
+  }
+
+  /* Band 2: Dual-Pane SVG Forensic Evidence Canvas */
+  .forensic-canvas-grid {
+    display: grid;
+    grid-template-columns: 1.18fr 1fr;
+    gap: 1px;
+    background: var(--rule);
+    border-bottom: 1px solid var(--rule);
+    min-height: 218px;
+  }
+
+  .canvas-card {
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .canvas-header {
+    padding: 6px 12px;
+    background: var(--ground);
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .canvas-sub {
+    font-weight: 400;
+    color: var(--ink-3);
+    font-size: 10px;
+  }
+
+  .canvas-body {
+    flex: 1;
+    position: relative;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .forensic-svg {
+    width: 100%;
+    height: 184px;
+    display: block;
+  }
+
+  /* Band 3: Evidence Ledger + Actions / Trace / SAR */
+  .replay-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    gap: 1px;
+    background: var(--rule);
+    flex: 1;
+    min-height: 220px;
+    min-width: 0;
+  }
+
+  .panel-card {
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 6px 12px;
+    background: var(--ground);
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-body {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-width: 0;
+  }
+
   .step-item {
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 9px 12px;
-    font-size: 13px;
-    animation: fadeIn 0.2s ease-out;
+    background: var(--ground);
+    border: 1px solid var(--rule);
+    padding: 6px 9px;
+    font-size: 12px;
+    animation: fadeIn 0.16s ease-out;
+    min-width: 0;
+  }
+
+  .step-item.weighed {
+    border-left: 3px solid var(--trace);
+    cursor: pointer;
+  }
+
+  .step-item.weighed.incrim {
+    border-left-color: var(--fraud);
+  }
+
+  .step-item.weighed.exon {
+    border-left-color: var(--legit);
+  }
+
+  .step-item.context-row {
+    padding: 4px 8px;
+    opacity: 0.82;
+  }
+
+  .step-item.context-row .trigger-text {
+    font-size: 11.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .step-item.context-row:hover .trigger-text {
+    white-space: normal;
+  }
+
+  .cf-pill {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    padding: 0 5px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-2);
+    background: var(--panel);
+  }
+
+  .step-item.cf-off {
+    opacity: 0.45;
+    border-left-style: dashed;
+  }
+
+  .step-item.cf-off .trigger-text {
+    text-decoration: line-through;
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
+    from { opacity: 0; transform: translateY(2px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
@@ -512,153 +793,150 @@
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     font-family: var(--font-mono);
   }
 
   .step-name {
     font-weight: 700;
-    color: var(--accent);
+    font-size: 11.5px;
+    color: var(--trace);
   }
 
   .step-badge {
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: var(--bg-0);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
+    font-size: 10px;
+    padding: 1px 5px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    color: var(--ink-3);
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .lr-badge {
     font-weight: 700;
-    color: var(--amber);
+    font-size: 11.5px;
+    color: var(--bank);
   }
+
+  .lr-badge.incrim { color: var(--fraud); }
+  .lr-badge.exon { color: var(--legit); }
+  .lr-badge.neutral { color: var(--ink-3); }
 
   .step-params {
     font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-dim);
+    font-size: 11px;
+    color: var(--ink-3);
     word-break: break-all;
   }
 
-  /* Outcome & Actions Summary */
-  .outcome-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-  }
-
-  .metric-box {
-    background: var(--bg-1);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 14px;
-  }
-
-  .metric-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-  }
-
-  .metric-value {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-family: var(--font-mono);
-    font-size: 18px;
-    font-weight: 800;
-  }
-
-  .verdict-fraud { color: var(--red); }
-  .verdict-legitimate { color: var(--green); }
-  .verdict-uncertain { color: var(--amber); }
-
-  /* Actions & Approvals Table */
+  /* Actions & Approvals */
   .actions-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 5px;
   }
 
   .action-row {
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 14px;
+    background: var(--ground);
+    border: 1px solid var(--rule);
+    padding: 6px 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     font-family: var(--font-mono);
+    font-size: 11.5px;
   }
 
   .action-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    min-width: 0;
   }
 
   .route-pill {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: 1px 6px;
     text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   .route-auto {
-    background: var(--green-bg);
-    color: var(--green);
-    border: 1px solid var(--green);
+    background: var(--legit-soft);
+    color: var(--legit);
+    border: 1px solid rgba(54, 179, 138, 0.5);
   }
 
   .route-L1, .route-L2 {
-    background: var(--amber-bg);
-    color: var(--amber);
-    border: 1px solid var(--amber);
+    background: var(--bank-soft);
+    color: var(--bank);
+    border: 1px solid rgba(217, 155, 56, 0.5);
   }
 
   .status-awaiting {
-    color: var(--amber);
-    font-size: 12px;
+    color: var(--bank);
+    font-size: 11px;
     font-weight: 700;
   }
 
   .status-approved {
-    color: var(--green);
-    font-size: 12px;
+    color: var(--legit);
+    font-size: 11px;
     font-weight: 700;
   }
 
   /* Fail-closed Alert Banner */
   .fail-closed-box {
-    background: var(--red-bg);
-    border: 2px solid var(--red);
-    border-radius: 8px;
-    padding: 16px 20px;
-    color: #ffe4e6;
+    background: var(--fraud-soft);
+    border: 1px solid var(--fraud);
+    border-left: 4px solid var(--fraud);
+    padding: 12px 16px;
+    margin: 8px 14px;
+    color: var(--ink);
     font-family: var(--font-mono);
   }
 
   .fail-closed-title {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 800;
-    color: var(--red);
-    margin-bottom: 6px;
+    color: var(--fraud);
+    margin-bottom: 4px;
   }
 
   .sar-narrative {
-    font-size: 13px;
-    color: var(--text-dim);
+    font-family: var(--font-serif);
+    font-size: 12.5px;
+    line-height: 1.48;
+    color: var(--ink-2);
     white-space: pre-wrap;
-    background: var(--bg-2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 12px;
+    background: var(--ground);
+    border: 1px solid var(--rule);
+    padding: 8px 10px;
+    max-height: 96px;
+    overflow-y: auto;
+  }
+
+  .right-stack {
+    display: flex;
+    flex-direction: column;
+    background: var(--rule);
+    gap: 1px;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  @media (max-width: 1180px) {
+    .instrument-band,
+    .forensic-canvas-grid,
+    .replay-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 </head>
@@ -667,19 +945,20 @@
 <header>
   <div class="brand">
     <span class="brand-badge">ASSAY R2</span>
-    <div>
-      <div class="brand-title">Fraud Investigation Console</div>
-      <div class="brand-sub">
-        <span id="pill-tg" class="status-pill" title="ASSAY_TG=1 routes ring detection and case write-back through TigerGraph">TigerGraph: …</span>
-        <span id="pill-warm" class="status-pill wait" title="The first investigation loads lazy data; the console runs one at startup">Engine: warming up</span>
-      </div>
+    <div class="brand-title">Fraud Investigation Console</div>
+    <div class="brand-sub">
+      <span id="pill-tg" class="status-pill" title="ASSAY_TG=1 routes ring detection and case write-back through TigerGraph">TigerGraph: …</span>
+      <span id="pill-warm" class="status-pill wait" title="The first investigation loads lazy data; the console runs one at startup">Engine: warming up</span>
+      <span class="status-pill on" title="No language model touches a number, an ID, an action, or a route">0 LLM tokens</span>
     </div>
   </div>
 
   <div class="controls-bar">
     <div class="control-group">
-      <label for="approver-token" title="Kept in this page's memory only, never stored">Approver token</label>
+      <label for="approver-token" title="Kept in this page's memory only, never stored">Approver</label>
       <input id="approver-token" class="control-input" type="password" placeholder="e.g. demo-l2-token" autocomplete="off" />
+      <button type="button" class="token-preset" onclick="setApproverToken('demo-l1-token')" title="Fill L1 analyst token (rejects L2 actions with 403)">L1</button>
+      <button type="button" class="token-preset" onclick="setApproverToken('demo-l2-token')" title="Fill L2 manager token (approves L1 & L2 actions)">L2</button>
     </div>
 
     <div class="control-group">
@@ -698,10 +977,11 @@
     </div>
     <input id="case-filter" class="control-input case-filter" type="search" placeholder="Filter: 007, risk_score, C09582…" aria-label="Filter cases" autocomplete="off" />
     <div id="case-list" class="case-list" role="listbox" aria-label="Final pack cases"></div>
-    <div class="kbd-hint">↑/↓ pick a case · Enter run · I instant · B break it</div>
+    <div class="kbd-hint">↑/↓ pick · Enter run · I instant · B break · click LR for what-if</div>
   </aside>
 
   <main class="main-panel">
+    <!-- Band 1A: Active Case Header & Trigger -->
     <div class="active-case-banner">
       <div class="banner-left">
         <div class="banner-title">
@@ -719,84 +999,110 @@
 
     <div id="fail-closed-container" style="display:none;"></div>
 
-    <div class="needle-panel">
-      <div class="needle-header">
-        <span class="needle-label">Live Log-Odds Fraud Probability Needle</span>
-        <span id="needle-readout" class="needle-readout">--</span>
+    <!-- Band 1B: Verdict Strip + True Log-Odds Slide Rule -->
+    <div class="instrument-band">
+      <div id="verdict-strip" class="verdict-strip">
+        <div class="outcome-grid">
+          <div class="metric-box">
+            <div class="metric-label">Final Verdict</div>
+            <div id="out-verdict" class="metric-value">--</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Pattern Typology</div>
+            <div id="out-pattern" class="metric-value">--</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Attested Exposure</div>
+            <div id="out-exposure" class="metric-value">--</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">SAR (&sect;3a)</div>
+            <div id="out-sar" class="metric-value">--</div>
+          </div>
+        </div>
+        <div class="verdict-foot">
+          <span id="verdict-telemetry">Awaiting run · 0 LLM tokens on decision path</span>
+          <a id="ring-link" class="ring-link" href="#" target="_blank" rel="noopener" style="display:none;">Open Ring Timeline &rarr;</a>
+        </div>
       </div>
-      <div class="needle-track">
-        <div id="needle-marker" class="needle-marker" style="left: 50%;"></div>
-      </div>
-      <div class="needle-ticks">
-        <span>0.00 (Legitimate)</span>
-        <span>0.15 (Stop Low)</span>
-        <span>0.30 (Open Case)</span>
-        <span>0.50</span>
-        <span>0.70 (R1 Gate)</span>
-        <span>0.85 (Stop High)</span>
-        <span>1.00 (Confirmed Fraud)</span>
+
+      <div class="needle-panel">
+        <div class="needle-header">
+          <span class="needle-label">Log-Odds Bayesian Scale (logit p &in; [&minus;7, +7])</span>
+          <span id="needle-readout" class="needle-readout">--</span>
+        </div>
+        <div class="needle-track">
+          <div id="needle-marker" class="needle-marker" style="left: 50%;"></div>
+          <svg id="logit-svg" viewBox="0 0 640 62" preserveAspectRatio="none" role="img" aria-label="Log-odds probability scale"></svg>
+        </div>
+        <div id="whatif-strip" class="whatif-strip">
+          <span id="whatif-text">▬ Brass tick = Bank risk score · ○ Prior = Calibrated model · ▼ Solid = Posterior · Click any ×LR finding below for counterfactual</span>
+        </div>
       </div>
     </div>
 
-    <div id="verdict-strip" class="verdict-strip">
-    <div class="outcome-grid">
-        <div class="metric-box">
-          <div class="metric-label">Final Verdict</div>
-          <div id="out-verdict" class="metric-value">--</div>
+    <!-- Band 2: Dual-Pane SVG Forensic Evidence Canvas -->
+    <div class="forensic-canvas-grid">
+      <div class="canvas-card">
+        <div class="canvas-header">
+          <span>A. CARD ACTIVITY &amp; EPISODE PULSE vs. HOLDER BASELINE</span>
+          <span id="pulse-meta" class="canvas-sub">Median &amp; 95th percentile band</span>
         </div>
-        <div class="metric-box">
-          <div class="metric-label">Pattern Typology</div>
-          <div id="out-pattern" class="metric-value">--</div>
-        </div>
-        <div class="metric-box">
-          <div class="metric-label">Attested Exposure (USD)</div>
-          <div id="out-exposure" class="metric-value">--</div>
-        </div>
-        <div class="metric-box">
-          <div class="metric-label">SAR Filing (&sect;3a)</div>
-          <div id="out-sar" class="metric-value">--</div>
+        <div class="canvas-body">
+          <svg id="pulse-svg" class="forensic-svg" viewBox="0 0 540 184" role="img" aria-label="Card transaction activity vs holder baseline"></svg>
         </div>
       </div>
 
-      <a id="ring-link" class="ring-link" href="#" target="_blank" rel="noopener" style="display:none;">Open the ring replay (graph timeline) &rarr;</a>
+      <div class="canvas-card">
+        <div class="canvas-header">
+          <span>B. DETERMINISTIC EVIDENCE TOPOLOGY &amp; GUARD MATRIX</span>
+          <span id="topo-meta" class="canvas-sub">Attested graph structure</span>
+        </div>
+        <div class="canvas-body">
+          <svg id="topo-svg" class="forensic-svg" viewBox="0 0 470 184" role="img" aria-label="Evidence topology and verification matrix"></svg>
+        </div>
+      </div>
     </div>
 
+    <!-- Band 3: Interactive Evidence Ledger + Approvals / Tool Trace / SAR -->
     <div class="replay-grid">
       <div class="panel-card">
         <div class="panel-header">
-          <span>1. TOOL CALL TRACE (store.calls)</span>
-          <span id="calls-counter">0 calls</span>
-        </div>
-        <div id="calls-list" class="panel-body"></div>
-      </div>
-
-      <div class="panel-card">
-        <div class="panel-header">
-          <span>2. EVIDENCE LEDGER &amp; LR UPDATES</span>
+          <span>1. EVIDENCE LEDGER &amp; LR UPDATES (click ×LR to toggle counterfactual)</span>
           <span id="ledger-counter">0 findings</span>
         </div>
         <div id="ledger-list" class="panel-body"></div>
       </div>
-    </div>
 
-    <div id="outcome-section" style="display:none; flex-direction:column; gap:16px;">
-      <div class="panel-card" style="min-height:auto;">
-        <div class="panel-header">
-          <span>3. NEXT BEST ACTIONS &amp; SERVER-SIDE APPROVAL ROUTING</span>
-          <span id="out-elapsed"></span>
+      <div class="right-stack">
+        <div id="outcome-section" class="panel-card" style="display:flex; flex: 0 0 auto;">
+          <div class="panel-header">
+            <span>2. NEXT BEST ACTIONS &amp; SERVER-SIDE APPROVAL ROUTING</span>
+            <span id="out-elapsed"></span>
+          </div>
+          <div class="panel-body">
+            <div id="actions-list" class="actions-list">
+              <div style="color:var(--ink-3); font-family:var(--font-mono); font-size:11.5px;">Run a case to compute policy routes (auto / L1 / L2 awaiting approval).</div>
+            </div>
+          </div>
         </div>
-        <div class="panel-body">
-          <div id="actions-list" class="actions-list"></div>
-        </div>
-      </div>
 
-      <div id="sar-box" class="panel-card" style="min-height:auto; display:none;">
-        <div class="panel-header">
-          <span>4. SUSPICIOUS ACTIVITY REPORT (SAR) NARRATIVE</span>
-          <span>Policy &sect;3a</span>
+        <div id="sar-box" class="panel-card" style="display:none; flex: 0 0 auto;">
+          <div class="panel-header">
+            <span>3. SUSPICIOUS ACTIVITY REPORT (SAR) NARRATIVE</span>
+            <span>Policy &sect;3a</span>
+          </div>
+          <div class="panel-body">
+            <div id="sar-narrative" class="sar-narrative"></div>
+          </div>
         </div>
-        <div class="panel-body">
-          <div id="sar-narrative" class="sar-narrative"></div>
+
+        <div class="panel-card" style="flex: 1 1 auto;">
+          <div class="panel-header">
+            <span>4. TOOL CALL TRACE (store.calls)</span>
+            <span id="calls-counter">0 calls</span>
+          </div>
+          <div id="calls-list" class="panel-body"></div>
         </div>
       </div>
     </div>
@@ -809,12 +1115,44 @@
   let BREAK_ACTIVE = false;
   let REPLAY_TIMERS = [];
   let RUN_TICK = null;
+  let LAST_RUN_DATA = null;
+  let CF_OFF_STEPS = new Set();
+  let RUN_EPOCH = 0;
+  const CASE_OUTCOMES = {};
 
   // Small probabilities matter here (a January model score of 0.001 is not 0.00)
   function fmtP(p) {
     const x = Number(p || 0);
     if (x > 0 && x < 0.01) return x < 0.001 ? "<0.001" : x.toFixed(3);
     return x.toFixed(2);
+  }
+
+  function fmtUsd(v) {
+    return "$" + Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function clampP(p) {
+    return Math.max(0.0008, Math.min(0.9992, Number(p || 0.5)));
+  }
+
+  function logit(p) {
+    const c = clampP(p);
+    return Math.log(c / (1 - c));
+  }
+
+  function invLogit(lo) {
+    return 1 / (1 + Math.exp(-lo));
+  }
+
+  // Maps probability p onto SVG X [26, 614] via true logit in [-7, +7]
+  function logitX(p) {
+    const lo = Math.max(-7, Math.min(7, logit(p)));
+    return 26 + ((lo + 7) / 14) * (614 - 26);
+  }
+
+  function setApproverToken(tok) {
+    const inp = document.getElementById("approver-token");
+    inp.value = tok;
   }
 
   async function pollStatus() {
@@ -875,13 +1213,21 @@
         if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); selectCase(c.case_id); runSelectedCase(true); }
       };
 
-      const rsText = c.risk_score !== null && c.risk_score !== undefined ? ` &middot; score=${c.risk_score}` : "";
+      const bankScore = c.risk_score !== null && c.risk_score !== undefined ? c.risk_score : c.tx_risk_score;
+      const rsText = bankScore !== null && bankScore !== undefined ? ` &middot; bank=${Number(bankScore).toFixed(2)}` : "";
+      const amtText = c.amount ? ` &middot; ${fmtUsd(c.amount)}` : "";
+      const injBadge = c.has_injection ? `<span class="inj-pill" title="Hostile instruction quarantined as data">INJ</span>` : "";
+
       card.innerHTML = `
         <div class="case-card-top">
-          <span class="case-id">${escapeHtml(c.case_id)}</span>
+          <div class="case-id-group">
+            <span id="vdot-${c.case_id}" class="case-vdot"></span>
+            <span class="case-id">${escapeHtml(c.case_id)}</span>
+            ${injBadge}
+          </div>
           <span class="trigger-badge">${escapeHtml(c.trigger_type)}</span>
         </div>
-        <div class="case-meta">txn=${escapeHtml(c.flagged_txn_id)} &middot; card=${escapeHtml(c.card_id)}${rsText}</div>
+        <div class="case-meta">${escapeHtml(c.card_id)} &middot; txn ${escapeHtml(c.flagged_txn_id)}${amtText}${rsText}</div>
         <div class="trigger-text">${renderSegmentsHtml(c.segments)}</div>
       `;
       listEl.appendChild(card);
@@ -893,6 +1239,9 @@
   }
 
   function selectCase(caseId) {
+    RUN_EPOCH++;
+    clearReplayTimers();
+    if (RUN_TICK) { clearInterval(RUN_TICK); RUN_TICK = null; }
     SELECTED_CASE_ID = caseId;
     document.querySelectorAll(".case-card").forEach(el => { el.classList.remove("selected"); el.removeAttribute("aria-selected"); });
     const cardEl = document.getElementById(`card-${caseId}`);
@@ -907,12 +1256,21 @@
 
     document.getElementById("active-case-id").textContent = c.case_id;
     document.getElementById("active-trigger-type").textContent = c.trigger_type;
+    const bankScore = c.risk_score !== null && c.risk_score !== undefined ? c.risk_score : c.tx_risk_score;
     document.getElementById("active-meta").textContent =
-      `opened=${c.opened_at} | txn=${c.flagged_txn_id} | card=${c.card_id} | customer=${c.customer_id}`;
+      `opened=${c.opened_at} · txn=${c.flagged_txn_id} (${fmtUsd(c.amount || 0)}) · card=${c.card_id} · customer=${c.customer_id}` +
+      (bankScore !== null && bankScore !== undefined ? ` · bank_score=${Number(bankScore).toFixed(2)}` : "");
     document.getElementById("active-trigger-text").innerHTML = renderSegmentsHtml(c.segments);
 
-    document.getElementById("btn-run").disabled = false;
+    const btnRun = document.getElementById("btn-run");
+    btnRun.disabled = false;
+    btnRun.innerHTML = "&#9654; Run Investigation";
     document.getElementById("btn-instant").disabled = false;
+
+    const bankP = bankScore !== null && bankScore !== undefined ? Number(bankScore) : null;
+    drawLogitScale({ bankRisk: bankP, priorP: null, currentP: null, bridges: [], ghostP: null });
+    document.getElementById("pulse-svg").innerHTML = `<text x="270" y="95" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">Press Run (Enter) or Instant (I) to render ${escapeHtml(c.case_id)} card pulse (${escapeHtml(c.card_id)}).</text>`;
+    document.getElementById("topo-svg").innerHTML = `<text x="235" y="95" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">Press Run (Enter) or Instant (I) to render ${escapeHtml(c.case_id)} evidence topology.</text>`;
   }
 
   async function toggleBreakIt() {
@@ -935,18 +1293,361 @@
     }
   }
 
-  function setNeedle(prob, labelSuffix) {
+  function drawLogitScale({ bankRisk, priorP, currentP, bridges, ghostP }) {
+    const svg = document.getElementById("logit-svg");
+    const yAxis = 33;
+    const xClear = logitX(0.15);
+    const xAct = logitX(0.85);
+
+    let html = `
+      <!-- Clear & Act policy threshold zones -->
+      <rect x="26" y="${yAxis - 10}" width="${xClear - 26}" height="20" fill="rgba(54, 179, 138, 0.13)" />
+      <rect x="${xAct}" y="${yAxis - 10}" width="${614 - xAct}" height="20" fill="rgba(240, 90, 67, 0.14)" />
+      <line x1="26" y1="${yAxis}" x2="614" y2="${yAxis}" stroke="#334252" stroke-width="1.5" />
+      <line x1="${xClear}" y1="${yAxis - 13}" x2="${xClear}" y2="${yAxis + 13}" stroke="#36b38a" stroke-width="1.2" stroke-dasharray="2 2" />
+      <line x1="${xAct}" y1="${yAxis - 13}" x2="${xAct}" y2="${yAxis + 13}" stroke="#f05a43" stroke-width="1.2" stroke-dasharray="2 2" />
+      <text x="28" y="${yAxis - 13}" fill="#36b38a" font-family="JetBrains Mono, monospace" font-size="8.5" font-weight="700">CLEAR &le;0.15</text>
+      <text x="612" y="${yAxis - 13}" fill="#f05a43" font-family="JetBrains Mono, monospace" font-size="8.5" font-weight="700" text-anchor="end">ACT &ge;0.85</text>
+    `;
+
+    const ticks = [0.001, 0.01, 0.05, 0.15, 0.5, 0.85, 0.95, 0.99];
+    ticks.forEach(t => {
+      const tx = logitX(t);
+      const lbl = t === 0.5 ? ".50" : String(t).replace(/^0/, "");
+      html += `
+        <line x1="${tx}" y1="${yAxis - 4}" x2="${tx}" y2="${yAxis + 4}" stroke="#6c7a89" stroke-width="1" />
+        <text x="${tx}" y="${yAxis + 21}" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="9" text-anchor="middle">${lbl}</text>
+      `;
+    });
+
+    // Bank legacy risk_score marker (Brass)
+    if (bankRisk !== null && bankRisk !== undefined && !Number.isNaN(Number(bankRisk))) {
+      const bx = logitX(bankRisk);
+      const anchor = bx > 540 ? "end" : (bx < 90 ? "start" : "middle");
+      html += `
+        <line x1="${bx}" y1="${yAxis - 22}" x2="${bx}" y2="${yAxis + 11}" stroke="#d99b38" stroke-width="2.5" />
+        <text x="${bx}" y="${yAxis - 24}" fill="#d99b38" font-family="JetBrains Mono, monospace" font-size="8.5" font-weight="700" text-anchor="${anchor}">BANK ${Number(bankRisk).toFixed(2)}</text>
+      `;
+    }
+
+    // Prior anchor (Hollow circle)
+    if (priorP !== null && priorP !== undefined) {
+      const px = logitX(priorP);
+      html += `<circle cx="${px}" cy="${yAxis}" r="4.5" fill="#0b0e11" stroke="#a7b4c2" stroke-width="1.8" />`;
+    }
+
+    // Step-by-step LR bridges
+    (bridges || []).forEach((br, idx) => {
+      const x1 = logitX(br.fromP);
+      const x2 = logitX(br.toP);
+      const col = br.lr >= 1 ? "#f05a43" : "#36b38a";
+      const yArc = yAxis - 6 - (idx % 2) * 5;
+      html += `
+        <line x1="${x1}" y1="${yArc}" x2="${x2}" y2="${yArc}" stroke="${col}" stroke-width="2" stroke-opacity="0.85" />
+        <circle cx="${x2}" cy="${yArc}" r="2.3" fill="${col}" />
+      `;
+    });
+
+    // Counterfactual ghost needle
+    if (ghostP !== null && ghostP !== undefined && currentP !== null && currentP !== undefined) {
+      const gx = logitX(ghostP);
+      const cx = logitX(currentP);
+      html += `
+        <line x1="${cx}" y1="${yAxis}" x2="${gx}" y2="${yAxis}" stroke="#d99b38" stroke-width="1.5" stroke-dasharray="3 3" />
+        <circle cx="${gx}" cy="${yAxis}" r="6" fill="none" stroke="#d99b38" stroke-width="2" stroke-dasharray="2 2" />
+      `;
+    }
+
+    // Current / Final Posterior Needle
+    if (currentP !== null && currentP !== undefined) {
+      const nx = logitX(currentP);
+      const nCol = currentP >= 0.85 ? "#f05a43" : (currentP <= 0.15 ? "#36b38a" : "#d99b38");
+      html += `
+        <path d="M ${nx} ${yAxis - 3} L ${nx - 6} ${yAxis - 14} L ${nx + 6} ${yAxis - 14} Z" fill="${nCol}" />
+        <circle cx="${nx}" cy="${yAxis}" r="5.5" fill="${nCol}" stroke="#0b0e11" stroke-width="1.8" />
+      `;
+    }
+
+    svg.innerHTML = html;
+  }
+
+  function setNeedle(prob, labelSuffix, extra = {}) {
     const p = Math.max(0, Math.min(1, Number(prob || 0)));
-    const pct = (p * 100).toFixed(1);
+    const pct = ((logitX(p) / 640) * 100).toFixed(1);
     document.getElementById("needle-marker").style.left = `${pct}%`;
     document.getElementById("needle-marker").style.opacity = "1";
     document.getElementById("needle-readout").textContent =
       `${fmtP(p)}${labelSuffix ? " (" + labelSuffix + ")" : ""}`;
+
+    const c = CASES.find(x => x.case_id === SELECTED_CASE_ID);
+    const fallbackBank = c ? (c.risk_score !== null && c.risk_score !== undefined ? c.risk_score : c.tx_risk_score) : null;
+    const bankRisk = extra.bankRisk !== undefined ? extra.bankRisk : (LAST_RUN_DATA?.visual?.bank_risk ?? fallbackBank);
+    const priorP = extra.priorP !== undefined ? extra.priorP : (LAST_RUN_DATA?.prior_probability ?? p);
+    const bridges = extra.bridges !== undefined ? extra.bridges : buildBridgesFromLedger(LAST_RUN_DATA?.ledger || [], p);
+
+    drawLogitScale({
+      bankRisk,
+      priorP,
+      currentP: p,
+      bridges,
+      ghostP: extra.ghostP ?? null,
+    });
+  }
+
+  function buildBridgesFromLedger(ledger, upToP) {
+    const bridges = [];
+    if (!ledger || !ledger.length) return bridges;
+    let prevP = ledger[0].probability_after;
+    for (let i = 1; i < ledger.length; i++) {
+      const item = ledger[i];
+      if (item.lr && Math.abs(Number(item.lr) - 1.0) > 1e-4) {
+        bridges.push({
+          step: item.step,
+          lr: Number(item.lr),
+          fromP: prevP,
+          toP: item.probability_after,
+          tag: item.tag || item.ref,
+        });
+        prevP = item.probability_after;
+      }
+    }
+    return bridges;
+  }
+
+  function renderPulseCanvas(visual, verdict) {
+    const svg = document.getElementById("pulse-svg");
+    const meta = document.getElementById("pulse-meta");
+    if (!visual || !visual.pulse_txns || !visual.pulse_txns.length) {
+      svg.innerHTML = `<text x="270" y="95" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">No transaction pulse loaded.</text>`;
+      return;
+    }
+
+    const txns = visual.pulse_txns;
+    const base = visual.baseline || { n_prior: 0, median_usd: 0, p95_usd: 0, silence_days: 0 };
+    meta.textContent = `${base.n_prior} prior txns · med ${fmtUsd(base.median_usd)} · p95 ${fmtUsd(base.p95_usd)}` +
+      (base.silence_days >= 5 ? ` · wake after ${base.silence_days}d silence` : "");
+
+    const W = 540, H = 184;
+    const padL = 48, padR = 18, padT = 18, padB = 34;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    const maxAmt = Math.max(
+      50,
+      base.p95_usd * 1.25,
+      ...txns.map(t => Number(t.amount || 0))
+    );
+    const yOf = amt => {
+      const a = Math.max(0.5, Number(amt || 0.5));
+      const logMin = Math.log10(0.8);
+      const logMax = Math.log10(maxAmt * 1.18);
+      const ratio = (Math.log10(a) - logMin) / Math.max(0.1, logMax - logMin);
+      return padT + plotH * (1 - Math.max(0, Math.min(1, ratio)));
+    };
+
+    let s = "";
+    // Grid lines
+    [2, 10, 50, 250, 1000, 3000].filter(v => v <= maxAmt * 1.25).forEach(v => {
+      const y = yOf(v);
+      s += `
+        <line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#1c252e" stroke-width="1" />
+        <text x="${padL - 5}" y="${y + 3}" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="8.5" text-anchor="end">$${v >= 1000 ? (v / 1000) + "k" : v}</text>
+      `;
+    });
+
+    // Holder Baseline Band (Median + P95)
+    if (base.n_prior > 0 && base.p95_usd > 0) {
+      const yMed = yOf(Math.max(1, base.median_usd));
+      const yP95 = yOf(Math.max(1, base.p95_usd));
+      const yBot = padT + plotH;
+      s += `
+        <rect x="${padL}" y="${yP95}" width="${plotW}" height="${Math.max(2, yBot - yP95)}" fill="rgba(54, 179, 138, 0.08)" />
+        <line x1="${padL}" y1="${yP95}" x2="${W - padR}" y2="${yP95}" stroke="#36b38a" stroke-width="1" stroke-dasharray="3 3" stroke-opacity="0.65" />
+        <line x1="${padL}" y1="${yMed}" x2="${W - padR}" y2="${yMed}" stroke="#36b38a" stroke-width="1.2" stroke-opacity="0.85" />
+        <text x="${W - padR - 3}" y="${yP95 - 3}" fill="#36b38a" font-family="JetBrains Mono, monospace" font-size="8" text-anchor="end">p95 ${fmtUsd(base.p95_usd)}</text>
+        <text x="${W - padR - 3}" y="${yMed - 3}" fill="#36b38a" font-family="JetBrains Mono, monospace" font-size="8" text-anchor="end">med ${fmtUsd(base.median_usd)}</text>
+      `;
+    }
+
+    // Bottom axis
+    const yZero = padT + plotH;
+    s += `<line x1="${padL}" y1="${yZero}" x2="${W - padR}" y2="${yZero}" stroke="#334252" stroke-width="1.2" />`;
+
+    const n = txns.length;
+    const firstEpIdx = txns.findIndex(t => t.in_episode_window);
+
+    // Dormancy / Episode divider if prior txns exist before episode
+    if (firstEpIdx > 0) {
+      const divX = padL + ((firstEpIdx - 0.5) / Math.max(1, n - 1)) * plotW;
+      s += `
+        <line x1="${divX}" y1="${padT}" x2="${divX}" y2="${yZero}" stroke="#d99b38" stroke-width="1" stroke-dasharray="2 3" />
+      `;
+      if (base.silence_days >= 5) {
+        s += `
+          <rect x="${divX - 38}" y="${padT + 2}" width="76" height="14" fill="#161d24" stroke="#d99b38" stroke-width="0.8" />
+          <text x="${divX}" y="${padT + 12}" fill="#d99b38" font-family="JetBrains Mono, monospace" font-size="8" font-weight="700" text-anchor="middle">${base.silence_days}d SILENCE</text>
+        `;
+      }
+    }
+
+    // Plot each transaction stem + lollipop
+    txns.forEach((tx, idx) => {
+      const x = n === 1 ? padL + plotW / 2 : padL + (idx / (n - 1)) * plotW;
+      const y = yOf(tx.amount);
+      let col = "#6c7a89";
+      let r = 3.5;
+      if (tx.is_flagged) {
+        col = verdict === "legitimate" ? "#36b38a" : (verdict === "uncertain" ? "#d99b38" : "#f05a43");
+        r = 5.5;
+      } else if (tx.is_affected) {
+        col = "#f05a43";
+        r = 4.5;
+      } else if (tx.in_episode_window) {
+        col = "#d99b38";
+        r = 4;
+      }
+
+      s += `
+        <g>
+          <title>Txn ${tx.txn_id} · ${tx.full_t} · ${fmtUsd(tx.amount)} (${tx.channel}, Product ${tx.product}) · model p=${tx.p_fraud}</title>
+          <line x1="${x}" y1="${yZero}" x2="${x}" y2="${y}" stroke="${col}" stroke-width="${tx.is_flagged ? 2.4 : (tx.is_affected ? 1.8 : 1.2)}" stroke-opacity="${tx.is_flagged || tx.is_affected ? 0.95 : 0.55}" />
+          <circle cx="${x}" cy="${y}" r="${r}" fill="${col}" stroke="#0b0e11" stroke-width="1.2" />
+          ${tx.is_flagged ? `<circle cx="${x}" cy="${y}" r="${r + 3.2}" fill="none" stroke="#ebeff2" stroke-width="1.3" />` : ""}
+        </g>
+      `;
+
+      // Amount label on flagged or key episode charges
+      if (tx.is_flagged || (tx.is_affected && txns.filter(t => t.is_affected).length <= 6)) {
+        const anchor = x > W - 55 ? "end" : (x < padL + 25 ? "start" : "middle");
+        const ly = Math.max(padT + 10, y - (tx.is_flagged ? 10 : 7));
+        s += `<text x="${x}" y="${ly}" fill="${tx.is_flagged ? '#ebeff2' : col}" font-family="JetBrains Mono, monospace" font-size="${tx.is_flagged ? '9.5' : '8.2'}" font-weight="${tx.is_flagged ? '800' : '600'}" text-anchor="${anchor}">$${tx.amount < 10 ? tx.amount.toFixed(2) : Math.round(tx.amount)}</text>`;
+      }
+
+      if (idx === 0 || idx === n - 1 || tx.is_flagged) {
+        const tAnchor = idx === 0 ? "start" : (idx === n - 1 ? "end" : "middle");
+        s += `<text x="${x}" y="${H - 18}" fill="${tx.is_flagged ? '#ebeff2' : '#6c7a89'}" font-family="JetBrains Mono, monospace" font-size="8.2" text-anchor="${tAnchor}">${escapeHtml(tx.t)}</text>`;
+      }
+    });
+
+    // Legend footer inside SVG
+    s += `
+      <circle cx="${padL}" cy="${H - 6}" r="3.5" fill="#6c7a89" />
+      <text x="${padL + 7}" y="${H - 3}" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="8.5">Prior card history</text>
+      <circle cx="${padL + 118}" cy="${H - 6}" r="4" fill="#f05a43" />
+      <text x="${padL + 125}" y="${H - 3}" fill="#a7b4c2" font-family="JetBrains Mono, monospace" font-size="8.5">Affected episode txn</text>
+      <circle cx="${padL + 248}" cy="${H - 6}" r="4.5" fill="#f05a43" stroke="#ebeff2" stroke-width="1.2" />
+      <text x="${padL + 256}" y="${H - 3}" fill="#ebeff2" font-family="JetBrains Mono, monospace" font-size="8.5">Flagged alert txn</text>
+    `;
+
+    svg.innerHTML = s;
+  }
+
+  function renderTopologyCanvas(visual, data) {
+    const svg = document.getElementById("topo-svg");
+    const meta = document.getElementById("topo-meta");
+    if (!visual || !visual.topology) {
+      svg.innerHTML = `<text x="235" y="95" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">Select a case to inspect topology.</text>`;
+      return;
+    }
+
+    const topo = visual.topology;
+    meta.textContent = topo.hub_sub || topo.hub_label;
+    const verdict = data.verdict;
+    const vCol = verdict === "fraud" ? "#f05a43" : (verdict === "legitimate" ? "#36b38a" : "#d99b38");
+
+    let s = "";
+
+    if (topo.connected_count > 0) {
+      // Deterministic Bipartite Multi-Card Graph (Focus Card -> Shared Hub -> Connected Cards + Precedent)
+      const fx = 60, fy = 78;
+      const hx = 214, hy = 78;
+      const rx = 392;
+      const cards = topo.connected_cards.slice(0, 7);
+      const cCount = cards.length;
+
+      // Edges from Focus Card to Hub
+      s += `<line x1="${fx + 44}" y1="${fy}" x2="${hx - 74}" y2="${hy}" stroke="${vCol}" stroke-width="2.2" />`;
+
+      // Connected cards fan on the right
+      cards.forEach((cid, i) => {
+        const cy = cCount === 1 ? hy : 22 + (i / (cCount - 1)) * 116;
+        s += `
+          <line x1="${hx + 74}" y1="${hy}" x2="${rx - 42}" y2="${cy}" stroke="#6e8bff" stroke-width="1.3" stroke-opacity="0.75" />
+          <rect x="${rx - 42}" y="${cy - 9}" width="84" height="18" fill="#161d24" stroke="#334252" stroke-width="1" />
+          <text x="${rx}" y="${cy + 3.5}" fill="#ebeff2" font-family="JetBrains Mono, monospace" font-size="8.8" text-anchor="middle">${escapeHtml(cid)}</text>
+        `;
+      });
+
+      if (topo.connected_count > cards.length) {
+        s += `<text x="${rx}" y="154" fill="#6e8bff" font-family="JetBrains Mono, monospace" font-size="8.8" font-weight="700" text-anchor="middle">+${topo.connected_count - cards.length} more linked cards</text>`;
+      }
+
+      // Focus card node (left)
+      s += `
+        <rect x="${fx - 44}" y="${fy - 22}" width="88" height="44" fill="#161d24" stroke="${vCol}" stroke-width="2" />
+        <text x="${fx}" y="${fy - 6}" fill="#a7b4c2" font-family="JetBrains Mono, monospace" font-size="8" text-anchor="middle">FOCUS CARD</text>
+        <text x="${fx}" y="${fy + 7}" fill="#ebeff2" font-family="JetBrains Mono, monospace" font-size="10" font-weight="800" text-anchor="middle">${escapeHtml(visual.actual_card_id)}</text>
+        <text x="${fx}" y="${fy + 17}" fill="${vCol}" font-family="JetBrains Mono, monospace" font-size="8" text-anchor="middle">${topo.affected_count} affected txn(s)</text>
+      `;
+
+      // Shared Hub node (center)
+      s += `
+        <rect x="${hx - 74}" y="${hy - 26}" width="148" height="52" fill="#11161b" stroke="#6e8bff" stroke-width="1.8" />
+        <text x="${hx}" y="${hy - 10}" fill="#6e8bff" font-family="JetBrains Mono, monospace" font-size="8" font-weight="700" text-anchor="middle">SHARED EVIDENCE HUB</text>
+        <text x="${hx}" y="${hy + 4}" fill="#ebeff2" font-family="JetBrains Mono, monospace" font-size="8.4" font-weight="700" text-anchor="middle">${escapeHtml(topo.hub_label.slice(0, 26))}</text>
+        <text x="${hx}" y="${hy + 17}" fill="#d99b38" font-family="JetBrains Mono, monospace" font-size="9" font-weight="800" text-anchor="middle">LR &times;${topo.hub_lr}</text>
+      `;
+
+      // Bottom strip: Precedent cases & Graph write-back
+      const simText = (topo.similar_cases || []).length ? `Precedent: ${topo.similar_cases.join(", ")}` : "Precedent: none";
+      const wbText = topo.graph_case_id ? `Graph write-back: FraudCase ${topo.graph_case_id}` : "Not written to FraudCase";
+      s += `
+        <line x1="12" y1="162" x2="458" y2="162" stroke="#242f3b" stroke-width="1" />
+        <text x="14" y="176" fill="#a7b4c2" font-family="JetBrains Mono, monospace" font-size="8.8">${escapeHtml(simText)}</text>
+        <text x="456" y="176" fill="#36b38a" font-family="JetBrains Mono, monospace" font-size="8.8" text-anchor="end">${escapeHtml(wbText)}</text>
+      `;
+    } else {
+      // Single-card deterministic forensic diagram + 4-check Verification Matrix
+      const bannerCol = visual.card_mismatch ? "#d99b38" : vCol;
+      s += `
+        <rect x="12" y="8" width="446" height="36" fill="#161d24" stroke="${bannerCol}" stroke-width="1.5" />
+        <text x="22" y="23" fill="${bannerCol}" font-family="JetBrains Mono, monospace" font-size="9.5" font-weight="800">${escapeHtml(topo.hub_label)}</text>
+        <text x="22" y="36" fill="#a7b4c2" font-family="JetBrains Mono, monospace" font-size="8.8">${escapeHtml(topo.hub_sub)}</text>
+        <text x="448" y="28" fill="#ebeff2" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700" text-anchor="end">${escapeHtml(visual.actual_card_id)}</text>
+      `;
+
+      const checks = visual.checks || [];
+      checks.forEach((chk, idx) => {
+        const y = 52 + idx * 25;
+        const stCol = chk.state === "warn" ? "#d99b38" : (chk.state === "ok" ? "#36b38a" : "#6e8bff");
+        const badge = chk.state === "warn" ? "FLAG" : (chk.state === "ok" ? "PASS" : "INFO");
+        s += `
+          <rect x="12" y="${y}" width="446" height="21" fill="#0b0e11" stroke="#242f3b" stroke-width="1" />
+          <rect x="12" y="${y}" width="3" height="21" fill="${stCol}" />
+          <text x="22" y="${y + 14}" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="8.8">${escapeHtml(chk.label)}</text>
+          <text x="162" y="${y + 14}" fill="#ebeff2" font-family="JetBrains Mono, monospace" font-size="8.8">${escapeHtml(chk.value.slice(0, 42))}</text>
+          <text x="448" y="${y + 14}" fill="${stCol}" font-family="JetBrains Mono, monospace" font-size="8.5" font-weight="800" text-anchor="end">${badge}</text>
+        `;
+      });
+
+      const simText = (topo.similar_cases || []).length ? `Precedent: ${topo.similar_cases.join(", ")}` : "Multi-card rings: 0";
+      const wbText = topo.graph_case_id ? `FraudCase: ${topo.graph_case_id}` : "No FraudCase write-back (cleared)";
+      s += `
+        <text x="14" y="172" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="8.8">${escapeHtml(simText)}</text>
+        <text x="456" y="172" fill="#a7b4c2" font-family="JetBrains Mono, monospace" font-size="8.8" text-anchor="end">${escapeHtml(wbText)}</text>
+      `;
+    }
+
+    svg.innerHTML = s;
   }
 
   async function runSelectedCase(animate = true) {
     if (!SELECTED_CASE_ID) return;
+    const myEpoch = ++RUN_EPOCH;
+    const targetCaseId = SELECTED_CASE_ID;
     clearReplayTimers();
+    if (RUN_TICK) { clearInterval(RUN_TICK); RUN_TICK = null; }
+    CF_OFF_STEPS.clear();
 
     const btnRun = document.getElementById("btn-run");
     btnRun.disabled = true;
@@ -956,28 +1657,32 @@
     tick();
     RUN_TICK = setInterval(tick, 100);
     document.querySelector(".main-panel").scrollTop = 0;
-    document.getElementById("verdict-strip").style.display = "none";
 
     document.getElementById("fail-closed-container").style.display = "none";
-    document.getElementById("outcome-section").style.display = "none";
     document.getElementById("calls-list").innerHTML = "";
     document.getElementById("ledger-list").innerHTML = "";
     document.getElementById("calls-counter").textContent = "0 calls";
     document.getElementById("ledger-counter").textContent = "0 findings";
 
     try {
-      const res = await fetch(`/run/${encodeURIComponent(SELECTED_CASE_ID)}`, { method: "POST" });
+      const res = await fetch(`/run/${encodeURIComponent(targetCaseId)}`, { method: "POST" });
       const data = await res.json();
+      if (myEpoch !== RUN_EPOCH) return;
+      LAST_RUN_DATA = data;
       replayInvestigation(data, animate);
     } catch (err) {
+      if (myEpoch !== RUN_EPOCH) return;
       const fc = document.getElementById("fail-closed-container");
       fc.style.display = "block";
       fc.innerHTML = `<div class="fail-closed-box"><div class="fail-closed-title">FAIL CLOSED</div>${escapeHtml(err.message)}</div>`;
     } finally {
-      clearInterval(RUN_TICK);
-      document.getElementById("btn-instant").disabled = false;
-      btnRun.disabled = false;
-      btnRun.innerHTML = "&#9654; Run Investigation";
+      if (myEpoch === RUN_EPOCH) {
+        clearInterval(RUN_TICK);
+        RUN_TICK = null;
+        document.getElementById("btn-instant").disabled = false;
+        btnRun.disabled = false;
+        btnRun.innerHTML = "&#9654; Run Investigation";
+      }
     }
   }
 
@@ -1002,17 +1707,98 @@
   function appendLedgerStep(item, totalSoFar) {
     const list = document.getElementById("ledger-list");
     const div = document.createElement("div");
-    div.className = "step-item";
+    const lrNum = Number(item.lr || 1);
+    const isWeighed = Math.abs(lrNum - 1.0) > 1e-4 && item.kind !== "prior" && item.kind !== "reported";
+    const dirClass = lrNum > 1.0001 ? "incrim" : (lrNum < 0.9999 ? "exon" : "neutral");
+
+    div.className = "step-item" + (isWeighed ? ` weighed ${dirClass}` : " context-row");
+    div.dataset.step = String(item.step);
+    if (isWeighed) {
+      div.setAttribute("role", "switch");
+      div.setAttribute("aria-checked", "true");
+      div.tabIndex = 0;
+      div.title = "Click to toggle counterfactual (what if this finding were absent?)";
+      div.onclick = () => toggleCounterfactualStep(item.step, div);
+      div.onkeydown = ev => {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          toggleCounterfactualStep(item.step, div);
+        }
+      };
+    }
+
+    const cfBadge = isWeighed ? `<span class="cf-pill">WHAT-IF: ON</span>` : "";
     div.innerHTML = `
       <div class="step-top">
-        <span class="lr-badge">LR ${Number(item.lr).toFixed(2)}&times; &rarr; p=${fmtP(item.probability_after)}</span>
-        <span class="step-badge">${escapeHtml(item.ref)}</span>
+        <span class="lr-badge ${dirClass}">LR ${lrNum.toFixed(2)}&times; &rarr; p=${fmtP(item.probability_after)}</span>
+        <div style="display:flex; align-items:center; gap:5px;">
+          ${cfBadge}
+          <span class="step-badge">${escapeHtml(item.ref)}</span>
+        </div>
       </div>
-      <div class="trigger-text">${escapeHtml(item.claim)}</div>
+      <div class="trigger-text" title="${escapeHtml(item.claim)}">${escapeHtml(item.claim)}</div>
     `;
-    list.appendChild(div);
+    // Insert weighed findings right after the prior so decisive ×LR steps are immediately visible
+    if (isWeighed) {
+      const firstContext = list.querySelector(".step-item.context-row:not([data-step='1'])");
+      if (firstContext) {
+        list.insertBefore(div, firstContext);
+      } else {
+        list.appendChild(div);
+      }
+    } else {
+      list.appendChild(div);
+    }
     document.getElementById("ledger-counter").textContent = `${totalSoFar} findings`;
     setNeedle(item.probability_after, `Step ${item.step}`);
+  }
+
+  function toggleCounterfactualStep(stepNum, rowEl) {
+    if (!LAST_RUN_DATA || !LAST_RUN_DATA.ledger) return;
+    const pill = rowEl.querySelector(".cf-pill");
+    if (CF_OFF_STEPS.has(stepNum)) {
+      CF_OFF_STEPS.delete(stepNum);
+      rowEl.classList.remove("cf-off");
+      rowEl.setAttribute("aria-checked", "true");
+      if (pill) pill.textContent = "WHAT-IF: ON";
+    } else {
+      CF_OFF_STEPS.add(stepNum);
+      rowEl.classList.add("cf-off");
+      rowEl.setAttribute("aria-checked", "false");
+      if (pill) pill.textContent = "WHAT-IF: DROPPED";
+    }
+    updateCounterfactualView();
+  }
+
+  function updateCounterfactualView() {
+    const whatifEl = document.getElementById("whatif-text");
+    if (!LAST_RUN_DATA || !LAST_RUN_DATA.ok) return;
+    const ledger = LAST_RUN_DATA.ledger || [];
+    if (CF_OFF_STEPS.size === 0) {
+      whatifEl.innerHTML = `▬ Brass = Bank score (${fmtP(LAST_RUN_DATA.visual?.bank_risk)}) · ○ Prior = ${fmtP(LAST_RUN_DATA.prior_probability)} · ▼ Posterior = <b>${fmtP(LAST_RUN_DATA.fraud_probability)}</b> · Click any ×LR finding below for counterfactual`;
+      setNeedle(LAST_RUN_DATA.fraud_probability, `Verdict: ${LAST_RUN_DATA.verdict}`, { ghostP: null });
+      return;
+    }
+
+    let lo = logit(LAST_RUN_DATA.prior_probability || 0.5);
+    const droppedLabels = [];
+    ledger.forEach(item => {
+      const lrNum = Number(item.lr || 1);
+      if (Math.abs(lrNum - 1.0) > 1e-4 && item.kind !== "prior" && item.kind !== "reported") {
+        if (CF_OFF_STEPS.has(item.step)) {
+          droppedLabels.push(`${item.tag || item.ref.split("(")[0]} (×${lrNum.toFixed(2)})`);
+        } else {
+          lo += Math.log(lrNum);
+        }
+      }
+    });
+
+    const cfP = invLogit(lo);
+    const gateNote = cfP >= 0.85
+      ? "still clears 0.85 ACT gate"
+      : (cfP <= 0.15 ? "lands inside ≤0.15 CLEAR gate" : "drops into 0.15–0.85 UNCERTAIN band");
+    whatifEl.innerHTML = `Counterfactual without <b>${escapeHtml(droppedLabels.join(" + "))}</b>: ghost <b>p = ${fmtP(cfP)}</b> (vs ${fmtP(LAST_RUN_DATA.fraud_probability)}) — ${gateNote}`;
+    setNeedle(LAST_RUN_DATA.fraud_probability, `Verdict: ${LAST_RUN_DATA.verdict}`, { ghostP: cfP });
   }
 
   function renderFinalOutcome(data) {
@@ -1023,22 +1809,27 @@
         <div class="fail-closed-box">
           <div class="fail-closed-title">&#9888; FAIL-CLOSED HALT (${escapeHtml(data.error_type || "FaultInjectedError")})</div>
           <div>${escapeHtml(data.error)}</div>
-          <div style="margin-top:6px; font-size:12px; color:#fda4af;">
+          <div style="margin-top:4px; font-size:11.5px; color:var(--fraud);">
             Fault spec: ${escapeHtml(data.fault_injected || "N/A")} &middot; Halted cleanly after ${data.calls ? data.calls.length : 0} tool calls with no guessed verdict.
           </div>
         </div>
       `;
-      // No verdict exists, so no probability is shown either
       document.getElementById("needle-marker").style.opacity = "0.25";
       document.getElementById("needle-readout").textContent = "HALTED · no verdict";
+      document.getElementById("out-verdict").textContent = "HALTED";
+      document.getElementById("out-verdict").className = "metric-value verdict-fraud";
+      drawLogitScale({ bankRisk: null, priorP: null, currentP: null, bridges: [], ghostP: null });
       return;
     }
 
+    CASE_OUTCOMES[data.case_id] = data.verdict;
+    const vdot = document.getElementById(`vdot-${data.case_id}`);
+    if (vdot) vdot.className = `case-vdot ${data.verdict}`;
+
     const outSec = document.getElementById("outcome-section");
     outSec.style.display = "flex";
-    document.getElementById("verdict-strip").style.display = "block";
+    document.getElementById("verdict-strip").style.display = "flex";
     const ring = document.getElementById("ring-link");
-    // Only when a ring finding is in the ledger: a replay file alone says nothing about this verdict
     const ringFinding = (data.ledger || []).some(l => /ring_for|ring_wcc/.test(l.ref || ""));
     if (data.ring_view && ringFinding) {
       ring.href = data.ring_view;
@@ -1052,17 +1843,27 @@
     vEl.className = `metric-value verdict-${data.verdict}`;
 
     document.getElementById("out-pattern").textContent = data.pattern;
-    document.getElementById("out-exposure").textContent =
-      `$${Number(data.exposure_usd).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById("out-pattern").title = data.pattern;
+    document.getElementById("out-exposure").textContent = fmtUsd(data.exposure_usd);
 
     const sarRequired = Boolean(data.sar && data.sar.file);
     const sarEl = document.getElementById("out-sar");
-    sarEl.textContent = sarRequired ? "YES · FILE_REPORT" : "NO";
-    document.getElementById("out-pattern").title = data.pattern;
-    sarEl.style.color = sarRequired ? "var(--amber)" : "var(--text-dim)";
+    sarEl.textContent = sarRequired ? "FILED" : "NONE";
+    sarEl.style.color = sarRequired ? "var(--bank)" : "var(--ink-3)";
+
+    const affCount = (data.answer?.case?.affected_txn_ids || []).length;
+    const connCount = (data.answer?.case?.connected_card_ids || []).length;
+    document.getElementById("verdict-telemetry").textContent =
+      `${affCount} affected txn(s) · ${connCount} linked card(s) · ${data.calls ? data.calls.length : 0} queries · ${data.elapsed_ms} ms`;
 
     document.getElementById("out-elapsed").textContent = `${data.elapsed_ms} ms`;
     setNeedle(data.fraud_probability, `Verdict: ${data.verdict}`);
+    updateCounterfactualView();
+
+    if (data.visual) {
+      renderPulseCanvas(data.visual, data.verdict);
+      renderTopologyCanvas(data.visual, data);
+    }
 
     const actList = document.getElementById("actions-list");
     actList.innerHTML = "";
@@ -1073,7 +1874,7 @@
 
       const isGated = act.approval_route === "L1" || act.approval_route === "L2";
       const rightHtml = isGated
-        ? `<div style="display:flex; align-items:center; gap:10px;">
+        ? `<div style="display:flex; align-items:center; gap:8px;">
              <span id="status-${act.proposal_id}" class="status-awaiting">awaiting approval (${escapeHtml(act.approval_route)})</span>
              <button id="btn-approve-${act.proposal_id}" class="btn" onclick="approveProposal('${act.proposal_id}', '${act.approval_route}')">Approve</button>
            </div>`
@@ -1103,7 +1904,11 @@
     const ledger = data.ledger || [];
 
     if (data.prior_probability !== undefined) {
-      setNeedle(data.prior_probability, "Initial Prior");
+      setNeedle(data.prior_probability, "Initial Prior", { bridges: [] });
+    }
+    if (data.visual) {
+      renderPulseCanvas(data.visual, data.verdict || "uncertain");
+      renderTopologyCanvas(data.visual, data);
     }
 
     if (!animate) {
@@ -1113,7 +1918,7 @@
       return;
     }
 
-    const stepDelay = 90;
+    const stepDelay = 65;
     let delay = 0;
 
     calls.forEach((c, i) => {
@@ -1122,7 +1927,7 @@
     });
 
     ledger.forEach((l, i) => {
-      delay += stepDelay + 40;
+      delay += stepDelay + 30;
       REPLAY_TIMERS.push(setTimeout(() => appendLedgerStep(l, i + 1), delay));
     });
 
@@ -1136,8 +1941,8 @@
     const btnEl = document.getElementById(`btn-approve-${proposalId}`);
 
     if (!token) {
-      statusEl.textContent = "Paste approver token above first!";
-      statusEl.style.color = "var(--red)";
+      statusEl.textContent = "Click L1/L2 or paste token above first!";
+      statusEl.style.color = "var(--fraud)";
       return;
     }
 
@@ -1158,7 +1963,7 @@
     const body = await res.json();
     if (!res.ok) {
       statusEl.textContent = `Denied (${res.status}): ${body.detail || "unauthorized"}`;
-      statusEl.style.color = "var(--red)";
+      statusEl.style.color = "var(--fraud)";
       return;
     }
 
@@ -1187,9 +1992,9 @@
     if (typing && ev.key !== "ArrowDown" && ev.key !== "ArrowUp") return;
     if (ev.key === "ArrowDown") { ev.preventDefault(); moveSelection(1); }
     else if (ev.key === "ArrowUp") { ev.preventDefault(); moveSelection(-1); }
-    else if (ev.key === "Enter" && !el.matches(".case-card, button, a")) { runSelectedCase(true); }
-    else if (ev.key === "i" || ev.key === "I") { runSelectedCase(false); }
-    else if (ev.key === "b" || ev.key === "B") { toggleBreakIt(); }
+    else if (ev.key === "Enter" && !el.matches(".case-card, button, a, [role='switch']")) { runSelectedCase(true); }
+    else if ((ev.key === "i" || ev.key === "I") && !typing) { runSelectedCase(false); }
+    else if ((ev.key === "b" || ev.key === "B") && !typing) { toggleBreakIt(); }
   });
 
   window.addEventListener("DOMContentLoaded", () => {

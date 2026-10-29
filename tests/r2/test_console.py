@@ -57,6 +57,9 @@ def test_console_end_to_end():
     assert isinstance(data["ledger"], list) and len(data["ledger"]) > 0
     assert all("lr" in step and "probability_after" in step for step in data["ledger"])
     assert data["ledger"][-1]["probability_after"] == data["fraud_probability"]
+    assert "visual" in data and isinstance(data["visual"], dict)
+    assert len(data["visual"]["pulse_txns"]) >= 5
+    assert data["visual"]["topology"]["hub_type"] == "card_testing"
 
     # 4. Approvals flow mounted under /approvals for L1/L2 actions
     gated_actions = [a for a in data["actions"] if a["approval_route"] in ("L1", "L2")]
@@ -96,8 +99,8 @@ def test_console_end_to_end():
     assert r_ver.status_code == 200
     assert r_ver.json()["valid"] is True
 
-    # 5. 'Break it' toggle: sets ASSAY_FAULT and demonstrates fail-closed live
-    r_fault = client.post("/fault", json={"fault": "card_window:down@1"})
+    # 5. 'Break it' toggle: sets ASSAY_FAULT (including default card_history:down@1) and demonstrates fail-closed live
+    r_fault = client.post("/fault", json={"fault": "card_history:down@1"})
     assert r_fault.status_code == 200
     assert r_fault.json()["active"] is True
 
@@ -108,6 +111,7 @@ def test_console_end_to_end():
     assert b_data["fail_closed"] is True
     assert b_data["answer"] is None
     assert "FAIL_CLOSED" in b_data["error"]
+    assert len(b_data["calls"]) == 3
 
     # Clear fault and confirm recovery
     client.post("/fault", json={"fault": ""})
