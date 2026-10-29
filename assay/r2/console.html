@@ -201,6 +201,18 @@
     cursor: not-allowed;
   }
 
+  #ask-box { flex: 0 0 auto; }
+  .ask-row { display: flex; gap: 6px; }
+  .ask-row input { flex: 1; min-width: 0; background: var(--ground); color: var(--ink); border: 1px solid var(--rule-strong); padding: 5px 8px; font: 12px var(--font-sans); }
+  .ask-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  .ask-chip { background: var(--elevated); color: var(--ink-2); border: 1px solid var(--rule); padding: 2px 8px; font: 11px var(--font-sans); cursor: pointer; }
+  .ask-chip:hover { color: var(--ink); border-color: var(--rule-strong); }
+  .ask-ran { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); word-break: break-all; }
+  .ask-ans { font-size: 12.5px; color: var(--ink); margin: 4px 0; line-height: 1.4; }
+  .ask-tbl { width: 100%; border-collapse: collapse; font: 10.5px var(--font-mono); color: var(--ink-2); }
+  .ask-tbl th, .ask-tbl td { text-align: left; padding: 2px 6px; border-bottom: 1px solid var(--rule); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  .ask-tbl th { color: var(--ink-3); font-weight: 600; }
+  .ask-wrap { overflow-x: auto; }
   .vfy-summary { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); }
   .vfy-row {
     display: grid; grid-template-columns: 96px 1fr; gap: 8px; align-items: baseline;
@@ -1085,6 +1097,20 @@
 
     <div id="fail-closed-container" style="display:none;"></div>
 
+    <details id="ask-box" class="panel-card fold" data-fold="ask">
+      <summary class="panel-header">
+        <span class="fold-title">Ask about this case <span class="fold-hint">&middot; fixed read-only tools, no free-text queries</span></span>
+      </summary>
+      <div class="panel-body" style="max-height:none; overflow:visible;">
+        <div class="ask-row">
+          <input id="ask-input" type="text" maxlength="300" placeholder="e.g. what other cards used this device?" onkeydown="if(event.key==='Enter'){askCase()}">
+          <button class="btn btn-secondary" onclick="askCase()">Ask</button>
+        </div>
+        <div class="ask-chips" id="ask-chips"></div>
+        <div id="ask-result"></div>
+      </div>
+    </details>
+
     <details id="verify-box" class="panel-card fold" data-fold="verify">
       <summary class="panel-header">
         <span class="fold-title">Claim re-run <span class="fold-hint">&middot; every attested query, executed again</span></span>
@@ -1273,6 +1299,46 @@
   function clearReplayTimers() {
     while (REPLAY_TIMERS.length > 0) {
       clearTimeout(REPLAY_TIMERS.pop());
+    }
+  }
+
+  const ASK_EXAMPLES = ["What other cards used this device?", "What is this card's usual spending?", "Are there past cases on this card?", "Show the flagged transaction", "Which cards are linked in the ring?"];
+  document.getElementById("ask-chips").innerHTML = ASK_EXAMPLES.map((q, i) =>
+    `<button class="ask-chip" data-i="${i}">${escapeHtml(q)}</button>`).join("");
+  document.getElementById("ask-chips").addEventListener("click", e => {
+    const b = e.target.closest(".ask-chip");
+    if (b) document.getElementById("ask-input").value = ASK_EXAMPLES[+b.dataset.i];
+  });
+
+  async function askCase() {
+    const out = document.getElementById("ask-result");
+    const q = document.getElementById("ask-input").value.trim();
+    if (!SELECTED_CASE_ID) { out.innerHTML = '<div class="ask-ans">Select a case first.</div>'; return; }
+    if (!q) return;
+    const caseId = SELECTED_CASE_ID;
+    out.innerHTML = '<div class="ask-ran">running...</div>';
+    try {
+      const r = await fetch("/ask", {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({case_id: caseId, question: q})});
+      const d = await r.json();
+      if (caseId !== SELECTED_CASE_ID) return;
+      if (!r.ok) { out.innerHTML = `<div class="ask-ans">${escapeHtml(d.detail || r.status)}</div>`; return; }
+      let h = "";
+      if (d.tool) {
+        const ps = Object.entries(d.params || {}).map(([k, v]) => `${k}=${v}`).join(", ");
+        h += `<div class="ask-ran">ran: ${escapeHtml(d.tool)}(${escapeHtml(ps)})</div>`;
+      }
+      h += `<div class="ask-ans">${escapeHtml(d.answer)}</div>`;
+      if (d.supported) h += `<ul class="ask-ans">${d.supported.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ul>`;
+      if (d.rows && d.rows.length) {
+        const cols = [...new Set(d.rows.flatMap(r => Object.keys(r)))];
+        h += `<div class="ask-wrap"><table class="ask-tbl"><tr>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join("")}</tr>` +
+          d.rows.map(r => `<tr>${cols.map(c => `<td title="${escapeHtml(r[c])}">${escapeHtml(r[c])}</td>`).join("")}</tr>`).join("") +
+          `</table></div><div class="ask-ran">${d.rows.length} of ${d.total} rows shown</div>`;
+      }
+      out.innerHTML = h;
+    } catch (e) {
+      out.innerHTML = `<div class="ask-ans">${escapeHtml(e.message)}</div>`;
     }
   }
 

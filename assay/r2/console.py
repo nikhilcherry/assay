@@ -543,6 +543,11 @@ class FaultPayload(BaseModel):
     fault: Optional[str] = None
 
 
+class AskPayload(BaseModel):
+    case_id: str = ""
+    question: str = ""
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Assay Live Demo Console")
 
@@ -760,6 +765,23 @@ def create_app() -> FastAPI:
             "claims": claims,
             "elapsed_ms": elapsed_ms,
         }
+
+    @app.post("/ask")
+    async def ask_case(payload: AskPayload) -> Dict[str, Any]:
+        """Closed-menu question about a case: keywords pick one fixed tool; free text is never a query."""
+        from assay.r2 import ask as ask_mod
+
+        if not re.fullmatch(r"HHF-\d{3}", payload.case_id or ""):
+            raise HTTPException(status_code=400, detail="case_id must match HHF-NNN")
+        q = payload.question or ""
+        if not q.strip() or len(q) > ask_mod.MAX_Q:
+            raise HTTPException(status_code=400, detail=f"question must be 1-{ask_mod.MAX_Q} characters")
+        try:
+            return await run_in_threadpool(ask_mod.answer, payload.case_id, q)
+        except LookupError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     @app.post("/run/{case_id}")
     def run_case(case_id: str) -> Dict[str, Any]:
