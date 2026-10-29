@@ -1,0 +1,55 @@
+[
+ {
+  "scenario": "saboteur-r1-1",
+  "your_truth": "uncertain/none",
+  "assay_verdict": null,
+  "assay_probability": null,
+  "assay_pattern": null,
+  "assay_actions": [],
+  "share_of_your_fraud_txns_assay_counted": null,
+  "result": "REJECTED_OK",
+  "you_won": false
+ },
+ {
+  "scenario": "saboteur-r1-2",
+  "your_truth": "fraud/card_not_present_new_device",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.96,
+  "assay_pattern": "undocumented",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE",
+   "ESCALATE_TO_ANALYST",
+   "FILE_REPORT",
+   "MONITOR_CONNECTED_CARDS"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 1.0,
+  "result": "ANSWERED_BAD_INPUT",
+  "you_won": true
+ },
+ {
+  "scenario": "saboteur-r1-3",
+  "your_truth": "fraud/card_testing",
+  "assay_verdict": null,
+  "assay_probability": null,
+  "assay_pattern": null,
+  "assay_actions": [],
+  "share_of_your_fraud_txns_assay_counted": 0.0,
+  "result": "REJECTED_OK",
+  "you_won": false
+ },
+ {
+  "scenario": "saboteur-r1-4",
+  "your_truth": "legitimate/none",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.83,
+  "assay_pattern": "card_not_present_new_device",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": null,
+  "result": "FALSE_ALARM",
+  "you_won": true
+ }
+]

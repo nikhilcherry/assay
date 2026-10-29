@@ -1,0 +1,730 @@
+[
+ {
+  "scenario_id": "drip-r1-1",
+  "idea": "Exploit Assay's disabled per-card micro-charge drip detector (LR 0.63) and its 1-hour dispute episode cap by planting 8 sub-$6.50 Product C charges spread over 28 days, ensuring total exposure is massively under-counted on a customer dispute.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 660.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 570.0,
+    "amount": 5.49,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 480.0,
+    "amount": 6.15,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 380.0,
+    "amount": 4.85,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 290.0,
+    "amount": 5.99,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e6",
+    "card": "A",
+    "hours_before_open": 195.0,
+    "amount": 6.25,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e7",
+    "card": "A",
+    "hours_before_open": 96.0,
+    "amount": 5.1,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e8",
+    "card": "A",
+    "hours_before_open": 2.0,
+    "amount": 6.4,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.07
+   }
+  ],
+  "case": {
+   "flagged": "e8",
+   "day": 29,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called to dispute a $6.40 online charge and noted several other small ~$5-$6 charges over the past four weeks that they did not authorize."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_fraud",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6",
+    "e7",
+    "e8"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay switched off both its per-card micro-charge drip detector and its HMM episode segmenter, and capped its rule-based dispute-episode builder to 1 hour of the disputed charge. Because e1-e7 occurred 96 to 660 hours before the flagged charge e8, Assay will only count $6.40 instead of the true $45.22 fraud episode."
+  }
+ },
+ {
+  "scenario_id": "drip-r1-2",
+  "idea": "Evade Assay's recipient fan-in detector (15 cards in 21 days) and micro-drip thresholds by skimming $6.75 across 9 cards over 25 days to a single recipient domain, triggered by a low-score model alert.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "regular"
+   },
+   {
+    "label": "F",
+    "profile": "regular"
+   },
+   {
+    "label": "G",
+    "profile": "regular"
+   },
+   {
+    "label": "H",
+    "profile": "regular"
+   },
+   {
+    "label": "I",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 580.0,
+    "amount": 6.75,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e2",
+    "card": "B",
+    "hours_before_open": 510.0,
+    "amount": 6.8,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e3",
+    "card": "C",
+    "hours_before_open": 440.0,
+    "amount": 6.65,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e4",
+    "card": "D",
+    "hours_before_open": 370.0,
+    "amount": 6.9,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e5",
+    "card": "E",
+    "hours_before_open": 300.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.1
+   },
+   {
+    "id": "e6",
+    "card": "F",
+    "hours_before_open": 230.0,
+    "amount": 6.7,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e7",
+    "card": "G",
+    "hours_before_open": 160.0,
+    "amount": 6.85,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e8",
+    "card": "H",
+    "hours_before_open": 90.0,
+    "amount": 6.6,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e9",
+    "card": "I",
+    "hours_before_open": 12.0,
+    "amount": 6.75,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e10",
+    "card": "I",
+    "hours_before_open": 1.0,
+    "amount": 6.95,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.18
+   }
+  ],
+  "case": {
+   "flagged": "e10",
+   "day": 27,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated risk model review triggered for low-value online service charge."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "undocumented",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6",
+    "e7",
+    "e8",
+    "e9",
+    "e10"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Cross-card cohort micro-drip is disabled in Assay, and the recipient fan-in detector requires a higher threshold of cards (e.g. 15 in 21 days) or prior fraud links to fire as a ring. Using Product S just above $6.50 across 9 clean regular cards with no shared device keeps all graph/cohort detectors silent while the low risk_score (0.18) leads Assay to clear or under-react."
+  }
+ },
+ {
+  "scenario_id": "drip-r1-3",
+  "idea": "Blind Assay's graph ring detector by connecting 16 cards to the same skimmer device and email within 20 days, exceeding the 15-card element drop cap (B15_rings) while dripping slow micro-charges.",
+  "cards": [
+   {
+    "label": "C1",
+    "profile": "regular"
+   },
+   {
+    "label": "C2",
+    "profile": "regular"
+   },
+   {
+    "label": "C3",
+    "profile": "regular"
+   },
+   {
+    "label": "C4",
+    "profile": "regular"
+   },
+   {
+    "label": "C5",
+    "profile": "regular"
+   },
+   {
+    "label": "C6",
+    "profile": "regular"
+   },
+   {
+    "label": "C7",
+    "profile": "regular"
+   },
+   {
+    "label": "C8",
+    "profile": "regular"
+   },
+   {
+    "label": "C9",
+    "profile": "regular"
+   },
+   {
+    "label": "C10",
+    "profile": "regular"
+   },
+   {
+    "label": "C11",
+    "profile": "regular"
+   },
+   {
+    "label": "C12",
+    "profile": "regular"
+   },
+   {
+    "label": "C13",
+    "profile": "regular"
+   },
+   {
+    "label": "C14",
+    "profile": "regular"
+   },
+   {
+    "label": "C15",
+    "profile": "regular"
+   },
+   {
+    "label": "C16",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "C1",
+    "hours_before_open": 450.0,
+    "amount": 7.1,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e2",
+    "card": "C2",
+    "hours_before_open": 420.0,
+    "amount": 7.25,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e3",
+    "card": "C3",
+    "hours_before_open": 390.0,
+    "amount": 6.85,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.1
+   },
+   {
+    "id": "e4",
+    "card": "C4",
+    "hours_before_open": 360.0,
+    "amount": 7.4,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e5",
+    "card": "C5",
+    "hours_before_open": 330.0,
+    "amount": 6.95,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e6",
+    "card": "C6",
+    "hours_before_open": 300.0,
+    "amount": 7.05,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e7",
+    "card": "C7",
+    "hours_before_open": 270.0,
+    "amount": 7.3,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.1
+   },
+   {
+    "id": "e8",
+    "card": "C8",
+    "hours_before_open": 240.0,
+    "amount": 6.6,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e9",
+    "card": "C9",
+    "hours_before_open": 210.0,
+    "amount": 7.15,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.13
+   },
+   {
+    "id": "e10",
+    "card": "C10",
+    "hours_before_open": 180.0,
+    "amount": 6.8,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e11",
+    "card": "C11",
+    "hours_before_open": 150.0,
+    "amount": 7.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e12",
+    "card": "C12",
+    "hours_before_open": 120.0,
+    "amount": 6.9,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.1
+   },
+   {
+    "id": "e13",
+    "card": "C13",
+    "hours_before_open": 90.0,
+    "amount": 7.2,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e14",
+    "card": "C14",
+    "hours_before_open": 60.0,
+    "amount": 6.75,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.1
+   },
+   {
+    "id": "e15",
+    "card": "C15",
+    "hours_before_open": 30.0,
+    "amount": 7.35,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e16",
+    "card": "C16",
+    "hours_before_open": 2.0,
+    "amount": 7.45,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.15
+   }
+  ],
+  "case": {
+   "flagged": "e16",
+   "day": 24,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Analyst requested review of a $7.45 online transaction on C16 sharing device fingerprint with recent low-dollar activity."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_fraud",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6",
+    "e7",
+    "e8",
+    "e9",
+    "e10",
+    "e11",
+    "e12",
+    "e13",
+    "e14",
+    "e15",
+    "e16"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay's ring detector (`B15_rings.md`) explicitly drops shared elements appearing on more than 15 cards in 30 days to avoid false positives on large components. By putting exactly 16 cards on the skimmer's device profile within 20 days and keeping amounts slightly above the $6.50 micro-drip threshold with distinct amounts (evading charge-shape campaign), the shared device is dropped from ring construction and C16 looks like an isolated low-risk transaction."
+  }
+ },
+ {
+  "scenario_id": "drip-r1-4",
+  "idea": "Circumvent R5 card testing (which requires 3+ small authorizations within 1 hour) and the micro-drip rule by spacing 3 tiny authorizations 75 hours apart before a larger cashout on a heavy issuer-bucket card.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "heavy"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 225.0,
+    "amount": 6.6,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": 325,
+    "risk_score": 0.12
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 150.0,
+    "amount": 6.85,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": 325,
+    "risk_score": 0.14
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 75.0,
+    "amount": 6.95,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": 325,
+    "risk_score": 0.15
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 1.5,
+    "amount": 285.0,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": 325,
+    "risk_score": 0.28
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 22,
+   "trigger_type": "risk_score",
+   "trigger_text": "Model score alert on $285.00 online Product H transaction following prior small authorizations."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Policy R5 defines card testing as 3+ small online authorizations within an hour followed by a larger purchase, while Assay's micro-drip rule looks for 4+ sub-$6.50 Product C charges. By spacing 3 Product H probes of ~$6.60-$6.95 at 75-hour intervals on a noisy 'heavy' card (300+ past txns where new devices/regions are common) before the $285 purchase, neither R5 nor micro-drip fires, and even if flagged, e1-e3 fall outside the 1-hour episode window."
+  }
+ }
+]

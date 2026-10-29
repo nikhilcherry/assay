@@ -1,0 +1,542 @@
+[
+ {
+  "scenario_id": "lookalike-r2-1",
+  "idea": "Exploit the disabled innocence signals (B29) and non-monthly annual subscription blind spot in R7: a legitimate customer calls to dispute an unrecognized merchant DBA name on an annual renewal with a slight price increase, which misses R7's strict 'monthly, same amount' filter and triggers R2's automatic block and SAR filing (> $1,000).",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 48.0,
+    "amount": 54.2,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 24.0,
+    "amount": 32.15,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 3.5,
+    "amount": 1199.0,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.48
+   }
+  ],
+  "case": {
+   "flagged": "e3",
+   "day": 14,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called customer service to dispute an online charge of $1,199.00 under merchant billing descriptor DRI*AUTODESK INC, stating they did not authorize a transaction today. (Customer forgot their annual CAD software license auto-renewed after a 10% tier price increase)."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay switched off all innocence signals (home_region, stable_profile, long_tenure_clean) per B29, stating 'Only the policy's R7 recurring-charge rule can clear a denial.' Because this is an annual renewal with a price bump rather than a monthly identical-amount charge, R7 fails to fire and Assay treats the customer denial as confirmed >$1,000 fraud, executing BLOCK_CARD and FILE_REPORT."
+  }
+ },
+ {
+  "scenario_id": "lookalike-r2-2",
+  "idea": "Trigger the Dormant Card Wakes Up detector (B5, LR 5.65) combined with R5 Card Testing and January drift (B1): a legitimate snowbird activates a dormant backup card on vacation in a new billing region, buying three cheap digital transit passes on a new holiday phone before paying for a resort hotel stay.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 0.85,
+    "amount": 2.75,
+    "product": "C",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 750x1334",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": 384,
+    "risk_score": 0.38
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 0.7,
+    "amount": 2.75,
+    "product": "C",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 750x1334",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": 384,
+    "risk_score": 0.42
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.5,
+    "amount": 5.5,
+    "product": "C",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 750x1334",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": 384,
+    "risk_score": 0.49
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 1380.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 750x1334",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": 384,
+    "risk_score": 0.79
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 19,
+   "trigger_type": "risk_score",
+   "trigger_text": "High risk score 0.79 on online Product H authorization of $1,380.00 following three small online Product C authorizations within 50 minutes on a previously inactive card."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Combines the B5 Dormant Card Wakes Up detector (LR 5.65) with the exact structural signature of R5 card testing (three small online charges within an hour followed by a >$100 cleared purchase) and a high January model risk score, pushing fraud probability above 0.85 so Assay blocks and reports without asking the customer."
+  }
+ },
+ {
+  "scenario_id": "lookalike-r2-3",
+  "idea": "Target the Common Point of Compromise (B4, LR 23.49+) and Charge-Shape Campaign (B28, LR 45.36) detectors while staying under the 15-card ring cap (B15): 6 legitimate coworkers at a corporate office use the same shared conference room PC within a 2-hour window to buy identical $250 early-bird conference tickets.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "thin"
+   },
+   {
+    "label": "F",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 1.8,
+    "amount": 250.0,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": 299,
+    "risk_score": 0.35
+   },
+   {
+    "id": "e2",
+    "card": "B",
+    "hours_before_open": 1.5,
+    "amount": 250.0,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": 299,
+    "risk_score": 0.39
+   },
+   {
+    "id": "e3",
+    "card": "C",
+    "hours_before_open": 1.2,
+    "amount": 250.0,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": 299,
+    "risk_score": 0.44
+   },
+   {
+    "id": "e4",
+    "card": "D",
+    "hours_before_open": 0.8,
+    "amount": 250.0,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": 299,
+    "risk_score": 0.48
+   },
+   {
+    "id": "e5",
+    "card": "E",
+    "hours_before_open": 0.4,
+    "amount": 250.0,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": 299,
+    "risk_score": 0.55
+   },
+   {
+    "id": "e6",
+    "card": "F",
+    "hours_before_open": 0.1,
+    "amount": 250.0,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": 299,
+    "risk_score": 0.72
+   }
+  ],
+  "case": {
+   "flagged": "e6",
+   "day": 23,
+   "trigger_type": "risk_score",
+   "trigger_text": "Velocity and shared-origin alert: 6 distinct cards authorized identical $250.00 online Product S purchases from device 'Windows | Windows 10 | chrome 63.0 | 1920x1080' in region 299 within 2 hours."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "6 cards is well below the 15-card element cap (B15), so the shared device and billing region are not dropped. The identical $250 Product S charges across 6 cards (including a dormant card F) fire B4 (CPC), B28 (Charge-shape campaign, LR 45.36), and B5 (Dormant wake-up), causing Assay to declare a shared-origin fraud ring under R6 and recommend BLOCK_CARD, FILE_REPORT, and MONITOR_CONNECTED_CARDS."
+  }
+ },
+ {
+  "scenario_id": "lookalike-r2-4",
+  "idea": "Exploit the Recipient Fan-In detector (B6, LR 3.0) and Capped Graph Ring (B15): 15 legitimate parents at a local school use their cards for the first time over 14 days to pay for an annual ski trip via the treasurer's regional email domain 'cox.net', culminating in a parent paying for three siblings on a new tablet.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "regular"
+   },
+   {
+    "label": "F",
+    "profile": "regular"
+   },
+   {
+    "label": "G",
+    "profile": "regular"
+   },
+   {
+    "label": "H",
+    "profile": "regular"
+   },
+   {
+    "label": "I",
+    "profile": "regular"
+   },
+   {
+    "label": "J",
+    "profile": "regular"
+   },
+   {
+    "label": "K",
+    "profile": "thin"
+   },
+   {
+    "label": "L",
+    "profile": "thin"
+   },
+   {
+    "label": "M",
+    "profile": "dormant"
+   },
+   {
+    "label": "N",
+    "profile": "dormant"
+   },
+   {
+    "label": "O",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 310.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.18
+   },
+   {
+    "id": "e2",
+    "card": "B",
+    "hours_before_open": 290.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e3",
+    "card": "C",
+    "hours_before_open": 265.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.21
+   },
+   {
+    "id": "e4",
+    "card": "D",
+    "hours_before_open": 240.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.22
+   },
+   {
+    "id": "e5",
+    "card": "E",
+    "hours_before_open": 215.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.25
+   },
+   {
+    "id": "e6",
+    "card": "F",
+    "hours_before_open": 190.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.26
+   },
+   {
+    "id": "e7",
+    "card": "G",
+    "hours_before_open": 168.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.28
+   },
+   {
+    "id": "e8",
+    "card": "H",
+    "hours_before_open": 144.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.31
+   },
+   {
+    "id": "e9",
+    "card": "I",
+    "hours_before_open": 120.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.33
+   },
+   {
+    "id": "e10",
+    "card": "J",
+    "hours_before_open": 96.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.36
+   },
+   {
+    "id": "e11",
+    "card": "K",
+    "hours_before_open": 72.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.41
+   },
+   {
+    "id": "e12",
+    "card": "L",
+    "hours_before_open": 48.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.45
+   },
+   {
+    "id": "e13",
+    "card": "M",
+    "hours_before_open": 24.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.52
+   },
+   {
+    "id": "e14",
+    "card": "N",
+    "hours_before_open": 12.0,
+    "amount": 360.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.58
+   },
+   {
+    "id": "e15",
+    "card": "O",
+    "hours_before_open": 0.2,
+    "amount": 1080.0,
+    "product": "R",
+    "channel": "online",
+    "device": "iPad | iOS 10.2 | mobile safari 10.0 | 2048x1536",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": 412,
+    "risk_score": 0.74
+   }
+  ],
+  "case": {
+   "flagged": "e15",
+   "day": 27,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Analyst referral: 15 first-time cards sent online Product R payments to recipient domain 'cox.net' within 14 days, culminating in a $1,080.00 transaction on dormant card O from a new iPad device."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Mirrors HHF-006 (15 first-time cards paying a regional ISP email domain within 21 days) while staying right at the 15-card ring cap (B15) and waking up dormant card O (B5, LR 5.65). Combining Recipient Fan-In (B6, LR 3.0), Dormant Card Wakes Up (LR 5.65), and a 0.74 score pushes Assay to convict a legitimate parent paying for three kids' school trip."
+  }
+ }
+]

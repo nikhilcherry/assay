@@ -31,7 +31,7 @@
 | `D5:HHF-007:replayed_decision_idempotency` | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | **PASS** |
 | `D6:HHF-007:same_case_twice_identical_bytes` | COMPLETE/COMPLETE & identical canonical JSON bytes | COMPLETE/COMPLETE & sha256_match=True (4407 bytes) | **PASS** |
 | `D7:HHF-007:exception_after_tmp_write` | OSError raised / no <case>.json / no 'saved' status | OSError / final_exists=False | **PASS** |
-| `D8:HHF-007:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed 17076937d...) | **PASS** |
+| `D8:HHF-007:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed a4a10f96a...) | **PASS** |
 | `D9:HHF-007:no_external_llm_on_decision_path` | 0 network/LLM imports in investigate modules | forbidden_imports=0 | **PASS** |
 | `D9:HHF-007:local_lgbm_missing_score_fail_closed` | INCOMPLETE / DependencyDown (MissingScore) / no <case>.json | INCOMPLETE / DependencyDown / saved=False | **PASS** |
 | `D1:HHF-012:call_1(reset:down@1)` | INCOMPLETE / DependencyDown / no <case>.json | INCOMPLETE / DependencyDown / saved=False | **PASS** |
@@ -56,7 +56,7 @@
 | `D5:HHF-012:replayed_decision_idempotency` | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | **PASS** |
 | `D6:HHF-012:same_case_twice_identical_bytes` | COMPLETE/COMPLETE & identical canonical JSON bytes | COMPLETE/COMPLETE & sha256_match=True (3457 bytes) | **PASS** |
 | `D7:HHF-012:exception_after_tmp_write` | OSError raised / no <case>.json / no 'saved' status | OSError / final_exists=False | **PASS** |
-| `D8:HHF-012:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed 9f37dc54c...) | **PASS** |
+| `D8:HHF-012:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed cf59c8f19...) | **PASS** |
 | `D9:HHF-012:no_external_llm_on_decision_path` | 0 network/LLM imports in investigate modules | forbidden_imports=0 | **PASS** |
 | `D9:HHF-012:local_lgbm_missing_score_fail_closed` | INCOMPLETE / DependencyDown (MissingScore) / no <case>.json | INCOMPLETE / DependencyDown / saved=False | **PASS** |
 | `D1:HHF-003:call_1(reset:down@1)` | INCOMPLETE / DependencyDown / no <case>.json | INCOMPLETE / DependencyDown / saved=False | **PASS** |
@@ -81,7 +81,7 @@
 | `D5:HHF-003:replayed_decision_idempotency` | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | **PASS** |
 | `D6:HHF-003:same_case_twice_identical_bytes` | COMPLETE/COMPLETE & identical canonical JSON bytes | COMPLETE/COMPLETE & sha256_match=True (11590 bytes) | **PASS** |
 | `D7:HHF-003:exception_after_tmp_write` | OSError raised / no <case>.json / no 'saved' status | OSError / final_exists=False | **PASS** |
-| `D8:HHF-003:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed e4458fb55...) | **PASS** |
+| `D8:HHF-003:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed 020f14fe4...) | **PASS** |
 | `D9:HHF-003:no_external_llm_on_decision_path` | 0 network/LLM imports in investigate modules | forbidden_imports=0 | **PASS** |
 | `D9:HHF-003:local_lgbm_missing_score_fail_closed` | INCOMPLETE / DependencyDown (MissingScore) / no <case>.json | INCOMPLETE / DependencyDown / saved=False | **PASS** |
 
@@ -111,7 +111,7 @@
 | D5 | approval_security | HHF-007 | replayed_decision_idempotency | **PASS** | `HTTP_200_idempotent_409_conflict` | `ReplayProtected` | `ledger.jsonl` | No | same_key=200, mutated_body=409, new_key_after_decide=409, ledger_decisions=1 |
 | D6 | idempotent_rerun | HHF-007 | same_case_twice_identical_bytes | **PASS** | `COMPLETE/COMPLETE` | `None` | `HHF-007.json` | No | sha256=a4174acc26695d20... (4407 bytes identical across both runs) |
 | D7 | atomic_write_kill | HHF-007 | exception_after_tmp_write | **PASS** | `ABORTED_WRITE` | `OSError` | `(none)` | No | Simulated kill/power-loss after tmp write before os.replace \| final_json_exists=False |
-| D8 | ledger_tamper | HHF-007 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed 17076937deff85a873ec0c4326da0a54ca339531f4c62bc488f1ab60bc26e... |
+| D8 | ledger_tamper | HHF-007 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed a4a10f96a5fa947b94e6d3d3c2918d1e9ebeb2f916143c4e2071bd40056ff... |
 | D9 | model_provider_failure | HHF-007 | no_external_llm_on_decision_path | **PASS** | `VERIFIED_NO_EXTERNAL_MODEL` | `None` | `(none)` | No | No external LLM/network libs imported by ['assay.investigate', 'assay.r2.investigate_r2']; i... |
 | D9 | model_provider_failure | HHF-007 | local_lgbm_missing_score_fail_closed | **PASS** | `INCOMPLETE` | `DependencyDown` | `HHF-007.incomplete.json` | No | Method 'get_transaction' failed with exception: txn 3660350 has no model score (run B1: assa... |
 | D1 | store_down | HHF-012 | call_1(reset:down@1) | **PASS** | `INCOMPLETE` | `DependencyDown` | `HHF-012.incomplete.json` | No | Injected fault: store method 'reset' is down |
@@ -136,7 +136,7 @@
 | D5 | approval_security | HHF-012 | replayed_decision_idempotency | **PASS** | `HTTP_200_idempotent_409_conflict` | `ReplayProtected` | `ledger.jsonl` | No | same_key=200, mutated_body=409, new_key_after_decide=409, ledger_decisions=1 |
 | D6 | idempotent_rerun | HHF-012 | same_case_twice_identical_bytes | **PASS** | `COMPLETE/COMPLETE` | `None` | `HHF-012.json` | No | sha256=02b52273960c5f4c... (3457 bytes identical across both runs) |
 | D7 | atomic_write_kill | HHF-012 | exception_after_tmp_write | **PASS** | `ABORTED_WRITE` | `OSError` | `(none)` | No | Simulated kill/power-loss after tmp write before os.replace \| final_json_exists=False |
-| D8 | ledger_tamper | HHF-012 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed 9f37dc54c11a990a6494cadab2089a7d2c89bb0bf2fed8141237e49cec1a3... |
+| D8 | ledger_tamper | HHF-012 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed cf59c8f195901379266fdadd77abd54325c0e346d2517b628cd04999a3d31... |
 | D9 | model_provider_failure | HHF-012 | no_external_llm_on_decision_path | **PASS** | `VERIFIED_NO_EXTERNAL_MODEL` | `None` | `(none)` | No | No external LLM/network libs imported by ['assay.investigate', 'assay.r2.investigate_r2']; i... |
 | D9 | model_provider_failure | HHF-012 | local_lgbm_missing_score_fail_closed | **PASS** | `INCOMPLETE` | `DependencyDown` | `HHF-012.incomplete.json` | No | Method 'get_transaction' failed with exception: txn 3655457 has no model score (run B1: assa... |
 | D1 | store_down | HHF-003 | call_1(reset:down@1) | **PASS** | `INCOMPLETE` | `DependencyDown` | `HHF-003.incomplete.json` | No | Injected fault: store method 'reset' is down |
@@ -161,6 +161,6 @@
 | D5 | approval_security | HHF-003 | replayed_decision_idempotency | **PASS** | `HTTP_200_idempotent_409_conflict` | `ReplayProtected` | `ledger.jsonl` | No | same_key=200, mutated_body=409, new_key_after_decide=409, ledger_decisions=1 |
 | D6 | idempotent_rerun | HHF-003 | same_case_twice_identical_bytes | **PASS** | `COMPLETE/COMPLETE` | `None` | `HHF-003.json` | No | sha256=e169fa6880eed031... (11590 bytes identical across both runs) |
 | D7 | atomic_write_kill | HHF-003 | exception_after_tmp_write | **PASS** | `ABORTED_WRITE` | `OSError` | `(none)` | No | Simulated kill/power-loss after tmp write before os.replace \| final_json_exists=False |
-| D8 | ledger_tamper | HHF-003 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed e4458fb5560add3d1b6033a7e95949b366e43ca01abd659d7f6f5d061c860... |
+| D8 | ledger_tamper | HHF-003 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed 020f14fe40e040103f605cdda01370842d834006c683a3278a941d33332f0... |
 | D9 | model_provider_failure | HHF-003 | no_external_llm_on_decision_path | **PASS** | `VERIFIED_NO_EXTERNAL_MODEL` | `None` | `(none)` | No | No external LLM/network libs imported by ['assay.investigate', 'assay.r2.investigate_r2']; i... |
 | D9 | model_provider_failure | HHF-003 | local_lgbm_missing_score_fail_closed | **PASS** | `INCOMPLETE` | `DependencyDown` | `HHF-003.incomplete.json` | No | Method 'get_transaction' failed with exception: txn 3660153 has no model score (run B1: assa... |

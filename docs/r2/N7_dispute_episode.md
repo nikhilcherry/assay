@@ -18,7 +18,8 @@ Jul–Oct confirmed-fraud case is a customer report (**4,631**), and every clear
 
 | cohort | method | n | exact match | mean Jaccard | mean exposure error |
 |---|---|---:|---:|---:|---:|
-| all Jul–Oct reports | `N7_episode_for_dispute` (1h cap, shipped) | 4,631 | **0.6266** | **0.7620** | **$241.33** |
+| all Jul–Oct reports | `N7_episode_for_dispute` (1h cap + 48h on a new device, shipped) | 4,631 | **0.6372** | **0.7691** | **$237.82** |
+| all Jul–Oct reports | `N7_episode_for_dispute` (1h cap only) | 4,631 | 0.6266 | 0.7620 | $241.33 |
 | all Jul–Oct reports | flagged transaction only | 4,631 | 0.5498 | 0.6985 | $280.63 |
 | all Jul–Oct reports | `N7_episode_for_dispute` without the cap | 4,631 | 0.4930 | 0.6459 | $935.57 |
 | all Jul–Oct reports | `R1_episode_24h_risk30` | 4,631 | 0.4474 | 0.6472 | $477.66 |
@@ -31,6 +32,9 @@ Jul–Oct confirmed-fraud case is a customer report (**4,631**), and every clear
   on Sep–Oct (0.6200 at 1h). It gives up the rare true multi-day run (944 multi-day cases score 0
   either way).
 - Exempting charges of the same amount from the cap was tested and rejected (0.6204, no exposure gain).
+- **New-device extension** (`NEW_DEVICE_HOURS = 48`, added after the red team): charges on the disputed
+  charge's own device, when the card first used that device within 48h, stay in the episode up to 48h.
+  0.6266 → 0.6372 exact, exposure error $241.32 → $237.82.
 - **Micro-drip extension** (`MICRO_DRIP`): a disputed sub-$6.50 online C charge joins the card's other
   such charges from the past 30 days when the card had none before. It costs nothing on history
   (0.6266 with or without it) and scopes HHF-004 to its six drip charges (3660255–3660260, $23.99; was

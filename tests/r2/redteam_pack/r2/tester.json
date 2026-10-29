@@ -1,0 +1,376 @@
+[
+ {
+  "scenario_id": "tester-r2-1",
+  "idea": "Exploit the disabled per-card micro-charge drip detector and the 1-hour card-testing window by spacing four $2.15 online probes 70 minutes apart before an $890 cash-out.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 4.5,
+    "amount": 2.15,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 3.3,
+    "amount": 2.15,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 2.1,
+    "amount": 2.15,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.9,
+    "amount": 2.15,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 890.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.12
+   }
+  ],
+  "case": {
+   "flagged": "e5",
+   "day": 14,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated alert on transaction e5 ($890.00, Product W) following a sequence of low-value online authorizations over the preceding 5 hours."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay switched off its per-card micro-charge drip detector (LR 0.63) and checks R5 card testing strictly within a 1-hour window. Spacing the 4 probes 72 minutes apart keeps any 1-hour window to at most 1 probe, while blending the final purchase as an in-person Product W transaction with home billing."
+  }
+ },
+ {
+  "scenario_id": "tester-r2-2",
+  "idea": "Exploit the 1-hour dispute-episode cap (N7_dispute_episode.md) by running the card-testing burst and initial $420 cash-out 2.5 hours before the customer's disputed $610 charge.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 2.8,
+    "amount": 1.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 299,
+    "risk_score": 0.18
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 2.7,
+    "amount": 1.95,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 299,
+    "risk_score": 0.21
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 2.6,
+    "amount": 2.45,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 299,
+    "risk_score": 0.24
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 2.4,
+    "amount": 420.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 299,
+    "risk_score": 0.35
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 0.2,
+    "amount": 610.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 299,
+    "risk_score": 0.42
+   }
+  ],
+  "case": {
+   "flagged": "e5",
+   "day": 19,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called to dispute a $610.00 online charge (e5) and stated they have not used their card online today."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay turned off the HMM episode segmenter and capped its rule-based dispute-episode builder strictly to 1 hour of the disputed charge (N7_dispute_episode.md). Because e1-e4 occurred 2.4 to 2.8 hours before the disputed charge e5, Assay will miss 4 of the 5 fraud transactions, under-count exposure as $610 instead of $1,035.90, and fail to trigger the >$1,000 FILE_REPORT requirement under R2."
+  }
+ },
+ {
+  "scenario_id": "tester-r2-3",
+  "idea": "Split the card testing across a batch of 4 stolen cards using in-person channels and no device or recipient email so neither per-card R5 nor graph ring/fan-in detectors fire.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 0.7,
+    "amount": 3.5,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e2",
+    "card": "B",
+    "hours_before_open": 0.6,
+    "amount": 3.5,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e3",
+    "card": "C",
+    "hours_before_open": 0.5,
+    "amount": 3.5,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e4",
+    "card": "D",
+    "hours_before_open": 0.4,
+    "amount": 3.5,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e5",
+    "card": "D",
+    "hours_before_open": 0.1,
+    "amount": 1150.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.09
+   }
+  ],
+  "case": {
+   "flagged": "e5",
+   "day": 22,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Analyst review requested on e5 ($1,150.00 in-person purchase on Card D) following small $3.50 authorizations observed across multiple cards within the hour."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e4",
+    "e5"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Card D only has a single $3.50 test charge before the $1,150.00 cash-out, and all charges are in-person Product W with no device profile or recipient email to link Cards A-D in the graph. Because Assay disabled cross-card micro-charge burst detection (B6_micro_fanin.md), Card D looks like a normal regular card making two in-person purchases."
+  }
+ },
+ {
+  "scenario_id": "tester-r2-4",
+  "idea": "Trigger a false-positive BLOCK_CARD on a legitimate customer by mimicking R5 card testing (three small online digital purchases within 35 minutes followed by a $285 hotel booking) while Assay ignores its disabled innocence signals.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 0.6,
+    "amount": 2.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.28
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 0.45,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.34
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.3,
+    "amount": 1.99,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.41
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.05,
+    "amount": 285.0,
+    "product": "H",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.64
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 26,
+   "trigger_type": "risk_score",
+   "trigger_text": "High velocity alert: 3 small online authorizations ($1.99-$4.99) within 35 minutes followed immediately by a $285.00 online authorization on Product H."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "A legitimate cardholder on their usual home device, home email, and home billing region buys three small digital items and then books a hotel within the same hour. Because Assay explicitly disabled all innocence signals (home_region, stable_profile, long_tenure_clean in B29_innocence.md), the R5 card-testing heuristic and elevated model risk score will fire unopposed and falsely block a legitimate customer."
+  }
+ }
+]

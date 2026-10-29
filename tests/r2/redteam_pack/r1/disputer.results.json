@@ -1,0 +1,61 @@
+[
+ {
+  "scenario": "disputer-r1-1",
+  "your_truth": "legitimate/none",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.99,
+  "assay_pattern": "card_testing",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": null,
+  "result": "FALSE_ALARM",
+  "you_won": true
+ },
+ {
+  "scenario": "disputer-r1-2",
+  "your_truth": "fraud/account_takeover",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.89,
+  "assay_pattern": "card_not_present_fraud",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE",
+   "FILE_REPORT"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.6,
+  "result": "CAUGHT_UNDERCOUNTED",
+  "you_won": true
+ },
+ {
+  "scenario": "disputer-r1-3",
+  "your_truth": "fraud/card_not_present_fraud",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.94,
+  "assay_pattern": "out_of_region_use",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 1.0,
+  "result": "CAUGHT",
+  "you_won": false
+ },
+ {
+  "scenario": "disputer-r1-4",
+  "your_truth": "legitimate/none",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.99,
+  "assay_pattern": "card_not_present_fraud",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE",
+   "FILE_REPORT",
+   "MONITOR_CONNECTED_CARDS"
+  ],
+  "share_of_your_fraud_txns_assay_counted": null,
+  "result": "FALSE_ALARM",
+  "you_won": true
+ }
+]

@@ -16,7 +16,7 @@ from assay.investigate import Investigator
 from assay.r2.finding import CaseCtx, Finding
 from assay.r2.frames import closed_cases, tx_all
 
-ENABLED: list[str] = ["dormant_wake", "FanIn", "ring_wcc", "campaign", "cpc"]
+ENABLED: list[str] = ["dormant_wake", "FanIn", "ring_wcc", "burst_hub", "campaign", "cpc"]
 
 # The model was trained on Jul-Dec. January is new activity it has never seen (the brief:
 # "a low score is not evidence of innocence"); docs/r2/B1_model.md shows the drift.
@@ -28,6 +28,7 @@ def _load_detectors():
     import assay.r2.detectors.fan_in  # noqa: F401  registers FanIn
     import assay.r2.detectors.campaign  # noqa: F401  registers CampaignDetector
     import assay.r2.detectors.cpc  # noqa: F401  registers CommonPointOfCompromise
+    import assay.r2.detectors.burst_hub  # noqa: F401  registers BurstHub
     import assay.r2.ring_detector  # noqa: F401  registers RingDetector
     from assay.r2.finding import REGISTRY
     return [REGISTRY[n]() for n in ENABLED if n in REGISTRY]
@@ -87,7 +88,7 @@ class R2Investigator(Investigator):
         ep = super()._episode(f, card_win, scenario, ring)
         if self._case is not None and self._case.trigger_type == "customer_report":
             # "I did not make these charges": the run of novel same-shape charges, not a 24h window.
-            # Backtest on 4,631 Jul-Oct disputes: exact match 0.6266 vs 0.5498 flagged-only (docs/r2/N7_dispute_episode.md).
+            # Backtest on 4,631 Jul-Oct disputes: exact match 0.6372 vs 0.5498 flagged-only (docs/r2/N7_dispute_episode.md).
             from assay.r2.dispute_episode import episode_for_dispute
             ids, _ = episode_for_dispute(f.card_id, int(f.TransactionID), self._case.opened_at, tx=self._tx)
             ids = [i for i in ids if i in self.s.tx.index]
@@ -110,10 +111,16 @@ class R2Investigator(Investigator):
         if self._card_mismatch:
             return self._card_mismatch
         linked = sorted({c for fd in self._multi for c in fd.connected_card_ids})
-        if not linked:
-            return None
-        names = ", ".join(sorted({fd.detector for fd in self._multi}))
-        return f"{names} tie this card to {len(linked)} other card(s) ({', '.join(linked[:6])})."
+        if linked:
+            names = ", ".join(sorted({fd.detector for fd in self._multi}))
+            return f"{names} tie this card to {len(linked)} other card(s) ({', '.join(linked[:6])})."
+        # A simulated reply may only settle a case the evidence left unremarkable: if a measured
+        # detector fired, an assumed "customer confirms" would be the agent agreeing with itself
+        # (red team, docs/r2/REDTEAM.md: dormant wake-ups cleared on an invented confirmation).
+        fired = sorted({f.tag for f in findings if f.tag in ENABLED and f.lr > 1.0})
+        if fired:
+            return f"measured detector(s) {', '.join(fired)} fired on this card."
+        return None
 
     def _extra_findings(self, case, f):
         self._case = case

@@ -42,11 +42,13 @@ capped them at 1h (0.6266) instead of hiding it.
 
 ## Questions
 
-**Weakest point (say this one):** "The January patterns don't exist in the labelled history, so the
-detectors that matter most for January can't be measured on January. Fan-in on HHF-006 runs on an
-assumed ×3. That's why 006 stays uncertain rather than fraud. The micro-drip burst had no measurable
-LR at all, so it isn't a detector. It only scopes the episode, at zero cost on 4,631 historical
-cases."
+**Weakest point (say this one):** "We hired ten Argon attackers to find it. Customer replies are
+simulated, as the brief allows, and the simulation follows our own probability. So a fraud we score
+low gets an assumed "customer confirms" and closes. Eight of the 10 frauds still missed in round 2 got through
+that way. We narrowed it: a reply can no longer clear a case where a measured detector fired, which
+moved 4 frauds to analyst review. In production the reply is real. The second weakness is that
+January patterns can't be measured on January: fan-in on HHF-006 runs on an assumed ×3, which is
+why 006 stays uncertain."
 
 Other likely questions:
 - *Customer replies are simulated?* Yes, as the brief allows. A denial is assumed at p ≥ 0.6 and a
@@ -58,3 +60,6 @@ Other likely questions:
   saying fraud. So it never votes.
 - *What leaves the bank?* Nothing at decision time. Gemini only wrote code, from code and schema.
 - *Same case twice?* Identical bytes apart from `latency_s` (drill D6).
+- *How do you know it holds up?* `docs/r2/REDTEAM.md`: 80 scenarios from ten Argon personas, run blind.
+  They found the hostile-input gaps and the cap bypass that we fixed. Rerunning the injector's cases
+  with neutral text gave the same verdicts.

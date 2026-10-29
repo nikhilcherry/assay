@@ -1,0 +1,555 @@
+[
+ {
+  "scenario_id": "takeover-r1-1",
+  "idea": "Evade the 1-hour capped dispute-episode builder (N7_dispute_episode) during an account takeover by spacing unauthorized charges on the victim's home device, email, and region across 2 to 26 hours before the disputed charge, causing Assay to severely under-count exposure.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 28.5,
+    "amount": 215.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 19.0,
+    "amount": 440.5,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 8.2,
+    "amount": 680.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "home",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 2.4,
+    "amount": 890.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "home",
+    "addr1": "home",
+    "risk_score": 0.18
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 0.3,
+    "amount": 325.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.22
+   }
+  ],
+  "case": {
+   "flagged": "e5",
+   "day": 14,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called in to dispute online charge of $325.00; states their account credentials were compromised yesterday and they did not authorize this or the other recent online charges over the last two days."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay switched off the HMM episode segmenter and capped its rule-based dispute-episode builder to 1 hour around the disputed transaction (N7_dispute_episode). Because e1-e4 occurred 2.4 to 28.5 hours before open using the hijacked home profile, Assay will only count e5 ($325.00) instead of the true $2,550.50 exposure, missing both the L2 approval routing threshold (> $2,500) and the R2 FILE_REPORT threshold (> $1,000)."
+  }
+ },
+ {
+  "scenario_id": "takeover-r1-2",
+  "idea": "Spoof a legitimate monthly recurring charge pattern during an account takeover (matching historical day-of-month, exact amount, product, and home profile) so Assay's R7 recurring-charge detector overrides the customer's fraud report and clears the takeover.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 1440.5,
+    "amount": 149.99,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 720.2,
+    "amount": 149.99,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.5,
+    "amount": 149.99,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.2,
+    "amount": 149.99,
+    "product": "H",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   }
+  ],
+  "case": {
+   "flagged": "e3",
+   "day": 18,
+   "trigger_type": "customer_report",
+   "trigger_text": "Customer reports account takeover and disputes the $149.99 charge today; customer notes they cancelled their regular subscription last week and someone logged into their account to buy gift cards of the exact same amount."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e3",
+    "e4"
+   ],
+   "expect": "answer",
+   "why_it_should_assay": "Assay does not use an LLM to read trigger_text ('untreated text stays data') and states in B29_innocence that 'Only the policy's R7 recurring-charge rule can clear a denial.' By mimicking the exact $149.99 amount on a 30-day cadence (720h and 1440h prior) on the victim's home device and region, the takeover triggers R7 (Disputed but legitimate) and prevents Assay from blocking the card or treating it as confirmed fraud."
+  }
+ },
+ {
+  "scenario_id": "takeover-r1-3",
+  "idea": "Execute a silent session-hijack account takeover on an active card with zero shared ring elements, home device/email/region, and a subtle shift to online digital goods, exploiting the disabled per-card drip detector and lack of anomaly detectors when triggered by a low risk_score alert.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 6.5,
+    "amount": 85.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "home",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 4.0,
+    "amount": 135.5,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "home",
+    "addr1": "home",
+    "risk_score": 0.24
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 1.8,
+    "amount": 210.0,
+    "product": "H",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "home",
+    "addr1": "home",
+    "risk_score": 0.28
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 340.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "home",
+    "addr1": "home",
+    "risk_score": 0.31
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 21,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated model alert: risk_score 0.31 on online Product R authorization for $340.00 following multiple online transactions from known device profile."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Every enabled positive detector in Assay (CPC, Dormant wake-up, Graph ring, Recipient fan-in, Charge-shape campaign) requires either cross-card cohort sharing or a 30+ day dormant card. On a single 'regular' card with `trigger_type: risk_score` and mimicked home device, email, and addr1, none of the 5 enabled detectors fire, leaving Assay with a low LightGBM score and forcing it to misclassify the takeover as legitimate or uncertain."
+  }
+ },
+ {
+  "scenario_id": "takeover-r1-4",
+  "idea": "Cash out 16 hijacked accounts to a single recipient email domain while simultaneously touching 16 cards with a common proxy device profile to trip Assay's >15 card ring-hub drop rule (B15_rings) and hide the coordinated takeover ring.",
+  "cards": [
+   {
+    "label": "C1",
+    "profile": "regular"
+   },
+   {
+    "label": "C2",
+    "profile": "regular"
+   },
+   {
+    "label": "C3",
+    "profile": "regular"
+   },
+   {
+    "label": "C4",
+    "profile": "regular"
+   },
+   {
+    "label": "C5",
+    "profile": "regular"
+   },
+   {
+    "label": "C6",
+    "profile": "regular"
+   },
+   {
+    "label": "C7",
+    "profile": "regular"
+   },
+   {
+    "label": "C8",
+    "profile": "regular"
+   },
+   {
+    "label": "C9",
+    "profile": "regular"
+   },
+   {
+    "label": "C10",
+    "profile": "regular"
+   },
+   {
+    "label": "C11",
+    "profile": "regular"
+   },
+   {
+    "label": "C12",
+    "profile": "regular"
+   },
+   {
+    "label": "C13",
+    "profile": "regular"
+   },
+   {
+    "label": "C14",
+    "profile": "regular"
+   },
+   {
+    "label": "C15",
+    "profile": "regular"
+   },
+   {
+    "label": "C16",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "C1",
+    "hours_before_open": 95.0,
+    "amount": 68.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e2",
+    "card": "C2",
+    "hours_before_open": 90.0,
+    "amount": 74.2,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e3",
+    "card": "C3",
+    "hours_before_open": 84.0,
+    "amount": 81.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e4",
+    "card": "C4",
+    "hours_before_open": 78.0,
+    "amount": 63.9,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.15
+   },
+   {
+    "id": "e5",
+    "card": "C5",
+    "hours_before_open": 72.0,
+    "amount": 92.4,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.13
+   },
+   {
+    "id": "e6",
+    "card": "C6",
+    "hours_before_open": 66.0,
+    "amount": 58.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.16
+   },
+   {
+    "id": "e7",
+    "card": "C7",
+    "hours_before_open": 60.0,
+    "amount": 77.75,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e8",
+    "card": "C8",
+    "hours_before_open": 54.0,
+    "amount": 84.1,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e9",
+    "card": "C9",
+    "hours_before_open": 48.0,
+    "amount": 69.95,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.15
+   },
+   {
+    "id": "e10",
+    "card": "C10",
+    "hours_before_open": 42.0,
+    "amount": 95.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e11",
+    "card": "C11",
+    "hours_before_open": 36.0,
+    "amount": 62.3,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.13
+   },
+   {
+    "id": "e12",
+    "card": "C12",
+    "hours_before_open": 30.0,
+    "amount": 88.6,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.17
+   },
+   {
+    "id": "e13",
+    "card": "C13",
+    "hours_before_open": 24.0,
+    "amount": 71.25,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e14",
+    "card": "C14",
+    "hours_before_open": 18.0,
+    "amount": 79.8,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.16
+   },
+   {
+    "id": "e15",
+    "card": "C15",
+    "hours_before_open": 12.0,
+    "amount": 66.4,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.15
+   },
+   {
+    "id": "e16",
+    "card": "C16",
+    "hours_before_open": 1.0,
+    "amount": 83.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "yahoo.com.mx",
+    "addr1": "home",
+    "risk_score": 0.21
+   }
+  ],
+  "case": {
+   "flagged": "e16",
+   "day": 25,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Analyst review requested on online transfer of $83.50 on C16 using customer's usual email and billing region but desktop Windows browser."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e16"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "B15_rings states that 'elements on more than 15 cards in 30 days are dropped'. By using the shared desktop device profile across exactly 16 hijacked cards (just over the 15-card cap), the graph ring detector drops the shared device edge as a noisy super-node. Furthermore, recipient fan-in (B6_micro_fanin) only carries a weak LR of 3.0 (or is context-only on analyst requests like HHF-013), keeping the posterior probability below the 0.85 fraud threshold."
+  }
+ }
+]

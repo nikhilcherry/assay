@@ -38,7 +38,8 @@ ASSAY_TG=1 python -m assay.r2.console --port 8742            # the demo console
 | Verdicts | 6 fraud, 2 uncertain, 10 legitimate | `docs/r2/FACTS.md` |
 | Live resilience drills | **75/75** checks on HHF-003, 007, 012 | `pytest tests/r2/test_drills.py` |
 | TigerGraph on the decision path | rings from `r2_ring_wcc`, cases upserted as `FraudCase`; 18/18 ring decisions match the local code | `tg_r2.parity()` |
-| Dispute episodes on 4,631 Jul–Oct reports | 0.6266 exact match (flagged-only 0.5498) | `docs/r2/N7_dispute_episode.md` |
+| Dispute episodes on 4,631 Jul–Oct reports | 0.6372 exact match (flagged-only 0.5498) | `docs/r2/N7_dispute_episode.md` |
+| Red team: 10 Argon attackers, 80 blind scenarios | findings fixed; no prompt injection changed a verdict | `docs/r2/REDTEAM.md` |
 | LLM tokens on the decision path | **0** | every answer's `tokens` |
 
 Every answer in `cases_r2/` is the output of the single-case command above, run in its own process

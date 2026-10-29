@@ -1,0 +1,61 @@
+[
+ {
+  "scenario": "ringleader-r1-1",
+  "your_truth": "fraud/card_not_present_new_device",
+  "assay_verdict": "legitimate",
+  "assay_probability": 0.01,
+  "assay_pattern": "none",
+  "assay_actions": [
+   "CLOSE_NO_FRAUD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.0,
+  "result": "MISSED",
+  "you_won": true
+ },
+ {
+  "scenario": "ringleader-r1-2",
+  "your_truth": "fraud/card_not_present_new_device",
+  "assay_verdict": "legitimate",
+  "assay_probability": 0.01,
+  "assay_pattern": "none",
+  "assay_actions": [
+   "CLOSE_NO_FRAUD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.0,
+  "result": "MISSED",
+  "you_won": true
+ },
+ {
+  "scenario": "ringleader-r1-3",
+  "your_truth": "fraud/card_not_present_fraud",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.99,
+  "assay_pattern": "undocumented",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE",
+   "ESCALATE_TO_ANALYST",
+   "FILE_REPORT",
+   "MONITOR_CONNECTED_CARDS"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 1.0,
+  "result": "CAUGHT",
+  "you_won": false
+ },
+ {
+  "scenario": "ringleader-r1-4",
+  "your_truth": "fraud/card_testing",
+  "assay_verdict": "legitimate",
+  "assay_probability": 0.01,
+  "assay_pattern": "none",
+  "assay_actions": [
+   "ALLOW_TRANSACTION",
+   "CLOSE_NO_FRAUD"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.0,
+  "result": "MISSED",
+  "you_won": true
+ }
+]

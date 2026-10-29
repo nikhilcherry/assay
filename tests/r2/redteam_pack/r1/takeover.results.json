@@ -1,0 +1,58 @@
+[
+ {
+  "scenario": "takeover-r1-1",
+  "your_truth": "fraud/account_takeover",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.84,
+  "assay_pattern": "card_not_present_fraud",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.2,
+  "result": "CAUGHT_UNDERCOUNTED",
+  "you_won": true
+ },
+ {
+  "scenario": "takeover-r1-2",
+  "your_truth": "fraud/account_takeover",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.76,
+  "assay_pattern": "card_not_present_fraud",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.5,
+  "result": "CAUGHT_UNDERCOUNTED",
+  "you_won": true
+ },
+ {
+  "scenario": "takeover-r1-3",
+  "your_truth": "fraud/account_takeover",
+  "assay_verdict": "legitimate",
+  "assay_probability": 0.01,
+  "assay_pattern": "none",
+  "assay_actions": [
+   "CLOSE_NO_FRAUD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.0,
+  "result": "MISSED",
+  "you_won": true
+ },
+ {
+  "scenario": "takeover-r1-4",
+  "your_truth": "fraud/account_takeover",
+  "assay_verdict": "legitimate",
+  "assay_probability": 0.01,
+  "assay_pattern": "none",
+  "assay_actions": [
+   "CLOSE_NO_FRAUD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.0,
+  "result": "MISSED",
+  "you_won": true
+ }
+]

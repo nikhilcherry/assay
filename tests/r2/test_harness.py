@@ -50,7 +50,7 @@ def fake_investigate_valid(case_row: dict, store: ToolProxy) -> dict:
         "summary": "Investigated case successfully",
         "exposure_usd": float(df_tx["amount"].iloc[0]),
         "affected_txn_ids": [int(case_row["flagged_txn_id"])],
-        "connected_card_ids": ["C100-K2", "C100-K1"],
+        "connected_card_ids": ["C00100-K2", "C00100-K1"],
     }
 
 
@@ -107,8 +107,8 @@ def test_invalid_input_rejection():
     hostile_case = {
         "case_id": "HHF-001",
         "flagged_txn_id": 1001,
-        "card_id": "C001-K1'; DROP TABLE transactions; --",
-        "customer_id": "C001",
+        "card_id": "C00001-K1'; DROP TABLE transactions; --",
+        "customer_id": "C00001",
         "opened_at": opened_at,
     }
     res = run_case(hostile_case, fake_investigate_valid, store)
@@ -119,8 +119,8 @@ def test_invalid_input_rejection():
     neg_case = {
         "case_id": "HHF-002",
         "flagged_txn_id": 1002,
-        "card_id": "C001-K1",
-        "customer_id": "C001",
+        "card_id": "C00001-K1",
+        "customer_id": "C00001",
         "opened_at": opened_at,
         "amount": -50.0,
     }
@@ -132,8 +132,8 @@ def test_invalid_input_rejection():
     bad_rs_case = {
         "case_id": "HHF-003",
         "flagged_txn_id": 1003,
-        "card_id": "C001-K1",
-        "customer_id": "C001",
+        "card_id": "C00001-K1",
+        "customer_id": "C00001",
         "opened_at": opened_at,
         "risk_score": 1.5,
     }
@@ -148,8 +148,8 @@ def test_canonical_double_run_byte_equality():
     case_row = {
         "case_id": "HHF-010",
         "flagged_txn_id": 2001,
-        "card_id": "C010-K1",
-        "customer_id": "C010",
+        "card_id": "C00010-K1",
+        "customer_id": "C00010",
         "opened_at": "2017-01-15 12:00:00",
         "risk_score": 0.5,
     }
@@ -177,13 +177,13 @@ def test_fault_at_call_n2_mid_run():
     case_row = {
         "case_id": "HHF-099",
         "flagged_txn_id": 9001,
-        "card_id": "C099-K1",
-        "customer_id": "C099",
+        "card_id": "C00099-K1",
+        "customer_id": "C00099",
         "opened_at": "2017-01-18 10:00:00",
     }
 
     # Call 1 is get_transaction(101) -> succeeds.
-    # Call 2 is card_window(C099-K1) -> fails with down@1 for card_window.
+    # Call 2 is card_window(C00099-K1) -> fails with down@1 for card_window.
     with FaultInjector("card_window:down@1"):
         res = run_case(case_row, fake_investigate_valid, store)
 
@@ -212,8 +212,8 @@ def test_no_saved_file_written_on_failure():
     case_row = {
         "case_id": "HHF-020",
         "flagged_txn_id": 3001,
-        "card_id": "C020-K1",
-        "customer_id": "C020",
+        "card_id": "C00020-K1",
+        "customer_id": "C00020",
         "opened_at": "2017-01-16 08:00:00",
     }
 
@@ -236,8 +236,8 @@ def test_idempotency_key_and_run_ledger():
     case_row = {
         "case_id": "HHF-030",
         "flagged_txn_id": 4001,
-        "card_id": "C030-K1",
-        "customer_id": "C030",
+        "card_id": "C00030-K1",
+        "customer_id": "C00030",
         "opened_at": "2017-01-17 09:00:00",
     }
     key1 = idempotency_key(case_row, "dataset_v1", "commit_abc")

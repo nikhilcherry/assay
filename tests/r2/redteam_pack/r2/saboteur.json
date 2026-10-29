@@ -1,0 +1,223 @@
+[
+ {
+  "scenario_id": "saboteur-r2-1",
+  "idea": "Override opened_at in raw_case_overrides to an impossible pre-dataset date (1999-12-31) that passes ISO-date regex validation, blinding Assay's t <= opened_at history filter yet allowing it to write an answer on a corrupted case pack.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 12.0,
+    "amount": 240.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | Firefox 57.0 | 1366x768",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 442,
+    "risk_score": 0.91
+   }
+  ],
+  "case": {
+   "flagged": "e1",
+   "day": 14,
+   "trigger_type": "risk_score",
+   "trigger_text": "High risk score 0.91 on online transaction e1 for $240.00."
+  },
+  "raw_case_overrides": {
+   "opened_at": "1999-12-31T23:59:59Z"
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_new_device",
+   "affected": [
+    "e1"
+   ],
+   "expect": "rejected",
+   "why_it_should_fool_assay": "Input validation checks that opened_at parses as a valid timestamp, not whether it precedes the flagged transaction or the entire 2016-2017 transaction dataset. Assay will accept the bad input and answer instead of rejecting."
+  }
+ },
+ {
+  "scenario_id": "saboteur-r2-2",
+  "idea": "Override card_id in the case pack to an unformatted/corrupted card identifier ('C00000-Z9') that does not match the card on the flagged transaction, while triggering a customer denial and a multi-card device ring to see if ring/denial overrides the B23 card mismatch guard.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "thin"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "B",
+    "hours_before_open": 10.0,
+    "amount": 410.0,
+    "product": "R",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "yahoo.com.mx",
+    "r_email": "yahoo.com.mx",
+    "addr1": 315,
+    "risk_score": 0.92
+   },
+   {
+    "id": "e2",
+    "card": "C",
+    "hours_before_open": 8.0,
+    "amount": 410.0,
+    "product": "R",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "yahoo.com.mx",
+    "r_email": "yahoo.com.mx",
+    "addr1": 315,
+    "risk_score": 0.93
+   },
+   {
+    "id": "e3",
+    "card": "D",
+    "hours_before_open": 5.0,
+    "amount": 410.0,
+    "product": "R",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "yahoo.com.mx",
+    "r_email": "yahoo.com.mx",
+    "addr1": 315,
+    "risk_score": 0.94
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 1.0,
+    "amount": 410.0,
+    "product": "R",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "yahoo.com.mx",
+    "r_email": "yahoo.com.mx",
+    "addr1": 315,
+    "risk_score": 0.96
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 19,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called in to report unauthorized charge of $410.00 and denies making the transaction."
+  },
+  "raw_case_overrides": {
+   "card_id": "C00000-Z9"
+  },
+  "truth": {
+   "verdict": "uncertain",
+   "pattern": "none",
+   "affected": [],
+   "expect": "rejected",
+   "why_it_should_fool_assay": "A case naming a non-existent card_id ('C00000-Z9') that isn't in the database at all is a broken case pack that should be rejected, or if processed, the strong CPC/dormant/customer_report signals may override the card mismatch guard and cause Assay to block the wrong card."
+  }
+ },
+ {
+  "scenario_id": "saboteur-r2-3",
+  "idea": "Plant a legitimate customer whose recurring monthly bill is charged on a newly upgraded phone after a 35-day holiday pause on a dormant card, while overriding the case pack's risk_score to 0.9999 (diverging from the transaction's 0.04 score) to induce a false alarm.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 2.0,
+    "amount": 185.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2.1 | mobile safari 10.0 | 750x1334",
+    "p_email": "home",
+    "r_email": "comcast.net",
+    "addr1": "home",
+    "risk_score": 0.04
+   }
+  ],
+  "case": {
+   "flagged": "e1",
+   "day": 22,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated alert: transaction e1 for $185.00 on dormant card from unrecognized device."
+  },
+  "raw_case_overrides": {
+   "risk_score": 0.9999
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay disables innocence signals (home_region, stable_profile) and fires the 'Dormant card wakes up' detector (LR 5.65) combined with the corrupted 0.9999 case risk_score override and January drift guard (which refuses to let low model scores clear a case), pushing fraud probability above 0.85 on a legitimate customer."
+  }
+ },
+ {
+  "scenario_id": "saboteur-r2-4",
+  "idea": "Sabotage the case pack by injecting null bytes, Unicode replacement characters, and JSON control sequences into case_id/trigger_text while overriding amount_usd to a contradictory zero value in raw_case_overrides.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 4.0,
+    "amount": 650.0,
+    "product": "W",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 204,
+    "risk_score": 0.88
+   }
+  ],
+  "case": {
+   "flagged": "e1",
+   "day": 25,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Analyst review requested\u0000\ufffd\u0007 for high-value online purchase."
+  },
+  "raw_case_overrides": {
+   "amount": 0.0,
+   "flagged_amount": -0.0,
+   "trigger_text": "Analyst review\u0000\ufffd\u001b[31m requested for transaction e1."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_new_device",
+   "affected": [
+    "e1"
+   ],
+   "expect": "rejected",
+   "why_it_should_fool_assay": "D4 input validation checks for SQL characters, negative amounts, and length > 4096, but misses zero/negative-zero override fields and embedded NUL (\\u0000) / ANSI escape characters in trigger_text, causing Assay to answer a corrupted case pack rather than rejecting it."
+  }
+ }
+]

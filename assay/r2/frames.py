@@ -91,9 +91,13 @@ if __name__ == "__main__":
     t = tx_all(); cp = case_pack()
     print(t.shape, t.t.min(), t.t.max(), (t.month_src == "jan").sum())
     j = t.set_index("TransactionID")
-    ok = sum(int(r.flagged_txn_id) in j.index and j.at[int(r.flagged_txn_id), "card_id"] == r.card_id for r in cp.itertuples())
-    print(f"case pack card ids resolved: {ok}/{len(cp)}")
-    for r in cp.itertuples():
-        f = int(r.flagged_txn_id)
-        if f not in j.index or j.at[f, "card_id"] != r.card_id:
-            print("  miss", r.case_id, r.card_id, j.at[f, "card_id"] if f in j.index else "txn missing")
+    # A case row is untrusted input: an unparseable flagged id is reported here, not a crash.
+    fid = pd.to_numeric(cp.flagged_txn_id, errors="coerce")
+    miss = []
+    for r, f in zip(cp.itertuples(), fid):
+        real = j.at[int(f), "card_id"] if pd.notna(f) and int(f) in j.index else None
+        if real != r.card_id:
+            miss.append((r.case_id, r.card_id, real or f"txn missing ({r.flagged_txn_id!r})"))
+    print(f"case pack card ids resolved: {len(cp) - len(miss)}/{len(cp)}")
+    for m in miss:
+        print("  miss", *m)

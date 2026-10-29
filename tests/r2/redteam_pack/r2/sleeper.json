@@ -1,0 +1,326 @@
+[
+ {
+  "scenario_id": "sleeper-r2-1",
+  "idea": "Pre-warm a dormant card with an innocuous low-amount transaction 120 hours before the main cash-out to break the 30-day silence requirement of B5_dormant, and wait 72 hours before a single high-value CNP strike to evade the 48-hour burst window.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 120.0,
+    "amount": 11.5,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.03
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 0.0,
+    "amount": 945.0,
+    "product": "R",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_6 | safari 11.0 | 2560x1440",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": 315,
+    "risk_score": 0.14
+   }
+  ],
+  "case": {
+   "flagged": "e2",
+   "day": 18,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated model alert on online Product R authorization ($945.00) on a previously quiet card from a new device and billing region."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_new_device",
+   "affected": [
+    "e1",
+    "e2"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "B5_dormant requires a 30+ day silence immediately preceding a 48h burst. Event e1 at 120h resets the card's last-seen timestamp to 5 days prior to e2, disqualifying dormancy, while a single strike e2 avoids any multi-charge burst heuristic and relies on January model drift where low scores fail to trigger fraud."
+  }
+ },
+ {
+  "scenario_id": "sleeper-r2-2",
+  "idea": "Wake a dormant card and space five fraudulent cash-out charges 2.5 hours apart before a customer dispute so Assay's 1-hour capped dispute-episode builder (N7_dispute_episode) severely undercounts the exposure.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 10.0,
+    "amount": 480.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": 420,
+    "risk_score": 0.18
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 7.5,
+    "amount": 465.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": 420,
+    "risk_score": 0.21
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 5.0,
+    "amount": 490.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": 420,
+    "risk_score": 0.24
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 2.5,
+    "amount": 475.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": 420,
+    "risk_score": 0.29
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 0.2,
+    "amount": 310.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": 420,
+    "risk_score": 0.35
+   }
+  ],
+  "case": {
+   "flagged": "e5",
+   "day": 21,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called to deny the $310.00 online charge and stated the card has been locked in a safe for months."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_fraud",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay turned off the HMM episode segmenter and capped its rule-based dispute-episode builder to within 1 hour of the disputed charge (N7_dispute_episode). Because e1 through e4 occurred 2.5 to 10 hours before e5, Assay will only count e5 ($310) instead of the true $2,220 exposure, missing 80% of the fraud transactions and misrouting L1/L2 or FILE_REPORT thresholds."
+  }
+ },
+ {
+  "scenario_id": "sleeper-r2-3",
+  "idea": "Drain a thin-history card (never classified as dormant because it lacks 20+ past txns) using slow micro-drip charges over 55 hours since Assay disabled the per-card micro-charge drip detector (B6_micro_fanin).",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "thin"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 54.0,
+    "amount": 18.5,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 41.0,
+    "amount": 22.0,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 29.0,
+    "amount": 24.75,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 17.0,
+    "amount": 29.5,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 6.0,
+    "amount": 34.0,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e6",
+    "card": "A",
+    "hours_before_open": 0.0,
+    "amount": 185.0,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.13
+   }
+  ],
+  "case": {
+   "flagged": "e6",
+   "day": 14,
+   "trigger_type": "risk_score",
+   "trigger_text": "Velocity check triggered on thin-file card: 6 online Product C charges over 54 hours culminating in $185.00."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_fraud",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "A 'thin' card (<5 past transactions) does not qualify for B5_dormant, spacing transactions ~12 hours apart avoids R5 card-testing (which requires 3 small txns within 1 hour), and Assay explicitly switched off per-card micro-charge drips (B6_micro_fanin). With no device profile or unusual email domain to form a ring, Assay clears the case."
+  }
+ },
+ {
+  "scenario_id": "sleeper-r2-4",
+  "idea": "Legitimate cardholder returns from a long trip and makes three high-value purchases on a dormant card in their home region and usual device, exploiting Assay's firing of B5_dormant (LR 5.65) alongside its disabling of B29_innocence signals to force a false positive or uncertain hedge.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 14.0,
+    "amount": 210.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 4.5,
+    "amount": 380.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.28
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.0,
+    "amount": 640.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.42
+   }
+  ],
+  "case": {
+   "flagged": "e3",
+   "day": 25,
+   "trigger_type": "risk_score",
+   "trigger_text": "Sudden burst of activity ($1,230.00 across 3 transactions in 14 hours) following extended card inactivity."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "The card is genuinely dormant and experiences a 3-transaction burst over 14 hours, which triggers B5_dormant (LR 5.65). Even though every transaction uses the customer's home device, home email, and home billing region, Assay disabled all 'innocence' signals (home_region, stable_profile, long_tenure_clean in B29_innocence) and refuses to let January model scores reduce suspicion, pushing Assay into an uncertain/fraud verdict on a legitimate customer."
+  }
+ }
+]

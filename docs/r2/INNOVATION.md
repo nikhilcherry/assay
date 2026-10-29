@@ -26,31 +26,32 @@ grader reports 18/18 clean. The TigerGraph ring query and the local code agree o
 decisions.
 
 ## 3. Measured negatives (off because the numbers said so)
-- **Per-card micro-charge drips** (`docs/r2/B6_micro_fanin.md`): LR 0.63, firing on 1.62% of
-  legitimate card-days vs 1.03% of fraud. As a cross-card cohort burst it never fires on history,
-  fraud or legit (Laplace LR 1.0693, 95% CI [0.0669, 17.0945]), so it could only run on an assumed
-  weight. Neither form is enabled.
-- **"Innocence" signals** (`docs/r2/B29_innocence.md`): `card_id` is an issuer bucket, not a person.
-  `home_region` (23.0% of fraud vs 7.8% of cleared), `stable_profile` (53.4% vs 23.7%) and
-  `long_tenure_clean` (LR 0.7420, CI [0.5190, 1.0607]) all fail the keep gate. Only the policy's R7
-  recurring-charge rule can clear a denial.
-- **HMM episode segmenter** (`docs/r2/B34_episode.md`): 0.4241 exact match vs 0.5202 for "flagged
-  transaction only" on 1,238 Oct–Dec cases, so it's off. The rule-based dispute-episode builder also
-  lost to flagged-only when uncapped (0.4930 vs 0.5498). Capped to 1h of the disputed charge, it wins:
-  0.6266 exact, with mean exposure error $241.33 instead of $935.57 (`docs/r2/N7_dispute_episode.md`).
-- **Graph-fused precedent** (`docs/r2/B14_vector.md`): on 1,392 held-out Oct–Dec cases, TigerVector
-  k-NN beats the bank score on calibration (Brier 0.0863 vs 0.3033). Adding 2-hop traversal makes it
-  worse: where fused and vector-only disagree, fused is right on 37.29% of cases, and
-  traversal-only acts against 125 cleared cases vs 75. Precedent never enters the ledger.
+- **Micro-charge drips** (`docs/r2/B6_micro_fanin.md`): per card, LR 0.63 (1.62% of legitimate card-days
+  vs 1.03% of fraud). As a cohort burst it never fires on history, so its LR can't be measured (Laplace
+  LR 1.0693, CI [0.0669, 17.0945]). Off in both forms.
+- **"Innocence" signals** (`docs/r2/B29_innocence.md`): `card_id` is an issuer bucket, so `home_region`
+  (23.0% of fraud vs 7.8% of cleared) and `long_tenure_clean` (LR 0.7420, CI [0.5190, 1.0607]) fail the
+  keep gate.
+- **Episodes** (`docs/r2/B34_episode.md`, `docs/r2/N7_dispute_episode.md`): an HMM segmenter lost to
+  "flagged transaction only" (0.4241 vs 0.5202), and so did our uncapped builder (0.4930 vs 0.5498).
+  With a 1h cap plus 48h on a new device, it reaches 0.6372.
+- **Graph-fused precedent** (`docs/r2/B14_vector.md`): TigerVector k-NN calibrates well (Brier 0.0863
+  vs 0.3033), but adding traversal made it worse (fused right on 37.29% of disagreements). It never
+  votes.
 
 ## 4. Guards that change outcomes
-- **January drift** (`docs/r2/B1_model.md`): the model has 0.9206 October out-of-time AUC, but only
-  1.0670% of January rows are in-distribution. So a January score can raise suspicion but never clear
-  a case. That's why HHF-004/005 are decided by the dispute episode and the ring, not by their
-  near-zero scores.
-- **Card mismatch** (`docs/r2/B23_data_quality.md`): HHF-011 names C09241-K1, but the bank recorded the
-  charge on C09241-K2. Nobody has established which cardholder would be asked, so the agent answers
-  `uncertain` and escalates instead of clearing on an assumed confirmation.
-- **Ring caps** (`docs/r2/B15_rings.md`): elements on more than 15 cards in 30 days are dropped, and
-  rings are capped at 30 cards. HHF-014/016 sit in a 121-card component that is correctly not called a
-  ring.
+- **January drift** (`docs/r2/B1_model.md`): 0.9206 October AUC, but only 1.0670% of January rows are
+  in-distribution. A January score can raise suspicion but never clear a case. That's why HHF-004/005
+  are decided by the dispute episode and the ring.
+- **Card mismatch** (`docs/r2/B23_data_quality.md`): HHF-011 names C09241-K1, but the bank recorded
+  C09241-K2. Nobody has established which cardholder would be asked, so it's `uncertain`, not cleared.
+- **Ring caps** (`docs/r2/B15_rings.md`): elements on more than 15 cards are dropped. HHF-014/016 sit in
+  a 121-card component that is correctly not called a ring.
+
+## 5. Tested by an adversary (`docs/r2/REDTEAM.md`)
+Ten Argon attacker personas, shown only our policy, these write-ups and aggregate statistics, wrote 80
+scenarios over two rounds. We ran them blind. The red team changed outcomes: hostile case rows are
+now rejected, a measured detector now blocks a simulated "customer confirms" (4 frauds moved from
+missed to escalated), and a new `burst_hub` detector closes the 15-card cap (LR 10.68, weighed at
+4.45). No prompt injection changed a verdict. What remains is our weakest point: simulated replies
+follow our own probability.

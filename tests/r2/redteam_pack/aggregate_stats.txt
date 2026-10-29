@@ -1,0 +1,16 @@
+Aggregate statistics of the bank's data (no individual rows).
+Rows: Jul-Dec 2016 = 590742 ; Jan 2017 = 60196
+ProductCD share (Jan): {'W': 0.719, 'C': 0.102, 'H': 0.099, 'R': 0.052, 'S': 0.027}
+channel share (Jan): {'in_person': 0.719, 'online': 0.281}
+amount quantiles product C: {0.05: 6.29, 0.25: 18.81, 0.5: 35.05, 0.75: 65.1, 0.95: 151.62, 0.99: 386.91}
+amount quantiles product H: {0.05: 20.1, 0.25: 35.88, 0.5: 54.2, 0.75: 90.07, 0.95: 172.56, 0.99: 293.84}
+amount quantiles product R: {0.05: 50.0, 0.25: 94.79, 0.5: 129.64, 0.75: 214.47, 0.95: 510.12, 0.99: 1070.87}
+amount quantiles product S: {0.05: 7.6, 0.25: 20.3, 0.5: 33.26, 0.75: 65.7, 0.95: 155.56, 0.99: 498.74}
+amount quantiles product W: {0.05: 25.3, 0.25: 46.25, 0.5: 77.99, 0.75: 147.12, 0.95: 465.94, 0.99: 1348.67}
+top P_emaildomain: ['gmail.com', 'yahoo.com', 'hotmail.com', 'anonymous.com', 'aol.com', 'comcast.net', 'outlook.com', 'icloud.com', 'msn.com', 'att.net', 'verizon.net', 'sbcglobal.net']
+top R_emaildomain: ['gmail.com', 'hotmail.com', 'anonymous.com', 'yahoo.com', 'aol.com', 'outlook.com', 'comcast.net', 'icloud.com', 'yahoo.com.mx', 'cox.net', 'live.com', 'verizon.net']
+share of Jan rows with a device profile: 0.258
+device_profile format: 'DeviceInfo | os | browser | screen', e.g. 'SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080' or 'Windows | Windows 10 | chrome 63.0 | 1920x1080'
+txns per card Jul-Dec quantiles: {0.25: 1, 0.5: 4, 0.75: 13, 0.9: 42, 0.99: 725}
+risk_score quantiles (Jan, bank model): {0.5: 0.1, 0.9: 0.26, 0.99: 0.44}
+addr1 billing regions are integers ~100-540; each card usually has a few home regions.

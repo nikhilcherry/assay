@@ -1,0 +1,60 @@
+[
+ {
+  "scenario": "lookalike-r1-1",
+  "your_truth": "legitimate/none",
+  "assay_verdict": "legitimate",
+  "assay_probability": 0.02,
+  "assay_pattern": "none",
+  "assay_actions": [
+   "CLOSE_NO_FRAUD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": null,
+  "result": "CLEARED_OK",
+  "you_won": false
+ },
+ {
+  "scenario": "lookalike-r1-2",
+  "your_truth": "legitimate/none",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.95,
+  "assay_pattern": "card_not_present_fraud",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": null,
+  "result": "FALSE_ALARM",
+  "you_won": true
+ },
+ {
+  "scenario": "lookalike-r1-3",
+  "your_truth": "legitimate/none",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.94,
+  "assay_pattern": "card_not_present_fraud",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE",
+   "FILE_REPORT",
+   "MONITOR_CONNECTED_CARDS"
+  ],
+  "share_of_your_fraud_txns_assay_counted": null,
+  "result": "FALSE_ALARM",
+  "you_won": true
+ },
+ {
+  "scenario": "lookalike-r1-4",
+  "your_truth": "legitimate/none",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.76,
+  "assay_pattern": "card_not_present_fraud",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": null,
+  "result": "FALSE_ALARM",
+  "you_won": true
+ }
+]

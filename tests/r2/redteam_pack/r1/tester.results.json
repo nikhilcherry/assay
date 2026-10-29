@@ -1,0 +1,58 @@
+[
+ {
+  "scenario": "tester-r1-1",
+  "your_truth": "fraud/card_testing",
+  "assay_verdict": "legitimate",
+  "assay_probability": 0.14,
+  "assay_pattern": "none",
+  "assay_actions": [
+   "ALLOW_TRANSACTION",
+   "CLOSE_NO_FRAUD"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.0,
+  "result": "MISSED",
+  "you_won": true
+ },
+ {
+  "scenario": "tester-r1-2",
+  "your_truth": "fraud/card_testing",
+  "assay_verdict": "legitimate",
+  "assay_probability": 0.01,
+  "assay_pattern": "none",
+  "assay_actions": [
+   "CLOSE_NO_FRAUD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.0,
+  "result": "MISSED",
+  "you_won": true
+ },
+ {
+  "scenario": "tester-r1-3",
+  "your_truth": "fraud/card_testing",
+  "assay_verdict": "legitimate",
+  "assay_probability": 0.01,
+  "assay_pattern": "none",
+  "assay_actions": [
+   "CLOSE_NO_FRAUD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": 0.0,
+  "result": "MISSED",
+  "you_won": true
+ },
+ {
+  "scenario": "tester-r1-4",
+  "your_truth": "legitimate/none",
+  "assay_verdict": "fraud",
+  "assay_probability": 0.88,
+  "assay_pattern": "card_testing",
+  "assay_actions": [
+   "BLOCK_CARD",
+   "CREATE_CASE"
+  ],
+  "share_of_your_fraud_txns_assay_counted": null,
+  "result": "FALSE_ALARM",
+  "you_won": true
+ }
+]

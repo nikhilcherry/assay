@@ -232,6 +232,9 @@ class ToolProxy:
 # --- Input Validation & Case Runner -----------------------------------------
 
 
+OPENED_MIN = pd.Timestamp("2016-07-01")
+OPENED_MAX = pd.Timestamp("2017-04-01")
+CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 VALID_TRIGGER_TYPES = {"risk_score", "customer_report", "analyst_request"}
 MAX_TRIGGER_TEXT = 4096
 
@@ -297,12 +300,30 @@ def validate_case_row(case_row: Any) -> tuple[bool, str | None]:
         except (ValueError, TypeError):
             return False, f"Invalid risk_score value: '{rs}'"
 
-    # opened_at timestamp parseable check
+    # opened_at: a bank-local timestamp inside the data's period (red team: a "...Z" date passed the
+    # parse check and crashed mid-run on a tz-aware comparison)
     opened_at = str(d["opened_at"]).strip()
     try:
-        pd.to_datetime(opened_at)
+        ts = pd.Timestamp(opened_at)
     except Exception:
         return False, f"Unparseable opened_at timestamp: '{opened_at}'"
+    if ts.tzinfo is not None:
+        return False, f"opened_at must be a local timestamp without a time zone: '{opened_at}'"
+    if not (OPENED_MIN <= ts < OPENED_MAX):
+        return False, f"opened_at {opened_at} is outside the data period [{OPENED_MIN.date()}, {OPENED_MAX.date()})"
+
+    # Card and customer ids follow the bank's format, and the card belongs to the customer
+    # (a different K-number of the same customer is a data-quality case, investigated as DQ-07)
+    card, cust = str(d["card_id"]).strip(), str(d["customer_id"]).strip()
+    if not re.fullmatch(r"C\d{5}-K\d{1,2}", card) or not re.fullmatch(r"C\d{5}", cust):
+        return False, f"Malformed card_id/customer_id: '{card}' / '{cust}'"
+    if card.rsplit("-K", 1)[0] != cust:
+        return False, f"card_id {card} does not belong to customer {cust}"
+
+    # Control characters have no place in a case row (tabs and newlines in free text are fine)
+    for key, val in d.items():
+        if isinstance(val, str) and CONTROL_CHARS.search(val):
+            return False, f"Control characters in field '{key}'"
 
     # Check for negative amounts if present
     amt = d.get("amount")

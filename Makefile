@@ -20,7 +20,7 @@ data:
 	@echo ".venv/bin/gdown --folder $(R2_FOLDER) -O data/round2"
 
 stage:
-	$(PY) -m assay.data && $(PY) -m assay.model && $(PY) -m assay.r2.frames && $(PY) -m assay.r2.score_jan
+	$(PY) -m assay.data && $(PY) -m assay.model && $(PY) -m assay.patterns && $(PY) -m assay.r2.frames && $(PY) -m assay.r2.score_jan
 
 # One case, the command the drills use (set ASSAY_TG=1 to use TigerGraph for rings and write-back)
 case:
