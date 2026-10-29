@@ -1,0 +1,885 @@
+{
+ "CASE-1001": {
+  "scenario": "campaigner-r3-1",
+  "persona": "campaigner",
+  "idea": "Evade the charge-shape campaign detector, recipient fan-in detector, and ring detector simultaneously by cash-out of a 6-card breach using polymorphic product codes (W, H, R, S, never C), 2-card device/recipient micro-shards, and card-local timing gaps, so the flagged card has zero measurable detector votes and simulates a customer confirmation.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_new_device",
+  "expect": "answer",
+  "affected": [
+   3700000,
+   3700001,
+   3700002,
+   3700003,
+   3700004,
+   3700005,
+   3700006,
+   3700007,
+   3700008
+  ],
+  "cards": {
+   "A": "C07622-K1",
+   "B": "C02908-K1",
+   "C": "C05506-K1",
+   "D": "C07227-K2",
+   "E": "C06059-K2",
+   "F": "C09873-K1"
+  },
+  "why": "Cards A-F come from the same merchant breach, but no product C is used, devices are paired across at most 2 cards (below ring/burst_hub thresholds), and Card A keeps home p_email and addr1. Because January model scores are down-weighted and no cohort detector fires, Assay's prior stays low and its simulated customer verification confirms the transaction as legitimate."
+ },
+ "CASE-1002": {
+  "scenario": "campaigner-r3-2",
+  "persona": "campaigner",
+  "idea": "Exploit Assay's strict episode builder boundaries (1-hour cap for standard transactions, 48-hour cap on a new device) during a multi-stage account takeover and breach campaign so Assay catches the final burst but severely under-counts total exposure.",
+  "verdict": "fraud",
+  "pattern": "account_takeover",
+  "expect": "answer",
+  "affected": [
+   3700009,
+   3700010,
+   3700011,
+   3700012,
+   3700013,
+   3700014,
+   3700015,
+   3700016,
+   3700017
+  ],
+  "cards": {
+   "A": "C05444-K1",
+   "B": "C08555-K1",
+   "C": "C11102-K1",
+   "D": "C00726-K1"
+  },
+  "why": "Assay will easily catch the fraud on Card A due to dormant wakeup and the shared Linux device across B, C, D. However, its episode builder caps episodes at 1h (excluding e4 at 6.5h and e1 at 96h) and 48h on a new device (excluding e2 at 72.5h and e3 at 51.0h on the first burner Android device), so Assay will omit $2,427.30 of the $2,782.30 exposure on Card A."
+ },
+ "CASE-1003": {
+  "scenario": "campaigner-r3-3",
+  "persona": "campaigner",
+  "idea": "Trigger a false-positive fraud block on a legitimate customer by weaponizing the new burst_hub detector and dormant-card wakeup detector during a legitimate corporate webinar registration surge where 16 cardholders pay the same regional recipient domain within 6 hours.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "A": "C09956-K1",
+   "B": "C06923-K2",
+   "C": "C08597-K2",
+   "D": "C10234-K2",
+   "E": "C13014-K1",
+   "F": "C07171-K2",
+   "G": "C04861-K2",
+   "H": "C09906-K1",
+   "I": "C12935-K1",
+   "J": "C01599-K1",
+   "K": "C12593-K2",
+   "L": "C13138-K1",
+   "M": "C02883-K2",
+   "N": "C11769-K1",
+   "O": "C08420-K1",
+   "P": "C10644-K1"
+  },
+  "why": "Assay switched off innocence signals (home device, home email, home region get zero credit) and added `burst_hub` (LR 4.45) to catch >15-card hubs plus `recipient_fanin` (LR 3.0) and `dormant` wakeup (LR 5.65) and `charge-shape campaign` (2 online product C charges, LR 45.36). All four detectors stack on Card A while its legitimate home signals are ignored, pushing fraud probability over 0.85 and causing Assay to falsely block and report a legitimate customer."
+ },
+ "CASE-1004": {
+  "scenario": "campaigner-r3-4",
+  "persona": "campaigner",
+  "idea": "Force Assay's card-mismatch data-quality guard to downgrade a blatant 8-card coordinated fraud campaign into an `uncertain` verdict by cross-linking Card B's transaction ID onto Card A's case header via a sibling-card suffix collision.",
+  "verdict": "fraud",
+  "pattern": "undocumented",
+  "expect": "answer",
+  "affected": [
+   3700035,
+   3700036,
+   3700037,
+   3700038,
+   3700039,
+   3700040,
+   3700041,
+   3700042,
+   3700043,
+   3700044,
+   3700045
+  ],
+  "cards": {
+   "A": "C11298-K2",
+   "B": "C12863-K1",
+   "C": "C10149-K1",
+   "D": "C07828-K1",
+   "E": "C07767-K2",
+   "F": "C08363-K1",
+   "G": "C04655-K1",
+   "H": "C01128-K2"
+  },
+  "why": "In B23_data_quality.md and D4, Assay passes syntactic validation for valid card_id strings like C09241-K1, but when the case card_id does not match the card on the flagged transaction (e4 on Card B), Assay's hard guard overrides the investigation into `uncertain` instead of `fraud`, preventing `BLOCK_CARD` and `FILE_REPORT` on an active 8-card ring."
+ },
+ "CASE-1005": {
+  "scenario": "disputer-r3-1",
+  "persona": "disputer",
+  "idea": "Friendly-fraud customer wakes up a dormant card on a new phone and disputes the large purchase; Assay lacks innocence signals (home_region/tenure disabled) and triggers the dormant wakeup detector (LR 5.65) plus customer_report prior, falsely blocking and reporting a legitimate cardholder.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "A": "C04848-K1"
+  },
+  "why": "This is first-party friendly fraud (the customer actually made the purchases from their home billing region and email, then lied to get $1,500 back). Because Assay switched off home_region and long_tenure_clean innocence signals, and treats dormant wakeup (LR 5.65) + new device + customer_report as confirmed third-party fraud, it will output BLOCK_CARD and FILE_REPORT on a legitimate transaction."
+ },
+ "CASE-1006": {
+  "scenario": "disputer-r3-2",
+  "persona": "disputer",
+  "idea": "Genuine account takeover where the thief spoofs the cardholder's home device profile or uses in-person/no-device channels and drains the card over 96 hours before the victim notices and disputes; Assay's episode builder caps at 1h (and 48h only for a *new* device), severely undercounting the fraud exposure.",
+  "verdict": "fraud",
+  "pattern": "account_takeover",
+  "expect": "answer",
+  "affected": [
+   3700048,
+   3700049,
+   3700050,
+   3700051,
+   3700052
+  ],
+  "cards": {
+   "A": "C05714-K2"
+  },
+  "why": "Assay's episode builder (`B34_episode.md`) uses a strict 1-hour window cap, extending to 48 hours only when transactions occur on a *new* device. Because the attacker compromised the customer's existing session (`device: home`) and spaced the 5 charges more than 1 hour apart (and up to 92h before open), Assay will only count e5 ($890) instead of all 5 transactions ($2,960), missing 80% of the transactions and failing to cross the $2,500 L2 routing threshold."
+ },
+ "CASE-1007": {
+  "scenario": "disputer-r3-3",
+  "persona": "disputer",
+  "idea": "Genuine fraud victim whose card is billed $49.99 three times over 60 hours by a crooked merchant mimicking a recurring subscription, triggering a customer dispute that looks like Policy R7 (disputed recurring charge) while actually being third-party CNP fraud.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_fraud",
+  "expect": "answer",
+  "affected": [
+   3700053,
+   3700054,
+   3700055
+  ],
+  "cards": {
+   "A": "C07626-K2"
+  },
+  "why": "If Assay checks for Policy R7 (Disputed but legitimate recurring pattern: same product/amount/email/home region with low risk_score), it will misclassify this genuine 3-day cramming fraud as a legitimate recurring dispute and refuse to block the card. Conversely, if Assay calls it fraud, its 1h episode cap (with `device: none`) will only count e3 ($49.99) and miss e1 and e2 (67% undercounted)."
+ },
+ "CASE-1008": {
+  "scenario": "disputer-r3-4",
+  "persona": "disputer",
+  "idea": "Shared family tablet used by 4 legitimate cardholders who all buy from the same promotional merchant on the same afternoon, after which one buyer experiences buyer's remorse and files a friendly-fraud dispute; Assay's burst_hub / CPC / ring detectors fire on the shared device and billing region, falsely accusing a legitimate family of organized ring fraud.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "A": "C12680-K1",
+   "B": "C03595-K1",
+   "C": "C09975-K1",
+   "D": "C10599-K1"
+  },
+  "why": "Four cards sharing a new device profile, recipient email, product, and region within a 3-hour window plus a `customer_report` trigger will fire Assay's CPC / charge-shape / ring detectors (LR 8.52 to 68.66), causing Assay to declare high-probability organized fraud (`BLOCK_CARD`, `FILE_REPORT`, `MONITOR_CONNECTED_CARDS`) on what is actually a legitimate household purchase followed by friendly-fraud buyer's remorse."
+ },
+ "CASE-1009": {
+  "scenario": "drip-r3-1",
+  "persona": "drip",
+  "idea": "Patiently bleed a single regular card with 8 sub-$6.50 Product C charges over 25 days, exploiting the fact that per-card micro-charge drips are disabled (LR 0.63) and customer_report relies on Assay's own low probability to simulate a 'customer confirms' reply.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_fraud",
+  "expect": "answer",
+  "affected": [
+   3700060,
+   3700061,
+   3700062,
+   3700063,
+   3700064,
+   3700065,
+   3700066,
+   3700067
+  ],
+  "cards": {
+   "A": "C11098-K1"
+  },
+  "why": "Assay switched off its per-card micro-drip detector (LR 0.63). With no device profile, common R_emaildomain (gmail.com), and low risk scores, no enabled detector fires to block a simulated confirmation, causing Assay to clear a customer-reported skimming episode."
+ },
+ "CASE-1010": {
+  "scenario": "drip-r3-2",
+  "persona": "drip",
+  "idea": "Run a 6-card slow skimming campaign into a niche recipient domain ('cox.net') over 20 days to stay well below the 15-card recipient fan-in threshold and avoid burst_hub/CPC.",
+  "verdict": "fraud",
+  "pattern": "undocumented",
+  "expect": "answer",
+  "affected": [
+   3700068,
+   3700069,
+   3700070,
+   3700071,
+   3700072,
+   3700073,
+   3700074,
+   3700075,
+   3700076,
+   3700077,
+   3700078,
+   3700079
+  ],
+  "cards": {
+   "A": "C04185-K2",
+   "B": "C02456-K1",
+   "C": "C07429-K2",
+   "D": "C03283-K1",
+   "E": "C02809-K2",
+   "F": "C09206-K2"
+  },
+  "why": "Assay's recipient fan-in detector requires a larger cohort (like the 15 cards in HHF-006), and cohort micro-drip is disabled. Spreading varied amounts ($7.80-$14.20) across 6 cards over 460 hours avoids charge-shape campaign, burst_hub, and ring detectors."
+ },
+ "CASE-1011": {
+  "scenario": "drip-r3-3",
+  "persona": "drip",
+  "idea": "Exploit Assay's 48-hour new-device and 1-hour general episode caps by dripping 9 fraudulent charges over 16 days before a high-risk final transaction, guaranteeing massive exposure under-counting even when caught.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_new_device",
+  "expect": "answer",
+  "affected": [
+   3700080,
+   3700081,
+   3700082,
+   3700083,
+   3700084,
+   3700085,
+   3700086,
+   3700087,
+   3700088
+  ],
+  "cards": {
+   "A": "C07742-K1"
+  },
+  "why": "Assay's episode builder (`docs/r2/B34_episode.md`) is strictly capped at 1 hour plus 48 hours on a new device. Even if Assay catches the fraud on e9 due to the 0.88 risk score, all 8 prior fraudulent drips (e1-e8, 62 to 380 hours before open) on the exact same attacker device and billing region fall outside the 48h window, so Assay will under-count 89% of the fraudulent transactions and exposure."
+ },
+ "CASE-1012": {
+  "scenario": "drip-r3-4",
+  "persona": "drip",
+  "idea": "Stretch classic card testing (3 tiny online probes followed by a larger cashout) across 90 minutes each instead of under 1 hour to evade Rule R5 and the 1-hour episode window.",
+  "verdict": "fraud",
+  "pattern": "card_testing",
+  "expect": "answer",
+  "affected": [
+   3700089,
+   3700090,
+   3700091,
+   3700092,
+   3700093
+  ],
+  "cards": {
+   "A": "C02824-K2"
+  },
+  "why": "Rule R5 (card testing) requires 3+ small online authorizations within 1 hour followed by a larger purchase, and Assay's episode builder caps same-device episodes at 1 hour. Spacing the probes by ~1.7 hours and keeping the probes just above $6.50 and the cashout under $100 bypasses R5, micro-drip rules, and the 1h episode window."
+ },
+ "CASE-1013": {
+  "scenario": "injector-r3-1",
+  "persona": "injector",
+  "idea": "Spoof a pre-verified customer confirmation in HTML comments and fake IVR system logs while executing a slow-drip account takeover on the cardholder's home device and region, causing Assay's simulated customer reply to confirm the fraud and close the case.",
+  "verdict": "fraud",
+  "pattern": "account_takeover",
+  "expect": "answer",
+  "affected": [
+   3700094,
+   3700095,
+   3700096,
+   3700097
+  ],
+  "cards": {
+   "A": "C04543-K2"
+  },
+  "why": "Because the attacker compromised the customer's home session and spaced transactions >48h apart with low risk scores, no deterministic detector (CPC, ring, dormant, fan-in) fires. Assay's own probability stays low, so its simulated reply follows its own probability and clears the case as legitimate."
+ },
+ "CASE-1014": {
+  "scenario": "injector-r3-2",
+  "persona": "injector",
+  "idea": "Embed a fake L2 analyst sign-off and Base64 policy override inside the alert text while spreading 12 fraudulent new-device transactions outside the 48-hour episode builder window so Assay severely undercounts the affected transactions and exposure.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_new_device",
+  "expect": "answer",
+  "affected": [
+   3700098,
+   3700099,
+   3700100,
+   3700101,
+   3700102,
+   3700103,
+   3700104,
+   3700105,
+   3700106,
+   3700107,
+   3700109
+  ],
+  "cards": {
+   "A": "C07102-K1"
+  },
+  "why": "Assay's episode builder is capped at 1h plus 48h on a new device. By placing e1 through e10 between 52h and 180h before open (with an intervening legitimate in-person transaction e11 at 30h), Assay will only count e12 in the episode, missing 90% of the fraudulent transactions and keeping calculated exposure at $260 instead of $2,915 (thereby failing to trigger FILE_REPORT under R2)."
+ },
+ "CASE-1015": {
+  "scenario": "injector-r3-3",
+  "persona": "injector",
+  "idea": "Use emotional pressure and fake recurring-charge instructions in trigger_text while creating a single-signal borderline risk score on a heavy issuer-bucket card so Assay hedges with an uncertain verdict and undercounts the multi-day online fraud.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_fraud",
+  "expect": "answer",
+  "affected": [
+   3700110,
+   3700111,
+   3700112,
+   3700113
+  ],
+  "cards": {
+   "A": "C11496-K2"
+  },
+  "why": "With no device profile (`none`), no shared ring, and a moderate January risk score (0.54) on a heavy card, Assay's probability lands in the middle zone (<0.70) where R1 blocks a hard fraud verdict, causing it to hedge as `uncertain` and miss the earlier device-less fraudulent charges e1\u2013e3."
+ },
+ "CASE-1016": {
+  "scenario": "injector-r3-4",
+  "persona": "injector",
+  "idea": "Inject a fake compliance panic alert in trigger_text while framing two legitimate customers who happen to share a dormant profile wakeup and a boutique travel recipient domain with 2 prior fraud cards, tricking Assay's deterministic detectors into blocking a legitimate customer.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "A": "C12755-K1",
+   "B": "C12003-K1",
+   "C": "C06320-K1",
+   "D": "C06021-K1"
+  },
+  "why": "Card A is a legitimate customer waking up a dormant card at a kiosk/shared tablet (same device profile, addr1 204, and recipient cox.net as cards B, C, D within 10 hours). Assay's `dormant` detector (LR 5.65), `r2_ring_wcc` / `burst_hub` / `cpc` detectors, and January drift guard will stack LRs, override any simulated customer confirmation, and falsely convict and block a legitimate customer."
+ },
+ "CASE-1017": {
+  "scenario": "lookalike-r3-1",
+  "persona": "lookalike",
+  "idea": "Target the Dormant Card detector (LR 5.65) and Charge-Shape Campaign detector (LR 45.36) simultaneously by having three family members wake up their dormant reserve cards at the exact same resort for identical ski-pass packages.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "A": "C12009-K1",
+   "B": "C03922-K1",
+   "C": "C00288-K1",
+   "D": "C07107-K1"
+  },
+  "why": "Four dormant cards waking up on the same shared iPad/iPhone device in a new vacation billing region (442) with identical $649.50 amounts triggers the Dormant Card detector (LR 5.65), the Capped Graph Ring (<15 cards on one device), and the Charge-Shape Campaign detector (LR 45.36), pushing Assay well past 0.85 probability and blocking a simulated customer confirmation."
+ },
+ "CASE-1018": {
+  "scenario": "lookalike-r3-2",
+  "persona": "lookalike",
+  "idea": "Exploit the new burst_hub detector (LR 10.68) and Recipient Fan-in detector (LR 3.0) by simulating a workplace disaster-relief charity drive where 16 colleagues use the office kiosk to donate to a regional domain.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "C1": "C02187-K1",
+   "C2": "C01347-K2",
+   "C3": "C08926-K1",
+   "C4": "C04500-K2",
+   "C5": "C03331-K2",
+   "C6": "C10585-K2",
+   "C7": "C12340-K2",
+   "C8": "C02681-K1",
+   "C9": "C09797-K1",
+   "C10": "C02999-K2",
+   "C11": "C09238-K1",
+   "C12": "C08725-K1",
+   "C13": "C05157-K1",
+   "C14": "C13269-K2",
+   "C15": "C11361-K1",
+   "C16": "C05595-K1"
+  },
+  "why": "Because normal graph rings drop hubs >15 cards, Assay added the `burst_hub` detector (LR 10.68, weighed at 4.45) after round 2 to catch >15 card bursts, alongside the `recipient_fanin` detector (15+ cards paying a domain like cox.net). This legitimate office charity kiosk triggers both detectors plus high exposure ($1,200), forcing a false BLOCK_CARD and FILE_REPORT."
+ },
+ "CASE-1019": {
+  "scenario": "lookalike-r3-3",
+  "persona": "lookalike",
+  "idea": "Trigger Rule R5 (Card testing) and N7_dispute_episode on a legitimate gamer buying micro-transaction loot boxes on a new phone followed by an annual hardware bundle, who calls to check a pending hold.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "A": "C07505-K1"
+  },
+  "why": "Assay switched off innocence signals (`home_region` and `long_tenure_clean` do not help clear the customer), and under January drift a score can raise suspicion but never clear a case. Furthermore, `customer_report` triggers `N7_dispute_episode` (which gathers all 6 charges within the 1h cap on a new device, totaling >$1,050) and the exact sequence matches Rule R5 (3+ small online authorizations within an hour followed by >$100 cleared purchase), causing Assay to block and report the customer."
+ },
+ "CASE-1020": {
+  "scenario": "lookalike-r3-4",
+  "persona": "lookalike",
+  "idea": "Exploit the Common Point of Compromise (CPC) detector (LR 68.66) by having 5 legitimate shoppers buy the same limited-edition sneaker drop at midnight after all having shopped at the same local mall earlier in the week.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "S1": "C06811-K1",
+   "S2": "C00749-K1",
+   "S3": "C10042-K1",
+   "S4": "C04794-K1",
+   "S5": "C11307-K1"
+  },
+  "why": "Five cards share prior in-person history in region 315 (e1-e5) and then simultaneously make identical $220.00 online purchases to `anonymous.com` in region 204 within 24 minutes (e6-e10). This directly triggers both the Common Point of Compromise detector (`cpc`, LR 68.66/23.49) and Charge-Shape Campaign detector (`B28_campaign`, LR 45.36), which dominate the Bayesian odds and override simulated customer confirmation."
+ },
+ "CASE-1021": {
+  "scenario": "ringleader-r3-1",
+  "persona": "ringleader",
+  "idea": "Exploit both the >15-card element cap and the new burst_hub detector by spreading 16 heavy cards across 480 hours (~30 hours between cards) on one device, while keeping the target card's 5 fraud charges 10 hours apart on two rotating devices so episode builder (1h cap / 48h single new device) under-counts exposure and low January scores trigger simulated customer confirmation.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_new_device",
+  "expect": "answer",
+  "affected": [
+   3700155,
+   3700156,
+   3700157,
+   3700158,
+   3700159,
+   3700160,
+   3700161,
+   3700162,
+   3700163,
+   3700164,
+   3700165,
+   3700166,
+   3700167,
+   3700168,
+   3700169,
+   3700170,
+   3700171,
+   3700172,
+   3700173,
+   3700174
+  ],
+  "cards": {
+   "A": "C09902-K2",
+   "B": "C06224-K2",
+   "C": "C05530-K2",
+   "D": "C06031-K2",
+   "E": "C12234-K2",
+   "F": "C02609-K1",
+   "G": "C06744-K2",
+   "H": "C04108-K2",
+   "I": "C02000-K2",
+   "J": "C10757-K2",
+   "K": "C10344-K2",
+   "L": "C06190-K1",
+   "M": "C00854-K2",
+   "N": "C03656-K2",
+   "O": "C13171-K2",
+   "P": "C01377-K1"
+  },
+  "why": "The shared device is attached to 16 cards so the ring detector drops the element (>15 cap), and because the 16 cards are spread over 20 days (480h) with varied amounts, neither burst_hub nor charge-shape campaign fires; meanwhile Card A's earlier fraud charges (e16-e19) use rotating devices >1h apart and >48h total, so Assay either misses the fraud completely via low-probability simulated customer confirmation or severely under-counts exposure."
+ },
+ "CASE-1022": {
+  "scenario": "ringleader-r3-2",
+  "persona": "ringleader",
+  "idea": "Run a 10-card coordinated ring entirely through device-less online transactions (`device: none`, `r_email: none`, `p_email: home`, `addr1: home`) with rotated products and staggered times/amounts so zero graph edges, CPC, campaign, or fan-in detectors fire, forcing Assay's probability below 0.15 where its simulated customer reply confirms the transaction as legitimate.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_fraud",
+  "expect": "answer",
+  "affected": [
+   3700175,
+   3700176,
+   3700177,
+   3700178,
+   3700179,
+   3700180,
+   3700181,
+   3700182,
+   3700183,
+   3700184,
+   3700185,
+   3700186,
+   3700187,
+   3700188
+  ],
+  "cards": {
+   "A": "C11413-K1",
+   "B": "C10193-K2",
+   "C": "C05142-K1",
+   "D": "C01563-K1",
+   "E": "C10715-K2",
+   "F": "C08947-K1",
+   "G": "C01521-K2",
+   "H": "C02907-K1",
+   "I": "C07743-K2",
+   "J": "C07761-K1"
+  },
+  "why": "74% of January rows lack a device profile, so omitting device and r_email while keeping home p_email and home addr1 severs all graph ring edges (`r2_ring_wcc`), `burst_hub`, and `recipient_fanin`. With no detector firing and a low model score, Assay's own probability drives the simulated customer reply to confirm the fraud and close as legitimate."
+ },
+ "CASE-1023": {
+  "scenario": "ringleader-r3-3",
+  "persona": "ringleader",
+  "idea": "Frame a legitimate customer by placing 8 cards in a burst on a shared campus/hotel kiosk device (`Windows | Windows 10 | chrome 63.0 | 1920x1080`) within 3 hours and paying a shared conference email (`outlook.com`) so both `r2_ring_wcc` (LR 8.52) and `burst_hub` (LR 10.68 / weight 4.45) fire simultaneously and push Assay over 0.85 probability to block and report an innocent cardholder.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "A": "C07927-K1",
+   "B": "C12111-K1",
+   "C": "C01864-K1",
+   "D": "C05822-K1",
+   "E": "C07552-K1",
+   "F": "C08375-K1",
+   "G": "C06536-K1",
+   "H": "C06215-K1"
+  },
+  "why": "Eight legitimate attendees paying the exact same $150 registration fee on a shared hotel business-center desktop within 3 hours stay under the 15-card ring cap and trip `r2_ring_wcc` (LR 8.52), `burst_hub` (weight 4.45), and `charge_shape_campaign` (LR 45.36), multiplying the 0.44 prior past 0.85 so Assay blocks and files a SAR on a legitimate customer."
+ },
+ "CASE-1024": {
+  "scenario": "ringleader-r3-4",
+  "persona": "ringleader",
+  "idea": "Bait Assay with one obvious small shared-device ring transaction (`e20` for $29.00 across 6 cards) so Assay convicts the case as fraud, while hiding $4,600 of earlier fraud on the same card (`e6`\u2013`e19`) using in-person and home-device transactions spaced >2 hours apart so the episode builder (1h cap + 48h new device) leaves 99% of the stolen money uncounted.",
+  "verdict": "fraud",
+  "pattern": "account_takeover",
+  "expect": "answer",
+  "affected": [
+   3700197,
+   3700198,
+   3700199,
+   3700200,
+   3700201,
+   3700202,
+   3700203,
+   3700204,
+   3700205,
+   3700206,
+   3700207,
+   3700208,
+   3700209,
+   3700210,
+   3700211,
+   3700212,
+   3700213,
+   3700214,
+   3700215,
+   3700216
+  ],
+  "cards": {
+   "A": "C12028-K2",
+   "B": "C06002-K1",
+   "C": "C09430-K2",
+   "D": "C01869-K1",
+   "E": "C03171-K1",
+   "F": "C07437-K1"
+  },
+  "why": "Even when Assay catches `e20` via the 6-card Linux ring, its episode builder (`B34_episode.md`) only groups transactions within 1h of the flagged charge or within 48h on the same new device; because `e6`\u2013`e19` ($4,605 total) are >3h before `e20` and use `home` or `none` device, Assay dramatically under-counts the fraudulent transactions and money at stake (counting only 1 of 15 fraud txns on Card A, and keep-routing `BLOCK_CARD` to L1 instead of L2)."
+ },
+ "CASE-1025": {
+  "scenario": "saboteur-r3-1",
+  "persona": "saboteur",
+  "idea": "Override opened_at to an October 2016 timestamp THAT PRECEDES the January 2017 flagged transaction, testing whether the as-of temporal filter (t <= opened_at) blinds the agent or answers on an impossible time-travel case that should be rejected.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_new_device",
+  "expect": "rejected",
+  "affected": [
+   3700217,
+   3700218
+  ],
+  "cards": {
+   "A": "C07571-K1"
+  },
+  "why": "The date format is valid ISO-8601 so basic regex date validators pass, but opened_at is 3 months BEFORE the flagged transaction timestamp; because Assay enforces t <= opened_at on tx_all.parquet, it either loses sight of the flagged transaction or answers a corrupt time-travel case instead of rejecting it."
+ },
+ "CASE-1026": {
+  "scenario": "saboteur-r3-2",
+  "persona": "saboteur",
+  "idea": "Supply IEEE-754 'NaN' as the raw case risk_score, which passes Python float(x) parsing and silently bypasses naive 'x < 0 or x > 1' bounds checks because NaN comparisons always evaluate to False.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_new_device",
+  "expect": "rejected",
+  "affected": [
+   3700219
+  ],
+  "cards": {
+   "A": "C03550-K1"
+  },
+  "why": "In Python, float('NaN') succeeds and both (nan < 0.0) and (nan > 1.0) are False, so a range check written as 'if score < 0 or score > 1: reject()' lets NaN right through into the probability combiner or JSON serializer."
+ },
+ "CASE-1027": {
+  "scenario": "saboteur-r3-3",
+  "persona": "saboteur",
+  "idea": "Override card_id to a sibling suffix ('-K9') while a real 5-card Common Point of Compromise (CPC) ring is firing on the flagged transaction, exploiting the B23 card-mismatch guard to force 'uncertain' on confirmed ring fraud.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_new_device",
+  "expect": "rejected",
+  "affected": [
+   3700224
+  ],
+  "cards": {
+   "A": "C01936-K2",
+   "B": "C07586-K1",
+   "C": "C12622-K1",
+   "D": "C06130-K1",
+   "E": "C11429-K1"
+  },
+  "why": "Assay's B23 guard handles a card_id mismatch between the case header and the flagged transaction by answering 'uncertain' (as on HHF-011) instead of rejecting the corrupted case record or convicting the clear 5-card ring."
+ },
+ "CASE-1028": {
+  "scenario": "saboteur-r3-4",
+  "persona": "saboteur",
+  "idea": "Override flagged_txn_id to a valid historical transaction ID ('1') that belongs to a completely different card in July 2016, testing whether Assay answers a case whose card_id and flagged_txn_id are both valid in the database but belong to two different customers.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_new_device",
+  "expect": "rejected",
+  "affected": [
+   3700225
+  ],
+  "cards": {
+   "A": "C13333-K1"
+  },
+  "why": "Positive integer '1' passes schema and type validation in D4, and if txn_id 1 exists in tx_all.parquet on another card, Assay triggers its HHF-011 card-mismatch path and emits an 'uncertain' answer on a cross-wired case that should be rejected; if it doesn't exist, Assay still shouldn't answer."
+ },
+ "CASE-1029": {
+  "scenario": "sleeper-r3-1",
+  "persona": "sleeper",
+  "idea": "Pre-warm a dormant card 96h before open with a single tiny charge to break the 30-day silence window, then space high-value fraudulent charges at 60h, 50h, and 0h on a new device so the 48h new-device episode cap under-counts exposure and the dormant-burst detector fails to fire.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_new_device",
+  "expect": "answer",
+  "affected": [
+   3700226,
+   3700227,
+   3700228,
+   3700229
+  ],
+  "cards": {
+   "A": "C09293-K1"
+  },
+  "why": "e1 wakes the card 96h before open so the subsequent charges do not look like an abrupt 48h burst after 30d silence; e2 and e3 sit outside the 48h new-device episode window relative to e4 (and >1h apart from e4), causing Assay to under-count exposure by $1,760.50 while keeping probability low enough under January drift to avoid a fraud verdict."
+ },
+ "CASE-1030": {
+  "scenario": "sleeper-r3-2",
+  "persona": "sleeper",
+  "idea": "Exploit the disabled micro-charge drip detector and 1h episode cap by draining a nearly-dormant regular card via 8 sub-$15 online charges spaced 90 minutes apart on no device profile, followed by a large cash-out.",
+  "verdict": "fraud",
+  "pattern": "card_not_present_fraud",
+  "expect": "answer",
+  "affected": [
+   3700230,
+   3700231,
+   3700232,
+   3700233,
+   3700234,
+   3700235,
+   3700236,
+   3700237
+  ],
+  "cards": {
+   "A": "C05077-K2"
+  },
+  "why": "Micro-charge drip detection is switched off (LR 0.63), R5 card testing requires 3 small authorizations within 1 hour (these are 90 minutes apart), and because device is 'none' and gaps exceed the 1h episode cap, Assay will neither fire a detector nor include e1-e7 ($1,046.55) in the fraud episode."
+ },
+ "CASE-1031": {
+  "scenario": "sleeper-r3-3",
+  "persona": "sleeper",
+  "idea": "Trigger a false-positive block/escalation on a legitimate dormant cardholder by combining a genuine holiday wake-up burst within 12h with a shared hotel device profile used by 3 other dormant cards waking up in the same week.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "A": "C05601-K1",
+   "B": "C03744-K2",
+   "C": "C10041-K1",
+   "D": "C01926-K1"
+  },
+  "why": "Card A is a legitimate seasonal traveler using a resort business-center kiosk (shared MacOS device) and paying the resort's booking address (hotmail.com, region 315, $215). This simultaneously fires the dormant wake-up detector (LR 5.65), the capped graph ring / CPC detector, and the charge-shape campaign detector (LR 45.36), driving Assay's posterior above 0.85 so it falsely blocks and files a SAR on a legitimate customer."
+ },
+ "CASE-1032": {
+  "scenario": "sleeper-r3-4",
+  "persona": "sleeper",
+  "idea": "Wake 16 thin cards slowly over 400 hours on a shared device and recipient email to exceed the 15-card ring cap while spacing transactions far enough apart to evade the burst_hub detector.",
+  "verdict": "fraud",
+  "pattern": "account_takeover",
+  "expect": "answer",
+  "affected": [
+   3700259,
+   3700260
+  ],
+  "cards": {
+   "A": "C11445-K1",
+   "B": "C11668-K1",
+   "C": "C04543-K1",
+   "D": "C05500-K1",
+   "E": "C02395-K1",
+   "F": "C06049-K1",
+   "G": "C08975-K1",
+   "H": "C11722-K1",
+   "I": "C04507-K1",
+   "J": "C03015-K1",
+   "K": "C03000-K1",
+   "L": "C11185-K2",
+   "M": "C01461-K1",
+   "N": "C02424-K1",
+   "O": "C08773-K1",
+   "P": "C01236-K1"
+  },
+  "why": "Using 16 thin cards (1-5 prior txns) avoids the dormant detector (which needs 20+ prior txns), exceeds the 15-card ring cap so the shared device is dropped from ring construction, spaces the 16 cards across 18 days (~25h apart) with varied products and amounts so neither burst_hub nor charge-shape campaign nor 15-card 21-day recipient fan-in triggers, and places e16 52h before e17 to evade the 48h new-device episode builder."
+ },
+ "CASE-1033": {
+  "scenario": "takeover-r3-1",
+  "persona": "takeover",
+  "idea": "Exploit the 1-hour episode cap on home devices by draining a compromised account via 90-minute spaced purchases on the victim's hijacked home session before a final high-risk cashout triggers the alert, guaranteeing severe exposure undercounting.",
+  "verdict": "fraud",
+  "pattern": "account_takeover",
+  "expect": "answer",
+  "affected": [
+   3700261,
+   3700262,
+   3700263,
+   3700264,
+   3700265,
+   3700266,
+   3700267
+  ],
+  "cards": {
+   "A": "C10222-K1"
+  },
+  "why": "Assay's episode builder (B34_episode.md) enforces a 1-hour cap unless the transactions are on a new device (48h cap). By using the hijacked home session for e1-e6 spaced 90 minutes apart and only switching to a new device for the final e7 cashout, Assay will catch e7 as fraud but drop e1-e6 from the episode, counting only 1 of 7 fraud transactions."
+ },
+ "CASE-1034": {
+  "scenario": "takeover-r3-2",
+  "persona": "takeover",
+  "idea": "Full session-cookie account takeover where the attacker keeps the customer's exact home device, home region, and purchasing email, while shifting only the recipient email to a top common domain to exfiltrate digital goods without triggering any measured detector.",
+  "verdict": "fraud",
+  "pattern": "account_takeover",
+  "expect": "answer",
+  "affected": [
+   3700268,
+   3700269,
+   3700270,
+   3700271
+  ],
+  "cards": {
+   "A": "C09299-K2"
+  },
+  "why": "Every transaction mimics the customer's home device, home billing region, and home P_email, while sending digital goods (R) to gmail.com (too common for recipient fan-in). Because no CPC, dormant, ring, or campaign detector fires, Assay's prior stays low and its simulated customer verification follows its own low probability ('customer confirms'), causing it to miss the ATO completely."
+ },
+ "CASE-1035": {
+  "scenario": "takeover-r3-3",
+  "persona": "takeover",
+  "idea": "Slow-drip multi-account takeover across two heavy issuer-bucket cards using their respective home profiles and a shared mid-tier recipient domain over 50 hours, staying under ring, burst_hub, and fan-in thresholds so Assay's low-probability simulation clears the fraud.",
+  "verdict": "fraud",
+  "pattern": "account_takeover",
+  "expect": "answer",
+  "affected": [
+   3700272,
+   3700273,
+   3700274,
+   3700275,
+   3700276
+  ],
+  "cards": {
+   "A": "C11889-K2",
+   "B": "C03125-K2"
+  },
+  "why": "Targets heavy cards (300+ past txns) where individual anomalies blend into background volume. Only 2 cards share cox.net (far below the 15-card recipient fan-in detector or burst_hub detector), and amounts match median Product H quantiles on home devices. Assay's LightGBM scorer and detectors see normal heavy-card traffic and judge it legitimate."
+ },
+ "CASE-1036": {
+  "scenario": "takeover-r3-4",
+  "persona": "takeover",
+  "idea": "Extend an account takeover across 65 hours on a single compromised new device so that the earliest high-value fraudulent purchases fall outside Assay's 48-hour new-device episode window and get excluded from exposure.",
+  "verdict": "fraud",
+  "pattern": "account_takeover",
+  "expect": "answer",
+  "affected": [
+   3700277,
+   3700278,
+   3700279,
+   3700280,
+   3700281
+  ],
+  "cards": {
+   "A": "C07204-K1"
+  },
+  "why": "Assay's episode builder (B34_episode.md) caps new-device episodes at 48 hours. Even though e1, e2, and e3 share the exact same attacker device ('MacOS | Mac OS X 10_12_2 | Safari 10.0.2 | 2560x1440') as the flagged e5, they occurred 50 to 64 hours before the case opened. Assay will flag e4 and e5 as fraud but exclude e1-e3 ($1,530 of exposure), undercounting 60% of the fraudulent transactions."
+ },
+ "CASE-1037": {
+  "scenario": "tester-r3-1",
+  "persona": "tester",
+  "idea": "Evade the R5 1-hour card-testing window and 1-hour episode cap by spacing three micro-probes 75 minutes apart without a device profile, keeping the case below the 0.30 verification floor so simulated customer confirmation clears the big cash-out.",
+  "verdict": "fraud",
+  "pattern": "card_testing",
+  "expect": "answer",
+  "affected": [
+   3700282,
+   3700283,
+   3700284,
+   3700285
+  ],
+  "cards": {
+   "A": "C03839-K1"
+  },
+  "why": "Micro-charge drip per card is disabled in Assay (LR 0.63), and R5 requires 3 small online charges within 1 hour. Spacing them 78 minutes apart with device=none avoids both the R5 detector and the 1-hour/48h-new-device episode builder, leaving a low score that simulates customer confirmation."
+ },
+ "CASE-1038": {
+  "scenario": "tester-r3-2",
+  "persona": "tester",
+  "idea": "Exploit the 15-card ring cap and burst_hub defense by running a 17-card testing cohort across a shared device and email over 12 days, where 16 cards only take tiny $1.50 probes and only the 17th card executes the $1,450 cash-out.",
+  "verdict": "fraud",
+  "pattern": "card_testing",
+  "expect": "answer",
+  "affected": [
+   3700302,
+   3700303
+  ],
+  "cards": {
+   "A": "C07109-K2",
+   "B": "C06840-K1",
+   "C": "C02873-K1",
+   "D": "C01757-K1",
+   "E": "C08336-K1",
+   "F": "C03231-K2",
+   "G": "C04058-K1",
+   "H": "C01990-K1",
+   "I": "C06218-K1",
+   "J": "C08366-K2",
+   "K": "C10769-K1",
+   "L": "C07641-K1",
+   "M": "C03633-K1",
+   "N": "C04202-K1",
+   "O": "C04676-K2",
+   "P": "C10019-K1",
+   "Q": "C05283-K1"
+  },
+  "why": "Having 17 cards on the shared device and recipient domain exceeds the 15-card ring cap (dropping the component in r2_ring_wcc), while spreading the probes 15-20 hours apart over 12 days defeats the burst_hub detector and charge-shape campaign detector."
+ },
+ "CASE-1039": {
+  "scenario": "tester-r3-3",
+  "persona": "tester",
+  "idea": "Break exposure calculation (under-counting fraud money at stake) by placing a $920 fraudulent test-and-purchase wave 52 hours before the case opens, followed by a classic R5 card-testing burst right before open.",
+  "verdict": "fraud",
+  "pattern": "card_testing",
+  "expect": "answer",
+  "affected": [
+   3700304,
+   3700305,
+   3700306,
+   3700307,
+   3700308,
+   3700309
+  ],
+  "cards": {
+   "A": "C05127-K1"
+  },
+  "why": "Assay's episode builder is strictly capped at 1 hour plus 48 hours on a new device (`docs/r2/B34_episode.md`). Even though e1 and e2 use the exact same compromised device, email, and billing region as e3-e6, they occurred at 54h and 52.5h before open, so Assay will exclude $921.99 from exposure and fail to trigger L2/FILE_REPORT thresholds properly."
+ },
+ "CASE-1040": {
+  "scenario": "tester-r3-4",
+  "persona": "tester",
+  "idea": "Trigger a false-positive BLOCK_CARD on a legitimate dormant customer who wakes up and splits three small digital add-on purchases before buying their main item within 45 minutes.",
+  "verdict": "legitimate",
+  "pattern": "none",
+  "expect": "answer",
+  "affected": [],
+  "cards": {
+   "A": "C08226-K1"
+  },
+  "why": "Assay disables 'innocence' signals like home_region and long_tenure_clean (`docs/r2/B29_innocence.md`), while weighting `dormant` wakeup at LR 5.65 and firing the R5 card-testing rule (3 small online charges within 1h + >$100 cleared purchase). Because simulated customer replies follow Assay's own high probability, Assay will simulate a denial and falsely block a legitimate customer."
+ }
+}

@@ -256,13 +256,14 @@ def decide(s: Signals) -> list[Recommendation]:
 
     # --- R3: customer confirms. Settles the case; nothing else applies. ---
     if s.customer_reply is CustomerReply.CONFIRMS:
-        _add(out, Action.CLOSE_NO_FRAUD, exp,
-             "R3: the customer confirmed they made the transaction. The confirmation is "
-             "recorded in the case file.")
+        # §1 order: the case opened on the evidence request comes before the close.
         if should_create_case(s):
             _add(out, Action.CREATE_CASE, exp,
                  "Policy §3a: a case was opened when evidence was requested; it closes as "
                  "legitimate with the confirmation attached.")
+        _add(out, Action.CLOSE_NO_FRAUD, exp,
+             "R3: the customer confirmed they made the transaction. The confirmation is "
+             "recorded in the case file.")
         return out
 
     # --- R7: disputed but matches the holder's own recurring charge. ---
@@ -286,7 +287,9 @@ def decide(s: Signals) -> list[Recommendation]:
 
     # --- R5: card testing. ---
     if s.card_testing_sequence:
-        if s.large_purchase_cleared_usd > CARD_TESTING_CLEARED_THRESHOLD:
+        # An unsettled case is not blocked on the shape alone (R1: verify before you block); the
+        # decline and step-up below still stop the next charge (red team CASE-1040, tests/r2/redteam_pack/r3).
+        if s.large_purchase_cleared_usd > CARD_TESTING_CLEARED_THRESHOLD and s.verdict is Verdict.FRAUD:
             _add(out, Action.BLOCK_CARD, exp,
                  f"R5: a card-testing sequence preceded a cleared purchase of "
                  f"${s.large_purchase_cleared_usd:,.2f}, above the $100 threshold.")

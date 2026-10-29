@@ -35,15 +35,15 @@
         "source": "customer"
       },
       {
-        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
-        "entity_ids": [],
-        "ref": "document:fraud-policy#R3",
-        "source": "document"
-      },
-      {
         "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
         "entity_ids": [],
         "ref": "document:fraud-policy#§3a",
+        "source": "document"
+      },
+      {
+        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#R3",
         "source": "document"
       },
       {
@@ -83,13 +83,13 @@
   "next_best_actions": {
     "final": [
       {
-        "action": "CLOSE_NO_FRAUD",
-        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file.",
+        "action": "CREATE_CASE",
+        "reason": "Policy §3a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached.",
         "route": "auto"
       },
       {
-        "action": "CREATE_CASE",
-        "reason": "Policy §3a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached.",
+        "action": "CLOSE_NO_FRAUD",
+        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file.",
         "route": "auto"
       }
     ],

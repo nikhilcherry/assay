@@ -15,6 +15,13 @@ sys.path.insert(0, str(ROOT))
 from assay import disputes  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _round1_weight(monkeypatch):
+    """These tests pin the Round 1 weighting; a final-round R2Investigator built earlier in the
+    session sets disputes.W_OVERRIDE, so reset it per test."""
+    monkeypatch.setattr(disputes, "W_OVERRIDE", None)
+
+
 def test_history_says_every_dispute_was_fraud():
     r = json.loads(disputes.REPORT.read_text())
     assert r["disputes"] == r["disputes_confirmed_fraud"] > 1000

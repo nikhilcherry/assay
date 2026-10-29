@@ -1,0 +1,597 @@
+[
+ {
+  "scenario_id": "tester-r3-1",
+  "idea": "Evade the R5 1-hour card-testing window and 1-hour episode cap by spacing three micro-probes 75 minutes apart without a device profile, keeping the case below the 0.30 verification floor so simulated customer confirmation clears the big cash-out.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 4.2,
+    "amount": 1.15,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 2.9,
+    "amount": 2.05,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 1.6,
+    "amount": 1.49,
+    "product": "C",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 489.0,
+    "product": "W",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.21
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 14,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated model alert on transaction e4 ($489.00, Product W, online) following earlier small authorizations."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Micro-charge drip per card is disabled in Assay (LR 0.63), and R5 requires 3 small online charges within 1 hour. Spacing them 78 minutes apart with device=none avoids both the R5 detector and the 1-hour/48h-new-device episode builder, leaving a low score that simulates customer confirmation."
+  }
+ },
+ {
+  "scenario_id": "tester-r3-2",
+  "idea": "Exploit the 15-card ring cap and burst_hub defense by running a 17-card testing cohort across a shared device and email over 12 days, where 16 cards only take tiny $1.50 probes and only the 17th card executes the $1,450 cash-out.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "regular"
+   },
+   {
+    "label": "F",
+    "profile": "regular"
+   },
+   {
+    "label": "G",
+    "profile": "regular"
+   },
+   {
+    "label": "H",
+    "profile": "regular"
+   },
+   {
+    "label": "I",
+    "profile": "regular"
+   },
+   {
+    "label": "J",
+    "profile": "regular"
+   },
+   {
+    "label": "K",
+    "profile": "regular"
+   },
+   {
+    "label": "L",
+    "profile": "regular"
+   },
+   {
+    "label": "M",
+    "profile": "regular"
+   },
+   {
+    "label": "N",
+    "profile": "regular"
+   },
+   {
+    "label": "O",
+    "profile": "regular"
+   },
+   {
+    "label": "P",
+    "profile": "regular"
+   },
+   {
+    "label": "Q",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "B",
+    "hours_before_open": 280.0,
+    "amount": 1.25,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e2",
+    "card": "C",
+    "hours_before_open": 265.0,
+    "amount": 1.5,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e3",
+    "card": "D",
+    "hours_before_open": 250.0,
+    "amount": 1.75,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e4",
+    "card": "E",
+    "hours_before_open": 230.0,
+    "amount": 1.1,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e5",
+    "card": "F",
+    "hours_before_open": 215.0,
+    "amount": 1.9,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e6",
+    "card": "G",
+    "hours_before_open": 195.0,
+    "amount": 1.35,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e7",
+    "card": "H",
+    "hours_before_open": 180.0,
+    "amount": 1.6,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e8",
+    "card": "I",
+    "hours_before_open": 160.0,
+    "amount": 1.4,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e9",
+    "card": "J",
+    "hours_before_open": 145.0,
+    "amount": 1.8,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e10",
+    "card": "K",
+    "hours_before_open": 125.0,
+    "amount": 1.2,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e11",
+    "card": "L",
+    "hours_before_open": 110.0,
+    "amount": 1.55,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e12",
+    "card": "M",
+    "hours_before_open": 90.0,
+    "amount": 1.45,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e13",
+    "card": "N",
+    "hours_before_open": 75.0,
+    "amount": 1.65,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e14",
+    "card": "O",
+    "hours_before_open": 55.0,
+    "amount": 1.3,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e15",
+    "card": "P",
+    "hours_before_open": 35.0,
+    "amount": 1.7,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e16",
+    "card": "Q",
+    "hours_before_open": 18.0,
+    "amount": 1.85,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "comcast.net",
+    "addr1": 315,
+    "risk_score": 0.04
+   },
+   {
+    "id": "e17",
+    "card": "A",
+    "hours_before_open": 4.0,
+    "amount": 1.5,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "comcast.net",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e18",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 1450.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "comcast.net",
+    "addr1": "home",
+    "risk_score": 0.19
+   }
+  ],
+  "case": {
+   "flagged": "e18",
+   "day": 21,
+   "trigger_type": "risk_score",
+   "trigger_text": "High-value online purchase ($1,450.00, Product R) following small authorization on shared device profile."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e17",
+    "e18"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Having 17 cards on the shared device and recipient domain exceeds the 15-card ring cap (dropping the component in r2_ring_wcc), while spreading the probes 15-20 hours apart over 12 days defeats the burst_hub detector and charge-shape campaign detector."
+  }
+ },
+ {
+  "scenario_id": "tester-r3-3",
+  "idea": "Break exposure calculation (under-counting fraud money at stake) by placing a $920 fraudulent test-and-purchase wave 52 hours before the case opens, followed by a classic R5 card-testing burst right before open.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 54.0,
+    "amount": 1.99,
+    "product": "C",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 442,
+    "risk_score": 0.35
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 52.5,
+    "amount": 920.0,
+    "product": "R",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 442,
+    "risk_score": 0.68
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.8,
+    "amount": 1.5,
+    "product": "C",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 442,
+    "risk_score": 0.42
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.6,
+    "amount": 2.25,
+    "product": "C",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 442,
+    "risk_score": 0.48
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 0.4,
+    "amount": 3.1,
+    "product": "C",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 442,
+    "risk_score": 0.55
+   },
+   {
+    "id": "e6",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 175.0,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G935F Build/NRD90M | Android 7.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": 442,
+    "risk_score": 0.89
+   }
+  ],
+  "case": {
+   "flagged": "e6",
+   "day": 18,
+   "trigger_type": "risk_score",
+   "trigger_text": "Rapid sequence of 3 small online authorizations followed by $175.00 charge on new Android device."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay's episode builder is strictly capped at 1 hour plus 48 hours on a new device (`docs/r2/B34_episode.md`). Even though e1 and e2 use the exact same compromised device, email, and billing region as e3-e6, they occurred at 54h and 52.5h before open, so Assay will exclude $921.99 from exposure and fail to trigger L2/FILE_REPORT thresholds properly."
+  }
+ },
+ {
+  "scenario_id": "tester-r3-4",
+  "idea": "Trigger a false-positive BLOCK_CARD on a legitimate dormant customer who wakes up and splits three small digital add-on purchases before buying their main item within 45 minutes.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 0.7,
+    "amount": 2.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.38
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 0.5,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.44
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.3,
+    "amount": 3.49,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.51
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.05,
+    "amount": 245.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.62
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 25,
+   "trigger_type": "risk_score",
+   "trigger_text": "Alert on dormant card: three small online transactions followed by $245.00 purchase within 45 minutes."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay disables 'innocence' signals like home_region and long_tenure_clean (`docs/r2/B29_innocence.md`), while weighting `dormant` wakeup at LR 5.65 and firing the R5 card-testing rule (3 small online charges within 1h + >$100 cleared purchase). Because simulated customer replies follow Assay's own high probability, Assay will simulate a denial and falsely block a legitimate customer."
+  }
+ }
+]

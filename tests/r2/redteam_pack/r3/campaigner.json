@@ -1,0 +1,855 @@
+[
+ {
+  "scenario_id": "campaigner-r3-1",
+  "idea": "Evade the charge-shape campaign detector, recipient fan-in detector, and ring detector simultaneously by cash-out of a 6-card breach using polymorphic product codes (W, H, R, S, never C), 2-card device/recipient micro-shards, and card-local timing gaps, so the flagged card has zero measurable detector votes and simulates a customer confirmation.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "thin"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "heavy"
+   },
+   {
+    "label": "F",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 38.5,
+    "amount": 142.1,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 14.2,
+    "amount": 88.5,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | Edge 15.15063 | 1366x768",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.4,
+    "amount": 310.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | Edge 15.15063 | 1366x768",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e4",
+    "card": "B",
+    "hours_before_open": 29.0,
+    "amount": 64.2,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | Edge 15.15063 | 1366x768",
+    "p_email": "gmail.com",
+    "r_email": "outlook.com",
+    "addr1": "299",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e5",
+    "card": "C",
+    "hours_before_open": 22.1,
+    "amount": 215.0,
+    "product": "R",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_6 | Safari 11.0 | 1440x900",
+    "p_email": "yahoo.com",
+    "r_email": "icloud.com",
+    "addr1": "315",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e6",
+    "card": "C",
+    "hours_before_open": 5.5,
+    "amount": 49.95,
+    "product": "H",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_6 | Safari 11.0 | 1440x900",
+    "p_email": "yahoo.com",
+    "r_email": "icloud.com",
+    "addr1": "315",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e7",
+    "card": "D",
+    "hours_before_open": 18.0,
+    "amount": 175.4,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "315",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e8",
+    "card": "E",
+    "hours_before_open": 11.3,
+    "amount": 92.0,
+    "product": "S",
+    "channel": "online",
+    "device": "iOS Device | iOS 10.3.3 | Mobile Safari 10.0 | 375x667",
+    "p_email": "hotmail.com",
+    "r_email": "live.com",
+    "addr1": "440",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e9",
+    "card": "F",
+    "hours_before_open": 3.2,
+    "amount": 189.99,
+    "product": "H",
+    "channel": "online",
+    "device": "iOS Device | iOS 10.3.3 | Mobile Safari 10.0 | 375x667",
+    "p_email": "aol.com",
+    "r_email": "live.com",
+    "addr1": "440",
+    "risk_score": 0.1
+   }
+  ],
+  "case": {
+   "flagged": "e3",
+   "day": 19,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated screening alert on card A: online Product R authorization for $310.00 following prior online Product H activity on unrecognized Windows 10 device."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_new_device",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6",
+    "e7",
+    "e8",
+    "e9"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Cards A-F come from the same merchant breach, but no product C is used, devices are paired across at most 2 cards (below ring/burst_hub thresholds), and Card A keeps home p_email and addr1. Because January model scores are down-weighted and no cohort detector fires, Assay's prior stays low and its simulated customer verification confirms the transaction as legitimate."
+  }
+ },
+ {
+  "scenario_id": "campaigner-r3-2",
+  "idea": "Exploit Assay's strict episode builder boundaries (1-hour cap for standard transactions, 48-hour cap on a new device) during a multi-stage account takeover and breach campaign so Assay catches the final burst but severely under-counts total exposure.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   },
+   {
+    "label": "B",
+    "profile": "dormant"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 96.0,
+    "amount": 485.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "204",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 72.5,
+    "amount": 612.8,
+    "product": "R",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | Chrome 62.0 | 1440x2960",
+    "p_email": "anonymous.com",
+    "r_email": "yahoo.com.mx",
+    "addr1": "204",
+    "risk_score": 0.28
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 51.0,
+    "amount": 389.5,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | Chrome 62.0 | 1440x2960",
+    "p_email": "anonymous.com",
+    "r_email": "yahoo.com.mx",
+    "addr1": "204",
+    "risk_score": 0.31
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 6.5,
+    "amount": 940.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "204",
+    "risk_score": 0.22
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 0.5,
+    "amount": 145.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Ubuntu | Firefox 57.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "yahoo.com.mx",
+    "addr1": "204",
+    "risk_score": 0.68
+   },
+   {
+    "id": "e6",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 210.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Ubuntu | Firefox 57.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "yahoo.com.mx",
+    "addr1": "204",
+    "risk_score": 0.84
+   },
+   {
+    "id": "e7",
+    "card": "B",
+    "hours_before_open": 4.0,
+    "amount": 155.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Ubuntu | Firefox 57.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "yahoo.com.mx",
+    "addr1": "204",
+    "risk_score": 0.72
+   },
+   {
+    "id": "e8",
+    "card": "C",
+    "hours_before_open": 3.5,
+    "amount": 165.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Ubuntu | Firefox 57.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "yahoo.com.mx",
+    "addr1": "204",
+    "risk_score": 0.75
+   },
+   {
+    "id": "e9",
+    "card": "D",
+    "hours_before_open": 2.8,
+    "amount": 175.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Ubuntu | Firefox 57.0 | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "yahoo.com.mx",
+    "addr1": "204",
+    "risk_score": 0.79
+   }
+  ],
+  "case": {
+   "flagged": "e6",
+   "day": 24,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder A called to dispute recent activity after noticing unauthorized online charges."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6",
+    "e7",
+    "e8",
+    "e9"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay will easily catch the fraud on Card A due to dormant wakeup and the shared Linux device across B, C, D. However, its episode builder caps episodes at 1h (excluding e4 at 6.5h and e1 at 96h) and 48h on a new device (excluding e2 at 72.5h and e3 at 51.0h on the first burner Android device), so Assay will omit $2,427.30 of the $2,782.30 exposure on Card A."
+  }
+ },
+ {
+  "scenario_id": "campaigner-r3-3",
+  "idea": "Trigger a false-positive fraud block on a legitimate customer by weaponizing the new burst_hub detector and dormant-card wakeup detector during a legitimate corporate webinar registration surge where 16 cardholders pay the same regional recipient domain within 6 hours.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "thin"
+   },
+   {
+    "label": "E",
+    "profile": "regular"
+   },
+   {
+    "label": "F",
+    "profile": "heavy"
+   },
+   {
+    "label": "G",
+    "profile": "regular"
+   },
+   {
+    "label": "H",
+    "profile": "regular"
+   },
+   {
+    "label": "I",
+    "profile": "thin"
+   },
+   {
+    "label": "J",
+    "profile": "regular"
+   },
+   {
+    "label": "K",
+    "profile": "regular"
+   },
+   {
+    "label": "L",
+    "profile": "regular"
+   },
+   {
+    "label": "M",
+    "profile": "heavy"
+   },
+   {
+    "label": "N",
+    "profile": "regular"
+   },
+   {
+    "label": "O",
+    "profile": "regular"
+   },
+   {
+    "label": "P",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "B",
+    "hours_before_open": 5.5,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.18
+   },
+   {
+    "id": "e2",
+    "card": "C",
+    "hours_before_open": 5.2,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.21
+   },
+   {
+    "id": "e3",
+    "card": "D",
+    "hours_before_open": 4.9,
+    "amount": 99.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.25
+   },
+   {
+    "id": "e4",
+    "card": "E",
+    "hours_before_open": 4.6,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.16
+   },
+   {
+    "id": "e5",
+    "card": "F",
+    "hours_before_open": 4.3,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e6",
+    "card": "G",
+    "hours_before_open": 4.0,
+    "amount": 99.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.22
+   },
+   {
+    "id": "e7",
+    "card": "H",
+    "hours_before_open": 3.7,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e8",
+    "card": "I",
+    "hours_before_open": 3.4,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.29
+   },
+   {
+    "id": "e9",
+    "card": "J",
+    "hours_before_open": 3.1,
+    "amount": 99.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.2
+   },
+   {
+    "id": "e10",
+    "card": "K",
+    "hours_before_open": 2.8,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.17
+   },
+   {
+    "id": "e11",
+    "card": "L",
+    "hours_before_open": 2.5,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.15
+   },
+   {
+    "id": "e12",
+    "card": "M",
+    "hours_before_open": 2.2,
+    "amount": 99.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.13
+   },
+   {
+    "id": "e13",
+    "card": "N",
+    "hours_before_open": 1.8,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.21
+   },
+   {
+    "id": "e14",
+    "card": "O",
+    "hours_before_open": 1.4,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.18
+   },
+   {
+    "id": "e15",
+    "card": "P",
+    "hours_before_open": 1.0,
+    "amount": 99.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.24
+   },
+   {
+    "id": "e16",
+    "card": "A",
+    "hours_before_open": 0.5,
+    "amount": 49.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.38
+   },
+   {
+    "id": "e17",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 99.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.46
+   }
+  ],
+  "case": {
+   "flagged": "e17",
+   "day": 15,
+   "trigger_type": "risk_score",
+   "trigger_text": "High velocity recipient domain alert: Card A (previously inactive 35+ days) completed two online Product C purchases ($49.00, $99.00) to recipient domain cox.net."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay switched off innocence signals (home device, home email, home region get zero credit) and added `burst_hub` (LR 4.45) to catch >15-card hubs plus `recipient_fanin` (LR 3.0) and `dormant` wakeup (LR 5.65) and `charge-shape campaign` (2 online product C charges, LR 45.36). All four detectors stack on Card A while its legitimate home signals are ignored, pushing fraud probability over 0.85 and causing Assay to falsely block and report a legitimate customer."
+  }
+ },
+ {
+  "scenario_id": "campaigner-r3-4",
+  "idea": "Force Assay's card-mismatch data-quality guard to downgrade a blatant 8-card coordinated fraud campaign into an `uncertain` verdict by cross-linking Card B's transaction ID onto Card A's case header via a sibling-card suffix collision.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "regular"
+   },
+   {
+    "label": "F",
+    "profile": "regular"
+   },
+   {
+    "label": "G",
+    "profile": "regular"
+   },
+   {
+    "label": "H",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 3.0,
+    "amount": 29.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.62
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 2.5,
+    "amount": 149.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.81
+   },
+   {
+    "id": "e3",
+    "card": "B",
+    "hours_before_open": 2.2,
+    "amount": 29.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.65
+   },
+   {
+    "id": "e4",
+    "card": "B",
+    "hours_before_open": 0.2,
+    "amount": 149.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.88
+   },
+   {
+    "id": "e5",
+    "card": "C",
+    "hours_before_open": 1.9,
+    "amount": 29.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.64
+   },
+   {
+    "id": "e6",
+    "card": "C",
+    "hours_before_open": 1.5,
+    "amount": 149.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.83
+   },
+   {
+    "id": "e7",
+    "card": "D",
+    "hours_before_open": 1.4,
+    "amount": 29.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.61
+   },
+   {
+    "id": "e8",
+    "card": "E",
+    "hours_before_open": 1.1,
+    "amount": 149.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.79
+   },
+   {
+    "id": "e9",
+    "card": "F",
+    "hours_before_open": 0.9,
+    "amount": 149.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.8
+   },
+   {
+    "id": "e10",
+    "card": "G",
+    "hours_before_open": 0.6,
+    "amount": 149.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.82
+   },
+   {
+    "id": "e11",
+    "card": "H",
+    "hours_before_open": 0.4,
+    "amount": 149.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 7 | Chrome 63.0 | 1600x900",
+    "p_email": "anonymous.com",
+    "r_email": "hotmail.com",
+    "addr1": "184",
+    "risk_score": 0.85
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 27,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Analyst referral: multi-card ring detected on shared Windows 7 Chrome 63.0 device profile across 8 cards within 3 hours."
+  },
+  "raw_case_overrides": {
+   "card_id": "C09241-K1"
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "undocumented",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6",
+    "e7",
+    "e8",
+    "e9",
+    "e10",
+    "e11"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "In B23_data_quality.md and D4, Assay passes syntactic validation for valid card_id strings like C09241-K1, but when the case card_id does not match the card on the flagged transaction (e4 on Card B), Assay's hard guard overrides the investigation into `uncertain` instead of `fraud`, preventing `BLOCK_CARD` and `FILE_REPORT` on an active 8-card ring."
+  }
+ }
+]

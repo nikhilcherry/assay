@@ -1,0 +1,558 @@
+[
+ {
+  "scenario_id": "tester-r4-1",
+  "idea": "Just-outside-window card testing: space three small online test authorizations at 65-minute intervals (total 130 minutes) followed by a large cash-out on a heavy card to bypass the R5 1-hour window check, while the per-card micro-charge detector is disabled (LR 0.63) and new-device voting is switched off.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "heavy"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 3.0,
+    "amount": 6.45,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 1.9,
+    "amount": 7.8,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.8,
+    "amount": 8.99,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 895.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.24
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 14,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated risk model alert: online purchase of $895.00 on Product R following recent low-dollar activity."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Policy R5 specifies 3+ small online authorizations within an hour. By spacing e1, e2, and e3 at ~66 minutes apart, no 60-minute sliding window contains more than 2 small charges. Assay turned off per-card micro-charges (LR 0.63) and new-device detectors (C4_new_device.md), so on a heavy card this classic slow-paced card test lacks any active high-LR detector and will be cleared or under-acted on."
+  }
+ },
+ {
+  "scenario_id": "tester-r4-2",
+  "idea": "Cross-card split testing over a super-hub device: test small charges on 3 cards and cash out on a 4th card, while also planting a single benign transaction across 13 other cards on the same device profile so the 17-card component exceeds Assay's >15-card ring cap and gets dropped.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "heavy"
+   },
+   {
+    "label": "F",
+    "profile": "heavy"
+   },
+   {
+    "label": "G",
+    "profile": "heavy"
+   },
+   {
+    "label": "H",
+    "profile": "heavy"
+   },
+   {
+    "label": "I",
+    "profile": "heavy"
+   },
+   {
+    "label": "J",
+    "profile": "heavy"
+   },
+   {
+    "label": "K",
+    "profile": "heavy"
+   },
+   {
+    "label": "L",
+    "profile": "heavy"
+   },
+   {
+    "label": "M",
+    "profile": "heavy"
+   },
+   {
+    "label": "N",
+    "profile": "heavy"
+   },
+   {
+    "label": "O",
+    "profile": "heavy"
+   },
+   {
+    "label": "P",
+    "profile": "heavy"
+   },
+   {
+    "label": "Q",
+    "profile": "heavy"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "E",
+    "hours_before_open": 90.0,
+    "amount": 55.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e2",
+    "card": "F",
+    "hours_before_open": 88.0,
+    "amount": 42.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "yahoo.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e3",
+    "card": "G",
+    "hours_before_open": 85.0,
+    "amount": 60.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e4",
+    "card": "H",
+    "hours_before_open": 82.0,
+    "amount": 35.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "aol.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e5",
+    "card": "I",
+    "hours_before_open": 78.0,
+    "amount": 75.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e6",
+    "card": "J",
+    "hours_before_open": 74.0,
+    "amount": 49.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "icloud.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e7",
+    "card": "K",
+    "hours_before_open": 70.0,
+    "amount": 80.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "comcast.net",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e8",
+    "card": "L",
+    "hours_before_open": 66.0,
+    "amount": 45.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "msn.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e9",
+    "card": "M",
+    "hours_before_open": 62.0,
+    "amount": 90.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "att.net",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e10",
+    "card": "N",
+    "hours_before_open": 58.0,
+    "amount": 52.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "verizon.net",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e11",
+    "card": "O",
+    "hours_before_open": 54.0,
+    "amount": 63.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "sbcglobal.net",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e12",
+    "card": "P",
+    "hours_before_open": 50.0,
+    "amount": 38.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e13",
+    "card": "Q",
+    "hours_before_open": 46.0,
+    "amount": 70.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "home",
+    "r_email": "live.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e14",
+    "card": "A",
+    "hours_before_open": 0.6,
+    "amount": 5.25,
+    "product": "C",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e15",
+    "card": "B",
+    "hours_before_open": 0.45,
+    "amount": 6.1,
+    "product": "C",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "yahoo.com",
+    "r_email": "yahoo.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e16",
+    "card": "C",
+    "hours_before_open": 0.3,
+    "amount": 4.95,
+    "product": "C",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "hotmail.com",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e17",
+    "card": "D",
+    "hours_before_open": 0.1,
+    "amount": 680.0,
+    "product": "R",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 375x667",
+    "p_email": "outlook.com",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.22
+   }
+  ],
+  "case": {
+   "flagged": "e17",
+   "day": 18,
+   "trigger_type": "risk_score",
+   "trigger_text": "Model alert: $680.00 online authorization on Product R."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e14",
+    "e15",
+    "e16",
+    "e17"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Each card A, B, C only gets 1 small test charge, and card D only gets the single $680 cash-out, defeating single-card R5 card testing logic. Meanwhile, by using a generic iPhone device profile shared across 17 cards total (>15 cards), Assay's ring cap ('elements on more than 15 cards are dropped') blinds the `ring_wcc` detector, and only 3 cards have micro-charges so `micro_drip_cohort` will not fire."
+  }
+ },
+ {
+  "scenario_id": "tester-r4-3",
+  "idea": "Reverse-order card testing & episode under-counting: execute the high-value online purchase first while the card is fresh, then run 3 rapid small test charges on other merchants to see if the card remained open, flagging the last small test charge.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 1.2,
+    "amount": 740.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 0.6,
+    "amount": 5.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.18
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.35,
+    "amount": 6.25,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.25
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 7.1,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.42
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 21,
+   "trigger_type": "customer_report",
+   "trigger_text": "Customer contacted support disputing recent unauthorized activity on their card, specifically noting the rapid small online charges."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_testing",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "First, R5 expects 'Three or more small online authorizations... followed by a larger purchase', whereas here the $740 purchase (e1) happened *before* the three small online tests (e2, e3, e4). Second, because e1 is an in-person Product W charge with `home` email/addr1 and low risk_score (0.14) while e2-e4 are online Product C micro-charges, Assay's capped episode builder (`N7_dispute_episode.md`) will either exclude e1 from the fraud episode\u2014severely under-counting exposure ($18.85 instead of $758.85)\u2014or miss R5's $100 cleared-purchase condition."
+  }
+ },
+ {
+  "scenario_id": "tester-r4-4",
+  "idea": "False-positive trap with channel-conflict poison: a legitimate customer splits a digital gift-card purchase into 3 small online charges and a larger purchase within an hour, while the alert text states 'in-person' for the online flagged transaction to trigger Assay's R8 record-conflict guard.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 0.75,
+    "amount": 9.99,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 0.55,
+    "amount": 9.99,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.35,
+    "amount": 9.99,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 145.0,
+    "product": "H",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 25,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Analyst review requested for in-person transaction of $145.00 following three small $9.99 authorizations on the same card within 45 minutes."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "All 4 transactions use the cardholder's established `home` device, `home` email, and `home` billing region with low risk scores. However, it creates a double bind for Assay: (1) if Assay has a rule-based R5 detector, it will falsely block a legitimate customer because there are 3 small online charges within an hour followed by a >$100 purchase; (2) even if R5 doesn't fire, the trigger_text says 'in-person transaction' while the transaction record has `channel: online`, which trips Assay's R8 record-conflict guard (like HHF-008) and forces an `uncertain` / `ESCALATE_TO_ANALYST` verdict instead of `legitimate`."
+  }
+ }
+]

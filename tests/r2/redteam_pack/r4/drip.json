@@ -1,0 +1,1733 @@
+[
+ {
+  "scenario_id": "drip-r4-1",
+  "idea": "Sub-threshold product S micro-skimming at $6.55 to evade the product C <=$6.50 micro_drip_cohort filter while spreading 3 charges per card across 10 cards over 28 days.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "regular"
+   },
+   {
+    "label": "F",
+    "profile": "regular"
+   },
+   {
+    "label": "G",
+    "profile": "regular"
+   },
+   {
+    "label": "H",
+    "profile": "regular"
+   },
+   {
+    "label": "I",
+    "profile": "regular"
+   },
+   {
+    "label": "J",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 520.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 240.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 4.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e4",
+    "card": "B",
+    "hours_before_open": 510.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e5",
+    "card": "B",
+    "hours_before_open": 230.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e6",
+    "card": "B",
+    "hours_before_open": 18.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e7",
+    "card": "C",
+    "hours_before_open": 500.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e8",
+    "card": "C",
+    "hours_before_open": 220.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e9",
+    "card": "C",
+    "hours_before_open": 25.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.1
+   },
+   {
+    "id": "e10",
+    "card": "D",
+    "hours_before_open": 490.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e11",
+    "card": "D",
+    "hours_before_open": 210.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e12",
+    "card": "D",
+    "hours_before_open": 30.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e13",
+    "card": "E",
+    "hours_before_open": 480.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e14",
+    "card": "E",
+    "hours_before_open": 200.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e15",
+    "card": "E",
+    "hours_before_open": 35.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e16",
+    "card": "F",
+    "hours_before_open": 470.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e17",
+    "card": "F",
+    "hours_before_open": 190.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e18",
+    "card": "F",
+    "hours_before_open": 40.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.1
+   },
+   {
+    "id": "e19",
+    "card": "G",
+    "hours_before_open": 460.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e20",
+    "card": "G",
+    "hours_before_open": 180.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e21",
+    "card": "G",
+    "hours_before_open": 45.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e22",
+    "card": "H",
+    "hours_before_open": 450.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e23",
+    "card": "H",
+    "hours_before_open": 170.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e24",
+    "card": "H",
+    "hours_before_open": 50.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.1
+   },
+   {
+    "id": "e25",
+    "card": "I",
+    "hours_before_open": 440.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e26",
+    "card": "I",
+    "hours_before_open": 160.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.07
+   },
+   {
+    "id": "e27",
+    "card": "I",
+    "hours_before_open": 55.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e28",
+    "card": "J",
+    "hours_before_open": 430.0,
+    "amount": 6.55,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e29",
+    "card": "J",
+    "hours_before_open": 150.0,
+    "amount": 6.59,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.08
+   },
+   {
+    "id": "e30",
+    "card": "J",
+    "hours_before_open": 60.0,
+    "amount": 6.62,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.1
+   }
+  ],
+  "case": {
+   "flagged": "e3",
+   "day": 29,
+   "trigger_type": "customer_report",
+   "trigger_text": "Customer contacted support disputing an online charge of $6.62 on Product S, noting two earlier unrecognized charges of $6.55 and $6.59 over the past three weeks."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "undocumented",
+   "affected": [
+    "e1",
+    "e2",
+    "e3"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Evades micro_drip_cohort on three counts: product is S (not C), amount is > $6.50 ($6.55-$6.62), and count per card is 3 (below the 4+ threshold). Uses common r_email gmail.com and home devices so ring_wcc and recipient_fanin do not link the 10 cards, causing Assay to miss the cross-card cohort and fail to recommend FILE_REPORT and MONITOR_CONNECTED_CARDS."
+  }
+ },
+ {
+  "scenario_id": "drip-r4-2",
+  "idea": "Super-ring saturation (>15 cards sharing a skimmer device) combined with a 3-charge micro-drip and a delayed larger cashout to defeat both ring_wcc (15-card cap) and micro_drip_cohort (4-charge minimum).",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "regular"
+   },
+   {
+    "label": "F",
+    "profile": "regular"
+   },
+   {
+    "label": "G",
+    "profile": "regular"
+   },
+   {
+    "label": "H",
+    "profile": "regular"
+   },
+   {
+    "label": "I",
+    "profile": "regular"
+   },
+   {
+    "label": "J",
+    "profile": "regular"
+   },
+   {
+    "label": "K",
+    "profile": "regular"
+   },
+   {
+    "label": "L",
+    "profile": "regular"
+   },
+   {
+    "label": "M",
+    "profile": "regular"
+   },
+   {
+    "label": "N",
+    "profile": "regular"
+   },
+   {
+    "label": "O",
+    "profile": "regular"
+   },
+   {
+    "label": "P",
+    "profile": "regular"
+   },
+   {
+    "label": "Q",
+    "profile": "regular"
+   },
+   {
+    "label": "R",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 480.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 310.0,
+    "amount": 4.75,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.15
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 140.0,
+    "amount": 4.9,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.15
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 2.0,
+    "amount": 88.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.22
+   },
+   {
+    "id": "e5",
+    "card": "B",
+    "hours_before_open": 460.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.13
+   },
+   {
+    "id": "e6",
+    "card": "C",
+    "hours_before_open": 450.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e7",
+    "card": "D",
+    "hours_before_open": 440.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e8",
+    "card": "E",
+    "hours_before_open": 430.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e9",
+    "card": "F",
+    "hours_before_open": 420.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.13
+   },
+   {
+    "id": "e10",
+    "card": "G",
+    "hours_before_open": 410.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.15
+   },
+   {
+    "id": "e11",
+    "card": "H",
+    "hours_before_open": 400.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e12",
+    "card": "I",
+    "hours_before_open": 390.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e13",
+    "card": "J",
+    "hours_before_open": 380.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.13
+   },
+   {
+    "id": "e14",
+    "card": "K",
+    "hours_before_open": 370.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e15",
+    "card": "L",
+    "hours_before_open": 360.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e16",
+    "card": "M",
+    "hours_before_open": 350.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.13
+   },
+   {
+    "id": "e17",
+    "card": "N",
+    "hours_before_open": 340.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e18",
+    "card": "O",
+    "hours_before_open": 330.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e19",
+    "card": "P",
+    "hours_before_open": 320.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.15
+   },
+   {
+    "id": "e20",
+    "card": "Q",
+    "hours_before_open": 300.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.13
+   },
+   {
+    "id": "e21",
+    "card": "R",
+    "hours_before_open": 290.0,
+    "amount": 4.5,
+    "product": "C",
+    "channel": "online",
+    "device": "Linux x86_64 | Linux | firefox 57.0 | 1600x900",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.14
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 25,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated alert on Product C online transaction of $88.50 (risk_score=0.22)."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_fraud",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Exploits Assay's ring cap (elements on >15 cards are dropped, so the shared Linux device on 18 cards is ignored), disabled new_device detector (C4), and micro_drip_cohort threshold (only 3 charges <= $6.50 on Card A; e4 is $88.50). With risk_score=0.22 and no firing detectors, Assay will clear or fail to link the 18-card skimmer ring."
+  }
+ },
+ {
+  "scenario_id": "drip-r4-3",
+  "idea": "Slow-burn account takeover on a heavy issuer-bucket card using an anonymous email and new device over 19 days, exploiting Assay's disabled new-device detectors and capped episode builder.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "heavy"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 450.0,
+    "amount": 9.95,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1440x2960",
+    "p_email": "anonymous.com",
+    "r_email": "anonymous.com",
+    "addr1": 325,
+    "risk_score": 0.11
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 360.0,
+    "amount": 14.5,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1440x2960",
+    "p_email": "anonymous.com",
+    "r_email": "anonymous.com",
+    "addr1": 325,
+    "risk_score": 0.12
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 270.0,
+    "amount": 18.25,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1440x2960",
+    "p_email": "anonymous.com",
+    "r_email": "anonymous.com",
+    "addr1": 325,
+    "risk_score": 0.13
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 180.0,
+    "amount": 22.0,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1440x2960",
+    "p_email": "anonymous.com",
+    "r_email": "anonymous.com",
+    "addr1": 325,
+    "risk_score": 0.14
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 90.0,
+    "amount": 27.5,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1440x2960",
+    "p_email": "anonymous.com",
+    "r_email": "anonymous.com",
+    "addr1": 325,
+    "risk_score": 0.15
+   },
+   {
+    "id": "e6",
+    "card": "A",
+    "hours_before_open": 3.0,
+    "amount": 34.0,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 62.0 for android | 1440x2960",
+    "p_email": "anonymous.com",
+    "r_email": "anonymous.com",
+    "addr1": 325,
+    "risk_score": 0.18
+   }
+  ],
+  "case": {
+   "flagged": "e6",
+   "day": 22,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Analyst review requested for recurring small Product H online charges from a new Android device and anonymous.com domain on a high-volume card."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Targets Section 4 of Assay's innovation doc: new_device_burst and device_churn were switched off because card_id is an issuer bucket, and per-card micro-charges and uncapped episode builders were dropped. Because the 6 charges are spaced 90 hours apart on Product H ($9.95-$34.00), no burst or micro_drip_cohort detector fires, and even if flagged, Assay's capped episode builder will under-count the 19-day $126.20 exposure."
+  }
+ },
+ {
+  "scenario_id": "drip-r4-4",
+  "idea": "False-positive trap: 18 legitimate cardholders buying a new $4.99 daily/weekly mobile commuter pass (Product C) over 3 weeks, triggering Assay's micro_drip_cohort link detector on a benign subscription.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "regular"
+   },
+   {
+    "label": "F",
+    "profile": "regular"
+   },
+   {
+    "label": "G",
+    "profile": "regular"
+   },
+   {
+    "label": "H",
+    "profile": "regular"
+   },
+   {
+    "label": "I",
+    "profile": "regular"
+   },
+   {
+    "label": "J",
+    "profile": "regular"
+   },
+   {
+    "label": "K",
+    "profile": "regular"
+   },
+   {
+    "label": "L",
+    "profile": "regular"
+   },
+   {
+    "label": "M",
+    "profile": "regular"
+   },
+   {
+    "label": "N",
+    "profile": "regular"
+   },
+   {
+    "label": "O",
+    "profile": "regular"
+   },
+   {
+    "label": "P",
+    "profile": "regular"
+   },
+   {
+    "label": "Q",
+    "profile": "regular"
+   },
+   {
+    "label": "R",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 504.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 336.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 168.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 1.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e5",
+    "card": "B",
+    "hours_before_open": 480.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e6",
+    "card": "B",
+    "hours_before_open": 312.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e7",
+    "card": "B",
+    "hours_before_open": 144.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e8",
+    "card": "B",
+    "hours_before_open": 12.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e9",
+    "card": "C",
+    "hours_before_open": 460.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e10",
+    "card": "C",
+    "hours_before_open": 290.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e11",
+    "card": "C",
+    "hours_before_open": 120.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e12",
+    "card": "C",
+    "hours_before_open": 8.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e13",
+    "card": "D",
+    "hours_before_open": 450.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e14",
+    "card": "D",
+    "hours_before_open": 280.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e15",
+    "card": "D",
+    "hours_before_open": 110.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e16",
+    "card": "D",
+    "hours_before_open": 6.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e17",
+    "card": "E",
+    "hours_before_open": 440.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e18",
+    "card": "E",
+    "hours_before_open": 270.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e19",
+    "card": "E",
+    "hours_before_open": 100.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e20",
+    "card": "E",
+    "hours_before_open": 5.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e21",
+    "card": "F",
+    "hours_before_open": 430.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e22",
+    "card": "F",
+    "hours_before_open": 260.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e23",
+    "card": "F",
+    "hours_before_open": 90.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e24",
+    "card": "F",
+    "hours_before_open": 4.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e25",
+    "card": "G",
+    "hours_before_open": 400.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e26",
+    "card": "G",
+    "hours_before_open": 250.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e27",
+    "card": "G",
+    "hours_before_open": 80.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e28",
+    "card": "G",
+    "hours_before_open": 3.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e29",
+    "card": "H",
+    "hours_before_open": 390.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e30",
+    "card": "H",
+    "hours_before_open": 240.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e31",
+    "card": "H",
+    "hours_before_open": 70.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e32",
+    "card": "H",
+    "hours_before_open": 2.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e33",
+    "card": "I",
+    "hours_before_open": 380.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e34",
+    "card": "I",
+    "hours_before_open": 230.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e35",
+    "card": "I",
+    "hours_before_open": 60.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e36",
+    "card": "I",
+    "hours_before_open": 1.5,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e37",
+    "card": "J",
+    "hours_before_open": 370.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e38",
+    "card": "J",
+    "hours_before_open": 220.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e39",
+    "card": "J",
+    "hours_before_open": 50.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e40",
+    "card": "J",
+    "hours_before_open": 2.5,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e41",
+    "card": "K",
+    "hours_before_open": 350.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e42",
+    "card": "K",
+    "hours_before_open": 200.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e43",
+    "card": "K",
+    "hours_before_open": 45.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e44",
+    "card": "K",
+    "hours_before_open": 3.5,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e45",
+    "card": "L",
+    "hours_before_open": 340.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e46",
+    "card": "L",
+    "hours_before_open": 190.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e47",
+    "card": "L",
+    "hours_before_open": 40.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e48",
+    "card": "L",
+    "hours_before_open": 4.5,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e49",
+    "card": "M",
+    "hours_before_open": 330.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e50",
+    "card": "N",
+    "hours_before_open": 320.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e51",
+    "card": "O",
+    "hours_before_open": 310.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e52",
+    "card": "P",
+    "hours_before_open": 300.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e53",
+    "card": "Q",
+    "hours_before_open": 290.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e54",
+    "card": "R",
+    "hours_before_open": 280.0,
+    "amount": 4.99,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.05
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 28,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called inquiring about a recurring weekly $4.99 online charge on Product C that they did not immediately recognize from the billing descriptor."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Exploits Assay's measured dispute weight + micro_drip_cohort combination (described in Section 3 for HHF-004). Although this is a legitimate weekly recurring charge (Rule R7: same amount $4.99, home device, home email, home region), having 4+ sub-$6.50 Product C charges across 12+ cards in January coupled with a customer_report trigger will cause Assay to apply the dispute weight, link the cohort, and falsely block/report a legitimate customer."
+  }
+ }
+]

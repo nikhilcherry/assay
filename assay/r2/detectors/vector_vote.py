@@ -17,26 +17,40 @@ Evaluates both:
 Backtests as-of over Aug-Dec 2016 closed cases (leave-one-out, `closed_at <= opened_at`)
 AND a fixed-seed sample of `>= 2,000` legitimate card-days (from cards never named
 in any closed case or exam case). Reports both LR vs cleared closed cases and LR vs
-legitimate card-days. Since exam alerts are investigated cases, selects `(k, theta, variant)`
-to keep `P(fire | cleared case) <= 8%` (and `P(fire | legit card-day) <= 3%`) and maximise
-the 95% CI lower bound of `LR = P(fire | fraud case) / P(fire | cleared case)` (Laplace).
-`weight` is set to that 95% CI lower bound vs cleared cases.
+legitimate card-days.
+
+STRICT SELECTION CONTRACT:
+A candidate `(variant, k, theta)` MUST satisfy BOTH:
+  - `P(fire | cleared case) <= 8%` (`MAX_CLEARED_CASE_FPR = 0.08`), AND
+  - `P(fire | legit card-day) <= 3%` (`MAX_LEGIT_CARD_DAY_FPR = 0.03`).
+Any candidate failing either constraint is strictly ineligible (no fallback).
+If no candidate qualifies, `enabled = False` and `VectorPrecedentVote.run()` emits `[]`.
+When a candidate qualifies, `weight` is set to the 95% CI lower bound of
+`P(fire | fraud case) / P(fire | cleared case)` (Laplace).
+
+The selected operating point is persisted to `data/stage/r2/vector_vote_selection.json`
+keyed by `(dataset_tag(), code_hash(vector_vote.py))` so agent startup reuses the
+verified selection without re-running the full backtest on every process start.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Iterable
 
 import httpx
 import numpy as np
 import pandas as pd
 
-from assay.r2.attest import Attestation, Evidence
+from assay.data import ROOT
+from assay.r2.attest import Attestation, Evidence, dataset_tag
 from assay.r2.finding import Backtest, CaseCtx, Detector, Finding
-from assay.r2.frames import case_pack, closed_cases, tx_all
+from assay.r2.frames import R2_STAGE, case_pack, closed_cases, tx_all
 from assay.r2.vector import (
     EMBED_DIM,
     TG_R2_DIR,
@@ -101,24 +115,23 @@ FREEMAIL_DOMAINS: frozenset[str] = frozenset({
 })
 
 K_GRID: tuple[int, ...] = (5, 10, 20)
-THETA_GRID: tuple[float, ...] = (
-    0.75,
-    0.80,
-    0.83,
-    0.85,
-    0.88,
-    0.90,
-    0.91,
-    0.92,
-    0.93,
-    0.94,
-    0.95,
-    0.96,
-)
 MAX_CLEARED_CASE_FPR: float = 0.08
 MAX_LEGIT_CARD_DAY_FPR: float = 0.03
 SPECIFIC_CARD_CAP: int = 15
 FUSED_SPECIFIC_BOOST: float = 0.25
+
+SELECTION_CACHE_PATH: Path = R2_STAGE / "vector_vote_selection.json"
+DOC_OUTPUT_PATH: Path = ROOT / "docs" / "r2" / "C5_vector_vote.md"
+
+
+def _code_hash() -> str:
+    """Return short SHA-256 of `vector_vote.py` and `vector.py` so any logic edit invalidates cache."""
+    h = hashlib.sha256()
+    h.update(Path(__file__).read_bytes())
+    vec_file = Path(__file__).resolve().parent.parent / "vector.py"
+    if vec_file.exists():
+        h.update(vec_file.read_bytes())
+    return h.hexdigest()[:12]
 
 
 @dataclass(frozen=True)
@@ -143,6 +156,15 @@ class GridCell:
     ci_legit_high: float
 
     @property
+    def qualifies(self) -> bool:
+        """True iff BOTH P(fire|cleared) <= 8% AND P(fire|legit card-day) <= 3% AND fired_fraud > 0."""
+        return (
+            self.p_fire_cleared <= MAX_CLEARED_CASE_FPR
+            and self.p_fire_legit_day <= MAX_LEGIT_CARD_DAY_FPR
+            and self.fired_fraud > 0
+        )
+
+    @property
     def ci_low(self) -> float:
         """95% CI lower bound of P(fire|fraud)/P(fire|cleared) (Laplace) used as decision weight."""
         return self.ci_cleared_low
@@ -160,9 +182,12 @@ class VectorVoteBacktestSummary:
     n_cleared: int
     n_legit_days: int
     grid: list[GridCell]
-    chosen: GridCell
-    best_pure: GridCell
-    best_fused: GridCell
+    enabled: bool
+    status_reason: str
+    chosen: GridCell | None
+    best_pure: GridCell | None
+    best_fused: GridCell | None
+    stage_trace: dict[str, Any] = field(default_factory=dict)
     caught_case_ids: list[str] = field(default_factory=list)
     missed_case_ids: list[str] = field(default_factory=list)
     cleared_acted_case_ids: list[str] = field(default_factory=list)
@@ -357,11 +382,8 @@ def _enrich_tg_neighbors(
     idx: LocalVectorIndex,
 ) -> list[VectorNeighbor]:
     """Ensure every `VectorNeighbor` returned by TigerGraph carries its `outcome` and
-    `pattern` (TigerGraph's `similar_cases_vec` GSQL query prefixes attributes as
-    `Hits.outcome` / `Hits.pattern`, which `vector.py`'s `similar_cases_vec` reads as
-    `attrs.get("outcome", "")` -> `""`). Joining the returned neighbour `case_id` to
-    the static closed-case outcome/pattern in `idx` guarantees exact outcome labels
-    without altering TigerGraph's retrieved neighbour IDs or distances.
+    `pattern` by joining the returned neighbour `case_id` to static closed-case labels
+    if needed.
     """
     enriched: list[VectorNeighbor] = []
     for n in neighbors:
@@ -394,10 +416,11 @@ def _sample_legit_card_days(
     seed: int = 42,
     start_date: str = "2016-08-01",
     end_date: str = "2017-01-01",
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, dict[str, int]]:
     """Sample `n_samples` legitimate card-days from cards NEVER named in any closed case
     (as primary or connected card) or exam case, within `[start_date, end_date)`.
     Each card-day's `opened_at` is the timestamp of the card's last transaction on that UTC day.
+    Returns `(sampled_df, filter_counts)`.
     """
     if cp is None:
         cp = case_pack()
@@ -413,7 +436,8 @@ def _sample_legit_card_days(
 
     t_start = pd.Timestamp(start_date)
     t_end = pd.Timestamp(end_date)
-    sub = tx[(tx["t"] >= t_start) & (tx["t"] < t_end) & (~tx["card_id"].isin(cased_cards))].copy()
+    in_window = tx[(tx["t"] >= t_start) & (tx["t"] < t_end)]
+    sub = in_window[~in_window["card_id"].isin(cased_cards)].copy()
     sub["day"] = sub["t"].dt.floor("D")
 
     card_days = (
@@ -427,7 +451,16 @@ def _sample_legit_card_days(
     take = min(n_samples, len(card_days))
     chosen_idx = np.sort(rng.choice(len(card_days), size=take, replace=False))
     sampled = card_days.iloc[chosen_idx].reset_index(drop=True)
-    return sampled
+
+    trace = {
+        "total_tx_rows": int(len(tx)),
+        "tx_in_eval_window": int(len(in_window)),
+        "distinct_cased_or_exam_cards_excluded": int(len(cased_cards)),
+        "uncased_tx_in_eval_window": int(len(sub)),
+        "total_uncased_card_days_in_window": int(len(card_days)),
+        "sampled_legit_card_days": int(len(sampled)),
+    }
+    return sampled, trace
 
 
 def _embed_legit_card_days(
@@ -664,12 +697,14 @@ def run_vector_vote_backtest(
     seed: int = 42,
 ) -> VectorVoteBacktestSummary:
     """Run the full as-of leave-one-out backtest over Aug-Dec 2016 closed cases AND
-    a fixed-seed sample of `>= 2,000` legitimate card-days across `k in {5, 10, 20}`,
-    `theta in THETA_GRID`, and `variant in {'pure', 'fused'}`.
+    a fixed-seed sample of `>= 2,000` legitimate card-days across `k in {5, 10, 20}`
+    and `variant in {'pure', 'fused'}`.
 
-    Selects `(k, theta, variant)` to keep `P(fire | cleared case) <= 8%` (and
-    `P(fire | legit card-day) <= 3%`) and maximise the 95% CI lower bound of
-    `P(fire | fraud case) / P(fire | cleared case)` (Laplace).
+    STRICTLY ENFORCES BOTH CONSTRAINTS:
+      - `P(fire | cleared case) <= 8%` (`MAX_CLEARED_CASE_FPR = 0.08`)
+      - `P(fire | legit card-day) <= 3%` (`MAX_LEGIT_CARD_DAY_FPR = 0.03`)
+    Any candidate failing either constraint is ineligible. If no candidate satisfies
+    both constraints, `enabled = False` and the detector emits nothing (`[]`).
     """
     tx = tx_all()
     art = _default_artifacts()
@@ -678,7 +713,9 @@ def run_vector_vote_backtest(
 
     t_start_sec = int(_to_epoch_sec(eval_start))
     t_end_sec = int(_to_epoch_sec(eval_end))
-    eval_mask = (idx.opened_sec >= t_start_sec) & (idx.opened_sec < t_end_sec)
+    after_start = idx.opened_sec >= t_start_sec
+    before_end = idx.opened_sec < t_end_sec
+    eval_mask = after_start & before_end
     eval_indices = np.where(eval_mask)[0]
 
     max_k = max(K_GRID)
@@ -737,7 +774,7 @@ def run_vector_vote_backtest(
             for k in K_GRID:
                 fused_case_scores[k][pos_e] = pure_case_scores[k][pos_e]
 
-    legit_df = _sample_legit_card_days(
+    legit_df, legit_trace = _sample_legit_card_days(
         tx=tx,
         cc=art.cc,
         n_samples=n_legit_days,
@@ -792,6 +829,22 @@ def run_vector_vote_backtest(
     fraud_mask = y_eval == 1
     cleared_mask = y_eval == 0
 
+    stage_trace: dict[str, Any] = {
+        "total_closed_cases": int(len(art.cc)),
+        "total_confirmed_fraud_all_months": int(np.sum(idx.outcomes == "confirmed_fraud")),
+        "total_cleared_all_months": int(np.sum(idx.outcomes == "cleared")),
+        "closed_before_oct1_standardizer_fit": int(np.sum(idx.closed_sec < int(_to_epoch_sec("2016-10-01")))),
+        "opened_ge_eval_start_aug1": int(np.sum(after_start)),
+        "opened_lt_eval_end_jan1": int(np.sum(before_end)),
+        "eval_closed_cases_aug_dec": int(n_eval),
+        "eval_confirmed_fraud_aug_dec": n_fraud,
+        "eval_cleared_aug_dec": n_cleared,
+        "min_prior_closed_cases_at_eval": int(
+            min((int(np.sum(idx.closed_sec <= idx.opened_sec[i])) for i in eval_indices), default=0)
+        ),
+        **legit_trace,
+    }
+
     grid: list[GridCell] = []
     for variant, case_sc_map, legit_sc_map in (
         ("pure", pure_case_scores, pure_legit_scores),
@@ -838,32 +891,62 @@ def run_vector_vote_backtest(
                     )
                 )
 
-    def _pick_best(cells: list[GridCell]) -> GridCell:
-        eligible = [
-            c
-            for c in cells
-            if c.p_fire_cleared <= MAX_CLEARED_CASE_FPR
-            and c.p_fire_legit_day <= MAX_LEGIT_CARD_DAY_FPR
-            and c.fired_fraud > 0
-        ]
-        if not eligible:
-            eligible = [c for c in cells if c.p_fire_cleared <= MAX_CLEARED_CASE_FPR and c.fired_fraud > 0]
-        if not eligible:
-            return sorted(cells, key=lambda c: (c.p_fire_cleared, -c.ci_cleared_low))[0]
+    def _pick_strict(cells: list[GridCell]) -> GridCell | None:
+        """Strictly require BOTH P(fire|cleared) <= 8% AND P(fire|legit_day) <= 3%. Never fall back."""
+        qualifying = [c for c in cells if c.qualifies]
+        if not qualifying:
+            return None
         return max(
-            eligible,
+            qualifying,
             key=lambda c: (round(c.ci_cleared_low, 4), round(c.p_fire_fraud, 4), -c.p_fire_cleared),
         )
 
-    best_pure = _pick_best([c for c in grid if c.variant == "pure"])
-    best_fused = _pick_best([c for c in grid if c.variant == "fused"])
-    if (round(best_fused.ci_cleared_low, 4), -round(best_fused.p_fire_cleared, 4)) > (
-        round(best_pure.ci_cleared_low, 4),
-        -round(best_pure.p_fire_cleared, 4),
-    ):
-        chosen = best_fused
+    best_pure = _pick_strict([c for c in grid if c.variant == "pure"])
+    best_fused = _pick_strict([c for c in grid if c.variant == "fused"])
+
+    stage_trace["n_grid_cells"] = len(grid)
+    stage_trace["n_pass_cleared_le_8pct"] = sum(1 for c in grid if c.p_fire_cleared <= MAX_CLEARED_CASE_FPR)
+    stage_trace["n_pass_legit_day_le_3pct"] = sum(1 for c in grid if c.p_fire_legit_day <= MAX_LEGIT_CARD_DAY_FPR)
+    stage_trace["n_qualifying_both"] = sum(1 for c in grid if c.qualifies)
+
+    if best_pure is not None and best_fused is not None:
+        if (round(best_fused.ci_cleared_low, 4), -round(best_fused.p_fire_cleared, 4)) > (
+            round(best_pure.ci_cleared_low, 4),
+            -round(best_pure.p_fire_cleared, 4),
+        ):
+            chosen: GridCell | None = best_fused
+        else:
+            chosen = best_pure
     else:
-        chosen = best_pure
+        chosen = best_pure or best_fused
+
+    if chosen is None:
+        min_cl = min((c.p_fire_cleared for c in grid), default=1.0)
+        min_lg = min((c.p_fire_legit_day for c in grid), default=1.0)
+        reason = (
+            f"DISABLED (abstains on all cases): 0/{len(grid)} grid cells satisfied BOTH "
+            f"P(fire|cleared) <= {MAX_CLEARED_CASE_FPR:.0%} (min={min_cl:.2%}) AND "
+            f"P(fire|legit_day) <= {MAX_LEGIT_CARD_DAY_FPR:.0%} (min={min_lg:.2%})."
+        )
+        summary = VectorVoteBacktestSummary(
+            eval_start=eval_start,
+            eval_end=eval_end,
+            n_fraud=n_fraud,
+            n_cleared=n_cleared,
+            n_legit_days=n_legit,
+            grid=grid,
+            enabled=False,
+            status_reason=reason,
+            chosen=None,
+            best_pure=None,
+            best_fused=None,
+            stage_trace=stage_trace,
+            caught_case_ids=[],
+            missed_case_ids=[cid for pos_e, cid in enumerate(eval_case_ids) if y_eval[pos_e] == 1],
+            cleared_acted_case_ids=[],
+        )
+        _save_selection_cache(summary)
+        return summary
 
     chosen_scores = (
         pure_case_scores[chosen.k] if chosen.variant == "pure" else fused_case_scores[chosen.k]
@@ -882,20 +965,85 @@ def run_vector_vote_backtest(
         elif fired:
             cleared_acted_ids.append(cid)
 
-    return VectorVoteBacktestSummary(
+    reason = (
+        f"ENABLED: variant={chosen.variant}, k={chosen.k}, theta={chosen.theta:.4f}, "
+        f"P(fire|cleared)={chosen.p_fire_cleared:.2%} (<=8%), "
+        f"P(fire|legit_day)={chosen.p_fire_legit_day:.2%} (<=3%), "
+        f"weight(CI_low_cleared)={chosen.ci_cleared_low:.4f}."
+    )
+    summary = VectorVoteBacktestSummary(
         eval_start=eval_start,
         eval_end=eval_end,
         n_fraud=n_fraud,
         n_cleared=n_cleared,
         n_legit_days=n_legit,
         grid=grid,
+        enabled=True,
+        status_reason=reason,
         chosen=chosen,
         best_pure=best_pure,
         best_fused=best_fused,
+        stage_trace=stage_trace,
         caught_case_ids=caught_ids,
         missed_case_ids=missed_ids,
         cleared_acted_case_ids=cleared_acted_ids,
     )
+    _save_selection_cache(summary)
+    return summary
+
+
+def _selection_cache_key() -> str:
+    return f"{dataset_tag()}::{_code_hash()}"
+
+
+def _save_selection_cache(summary: VectorVoteBacktestSummary, path: Path = SELECTION_CACHE_PATH) -> Path:
+    """Persist the verified backtest selection to `data/stage/r2/vector_vote_selection.json`."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {
+        "cache_key": _selection_cache_key(),
+        "dataset_tag": dataset_tag(),
+        "code_hash": _code_hash(),
+        "eval_start": summary.eval_start,
+        "eval_end": summary.eval_end,
+        "n_fraud": summary.n_fraud,
+        "n_cleared": summary.n_cleared,
+        "n_legit_days": summary.n_legit_days,
+        "enabled": summary.enabled,
+        "status_reason": summary.status_reason,
+        "chosen": asdict(summary.chosen) if summary.chosen is not None else None,
+        "best_pure": asdict(summary.best_pure) if summary.best_pure is not None else None,
+        "best_fused": asdict(summary.best_fused) if summary.best_fused is not None else None,
+        "stage_trace": summary.stage_trace,
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    return path
+
+
+def load_or_compute_selection(path: Path = SELECTION_CACHE_PATH) -> dict[str, Any]:
+    """Load persisted `(k, theta, variant, weight, enabled, counts)` from `path` when
+    `cache_key == f'{dataset_tag()}::{_code_hash()}'`; otherwise run `run_vector_vote_backtest()`
+    which writes and returns the fresh selection.
+    """
+    expected_key = _selection_cache_key()
+    if path.exists():
+        try:
+            data = json.loads(path.read_text())
+            if data.get("cache_key") == expected_key:
+                return data
+        except Exception:
+            pass
+    run_vector_vote_backtest()
+    return json.loads(path.read_text())
+
+
+def format_stage_trace(summary: VectorVoteBacktestSummary | None = None) -> str:
+    """Return a formatted diagnostic table of closed-case and legit-card-day stage counts."""
+    if summary is None:
+        summary = run_vector_vote_backtest()
+    lines = ["Stage / Filter Trace (Closed Cases & Legitimate Card-Days):"]
+    for k, v in summary.stage_trace.items():
+        lines.append(f"  {k:<42}: {v}")
+    return "\n".join(lines)
 
 
 def format_backtest_grid(summary: VectorVoteBacktestSummary | None = None) -> str:
@@ -904,18 +1052,31 @@ def format_backtest_grid(summary: VectorVoteBacktestSummary | None = None) -> st
         summary = run_vector_vote_backtest()
 
     lines = [
+        format_stage_trace(summary),
+        "",
         f"As-of Backtest Window: {summary.eval_start} .. {summary.eval_end} "
         f"(Fraud={summary.n_fraud}, Cleared={summary.n_cleared}, LegitCardDays={summary.n_legit_days})",
         f"{'Variant':<7} {'k':>3} {'theta':>8} {'P(F|Fraud)':>11} {'P(F|Clear)':>11} "
-        f"{'P(F|LegitD)':>11} {'LR(Clear)':>9} {'95% CI (Clear)':>17} {'LR(LegitD)':>10} {'95% CI (LegitD)':>19} {'Clear<=8%':>10}",
-        "-" * 130,
+        f"{'P(F|LegitD)':>11} {'LR(Clear)':>9} {'95% CI (Clear)':>17} {'LR(LegitD)':>10} {'95% CI (LegitD)':>19} {'Both(<=8%,<=3%)':>16}",
+        "-" * 136,
     ]
     for c in summary.grid:
-        ok_str = "<=8% OK" if c.p_fire_cleared <= MAX_CLEARED_CASE_FPR else ">8% (skip)"
+        if c.qualifies:
+            ok_str = "QUALIFIES"
+        elif c.p_fire_cleared > MAX_CLEARED_CASE_FPR and c.p_fire_legit_day > MAX_LEGIT_CARD_DAY_FPR:
+            ok_str = "FAIL(Clr&Leg)"
+        elif c.p_fire_cleared > MAX_CLEARED_CASE_FPR:
+            ok_str = "FAIL(Clear>8%)"
+        elif c.p_fire_legit_day > MAX_LEGIT_CARD_DAY_FPR:
+            ok_str = "FAIL(Legit>3%)"
+        else:
+            ok_str = "FAIL(0_fraud)"
+
         mark = (
             " *"
             if (
-                c.variant == summary.chosen.variant
+                summary.chosen is not None
+                and c.variant == summary.chosen.variant
                 and c.k == summary.chosen.k
                 and abs(c.theta - summary.chosen.theta) < 1e-6
             )
@@ -927,20 +1088,12 @@ def format_backtest_grid(summary: VectorVoteBacktestSummary | None = None) -> st
             f"{c.variant:<7} {c.k:>3} {c.theta:>8.4f} "
             f"{c.p_fire_fraud:>10.2%} ({c.fired_fraud:>4}) "
             f"{c.p_fire_cleared:>6.2%} ({c.fired_cleared:>3}) "
-            f"{c.p_fire_legit_day:>6.2%} ({c.fired_legit_days:>3}) "
+            f"{c.p_fire_legit_day:>6.2%} ({c.fired_legit_days:>4}) "
             f"{c.lr_vs_cleared:>8.2f} {ci_cl_str:>17} "
-            f"{c.lr_vs_legit_day:>9.2f} {ci_lg_str:>19} {ok_str:>10}{mark}"
+            f"{c.lr_vs_legit_day:>9.2f} {ci_lg_str:>19} {ok_str:>16}{mark}"
         )
-    ch = summary.chosen
-    lines.append("-" * 130)
-    lines.append(
-        f"Selected: variant={ch.variant}, k={ch.k}, theta={ch.theta:.4f} -> "
-        f"P(fire|fraud)={ch.p_fire_fraud:.2%}, P(fire|cleared)={ch.p_fire_cleared:.2%}, "
-        f"P(fire|legit_day)={ch.p_fire_legit_day:.2%}, "
-        f"LR_vs_cleared={ch.lr_vs_cleared:.2f} (95% CI [{ch.ci_cleared_low:.2f}, {ch.ci_cleared_high:.2f}]), "
-        f"LR_vs_legit_day={ch.lr_vs_legit_day:.2f} (95% CI [{ch.ci_legit_low:.2f}, {ch.ci_legit_high:.2f}]), "
-        f"weight(CI_low_cleared)={ch.ci_cleared_low:.2f}"
-    )
+    lines.append("-" * 136)
+    lines.append(f"Selection Status: {summary.status_reason}")
     return "\n".join(lines)
 
 
@@ -955,6 +1108,7 @@ class CaseVoteEvaluation:
     backend: str
     score: float
     fired: bool
+    enabled: bool
     weight: float
     neighbors: list[VectorNeighbor]
     qv: np.ndarray
@@ -962,7 +1116,10 @@ class CaseVoteEvaluation:
 
 class VectorPrecedentVote(Detector):
     """Decision-path detector (`vector_precedent`) casting a calibrated vote when a case's
-    as-of behaviour vector is surrounded by confirmed-fraud precedent cases.
+    as-of behaviour vector is surrounded by confirmed-fraud precedent cases AND the
+    backtested operating point satisfies both `P(fire|cleared) <= 8%` and
+    `P(fire|legit card-day) <= 3%`. If no operating point satisfies both constraints,
+    `enabled = False` and `run()` emits `[]`.
     Never names a typology (`pattern = "none"`), `blocks_assumed_clear = False`,
     `affected_txn_ids = []`, `connected_card_ids = []`.
     """
@@ -977,12 +1134,27 @@ class VectorPrecedentVote(Detector):
         theta: float | None = None,
         variant: str | None = None,
         weight: float | None = None,
+        enabled: bool | None = None,
     ):
-        bt = run_vector_vote_backtest()
-        self.k: int = int(k if k is not None else bt.chosen.k)
-        self.theta: float = float(theta if theta is not None else bt.chosen.theta)
-        self.variant: str = str(variant if variant is not None else bt.chosen.variant)
-        self.weight: float = round(float(weight if weight is not None else bt.chosen.ci_cleared_low), 4)
+        sel = load_or_compute_selection()
+        chosen_dict = sel.get("chosen")
+        if chosen_dict is not None:
+            self.enabled: bool = bool(enabled if enabled is not None else sel.get("enabled", True))
+            self.k: int = int(k if k is not None else chosen_dict["k"])
+            self.theta: float = float(theta if theta is not None else chosen_dict["theta"])
+            self.variant: str = str(variant if variant is not None else chosen_dict["variant"])
+            self.weight: float = round(
+                float(weight if weight is not None else chosen_dict["ci_cleared_low"]), 4
+            )
+            self.status_reason: str = str(sel.get("status_reason", "ENABLED"))
+        else:
+            # No cell in the backtest grid satisfied both constraints -> abstain
+            self.enabled = bool(enabled if enabled is not None else False)
+            self.k = int(k if k is not None else 20)
+            self.theta = float(theta if theta is not None else 1.0)
+            self.variant = str(variant if variant is not None else "pure")
+            self.weight = round(float(weight if weight is not None else 1.0), 4)
+            self.status_reason = str(sel.get("status_reason", "DISABLED: no qualifying grid cell"))
 
     def evaluate_ctx(self, ctx: CaseCtx, use_tg_if_enabled: bool = True) -> CaseVoteEvaluation:
         """Compute the as-of embedding, retrieve the `k` nearest closed cases (`closed_at <= opened_at`),
@@ -1043,7 +1215,7 @@ class VectorPrecedentVote(Detector):
             neighbors = [n for n in neighbors if n.case_id in allowed_ids][: self.k]
 
         score = laplace_fraud_score(n.outcome for n in neighbors)
-        fired = bool(len(neighbors) >= self.k and score >= self.theta - 1e-9)
+        fired = bool(self.enabled and len(neighbors) >= self.k and score >= self.theta - 1e-9)
 
         return CaseVoteEvaluation(
             case_id=ctx.case_id,
@@ -1055,6 +1227,7 @@ class VectorPrecedentVote(Detector):
             backend=backend,
             score=score,
             fired=fired,
+            enabled=self.enabled,
             weight=self.weight,
             neighbors=neighbors,
             qv=qv,
@@ -1062,7 +1235,7 @@ class VectorPrecedentVote(Detector):
 
     def run(self, ctx: CaseCtx) -> list[Finding]:
         ev = self.evaluate_ctx(ctx, use_tg_if_enabled=True)
-        if not ev.fired:
+        if not ev.enabled or not ev.fired:
             return []
 
         nb_ids = [n.case_id for n in ev.neighbors]
@@ -1114,13 +1287,14 @@ class VectorPrecedentVote(Detector):
 
     def backtest(self, cc: pd.DataFrame | None = None, tx: pd.DataFrame | None = None) -> Backtest:
         bt = run_vector_vote_backtest()
+        lr_val = round(float(bt.chosen.lr_vs_cleared), 4) if bt.chosen is not None else 1.0
         return Backtest(
             detector=self.name,
             n_cases=bt.n_fraud + bt.n_cleared,
             caught=bt.caught_case_ids,
             missed=bt.missed_case_ids,
             legit_acted_against=bt.cleared_acted_case_ids,
-            lr_measured=round(float(bt.chosen.lr_vs_cleared), 4),
+            lr_measured=lr_val,
         )
 
 
@@ -1128,12 +1302,6 @@ def sync_missing_closed_case_vectors() -> dict[str, Any]:
     """Idempotently diagnose and upsert any `ClosedCase` vertices (specifically checking
     the 20 new Round 1 exam cases `CC-5566..CC-5585`) or their 24-dim `behaviour` vectors
     that are missing in TigerGraph.
-
-    Note on HNSW self-probes: several early closed cases (such as `CC-0001..CC-0010`)
-    share identical behaviour embeddings (`distance = 0.0`), so a `k=5` probe on
-    `CC-0001`'s vector can return 5 tied peers without `CC-0001` in top-5. We therefore
-    restrict `as_of` to the target case's own `closed_at` with `k=50` when probing
-    whether a case's vector is indexed in TigerGraph.
     """
     from assay.r2.tg_r2 import (
         _auth,
@@ -1159,7 +1327,6 @@ def sync_missing_closed_case_vectors() -> dict[str, Any]:
     gname = _graph_name_from_schema()
     auth = _auth()
 
-    # 1. Diagnose total ClosedCase vertex count in TigerGraph
     stat_url = f"{base}/restpp/builtins/{gname}"
     r_stat = httpx.post(
         stat_url,
@@ -1173,7 +1340,6 @@ def sync_missing_closed_case_vectors() -> dict[str, Any]:
         if res_stat:
             tg_total_closed_cases = int(res_stat[0].get("count", 0))
 
-    # 2. Directly check the 20 new Round 1 exam cases CC-5566..CC-5585
     r1_new_ids = [f"CC-{i:04d}" for i in range(5566, 5586)]
     missing_vertices: list[str] = []
     missing_vectors: list[str] = []
@@ -1219,7 +1385,6 @@ def sync_missing_closed_case_vectors() -> dict[str, Any]:
         f"missing_vertices(CC-5566..5585)={missing_vertices}, missing_vectors={missing_vectors}"
     )
 
-    # 3. Upsert any missing ClosedCase vertices and their incident edges via REST++ `/restpp/graph/{gname}`
     upserted_vertices: list[str] = []
     if missing_vertices:
         cc_by_id = cc.set_index("case_id", drop=False)
@@ -1312,10 +1477,8 @@ def parity_check(case_ids: Iterable[str] | None = None, k: int | None = None) ->
 
     1. Runs `sync_missing_closed_case_vectors()` so `CC-5566..CC-5585` and their
        vectors are present in TigerGraph.
-    2. Prints one raw TigerGraph `similar_cases_vec` reply for `HHF-001` so the exact
-       response shape (`v_id`, `attributes.Hits.outcome`, etc.) is visible in test output.
-    3. Because TigerVector uses approximate HNSW search, top-k sets at `k=20` can
-       differ slightly at the boundary. Checks that:
+    2. Prints one raw TigerGraph `similar_cases_vec` reply for `HHF-001`.
+    3. Checks that:
          - the FIRE decision (`fired`) is identical on all 18 cases, and
          - `|tg_score - local_score| <= 0.10` on all 18 cases.
        Reports per-case set Jaccard and which of the 18 cases fire under local and under TG.
@@ -1431,7 +1594,9 @@ def parity_check(case_ids: Iterable[str] | None = None, k: int | None = None) ->
         else:
             os.environ["ASSAY_TG"] = prev_env
 
-    print(f"\n=== C5 Parity Table (k={det.k}, theta={det.theta:.4f}, variant={det.variant}) ===")
+    print(
+        f"\n=== C5 Parity Table (enabled={det.enabled}, k={det.k}, theta={det.theta:.4f}, variant={det.variant}) ==="
+    )
     header = (
         f"{'Case':<8} {'Card':<10} {'Loc_Score':>9} {'TG_Score':>9} {'|Diff|':>7} "
         f"{'Loc_Fire':>8} {'TG_Fire':>8} {'Set_Jacc':>9}"
@@ -1454,6 +1619,7 @@ def parity_check(case_ids: Iterable[str] | None = None, k: int | None = None) ->
 
     return {
         "skipped": False,
+        "enabled": det.enabled,
         "k": det.k,
         "theta": det.theta,
         "sync_info": sync_info,
@@ -1468,3 +1634,125 @@ def parity_check(case_ids: Iterable[str] | None = None, k: int | None = None) ->
         "mismatches": fire_mismatches + score_mismatches,
         "comparisons": comparisons,
     }
+
+
+def generate_c5_doc(
+    summary: VectorVoteBacktestSummary | None = None,
+    exam_evals: list[CaseVoteEvaluation] | None = None,
+    parity_res: dict[str, Any] | None = None,
+    out_path: Path = DOC_OUTPUT_PATH,
+) -> Path:
+    """Generate `docs/r2/C5_vector_vote.md` directly from the live measured backtest,
+    exam-case evaluation, and parity check so documentation and code can never drift.
+    """
+    if summary is None:
+        summary = run_vector_vote_backtest()
+
+    det = VectorPrecedentVote()
+    if exam_evals is None:
+        tx = tx_all()
+        cc = closed_cases()
+        cp = case_pack()
+        tx_by_id = tx.set_index("TransactionID", drop=False)
+        exam_evals = []
+        for r in cp.itertuples():
+            t0 = pd.Timestamp(r.opened_at)
+            fid = int(r.flagged_txn_id)
+            actual_card = str(tx_by_id.loc[fid, "card_id"]) if fid in tx_by_id.index else str(r.card_id)
+            ctx = CaseCtx(
+                case_id=str(r.case_id),
+                flagged_txn_id=fid,
+                card_id=actual_card,
+                customer_id=str(r.customer_id),
+                opened_at=t0,
+                tx=tx[tx["t"] <= t0],
+                cc=cc[pd.to_datetime(cc["closed_at"]) <= t0],
+            )
+            exam_evals.append(det.evaluate_ctx(ctx, use_tg_if_enabled=False))
+
+    lines: list[str] = [
+        "<!-- GENERATED; DO NOT EDIT BY HAND. Written by assay.r2.detectors.vector_vote.generate_c5_doc() -->",
+        "# C5 — Putting TigerVector Precedent on the Decision Path (`vector_precedent`)",
+        "",
+        "## 1. Design, Zero-Leakage Guarantee & Selection Cache",
+        f"- **Dataset Tag:** `{dataset_tag()}` | **Code Hash:** `{_code_hash()}`",
+        "- **Selection Cache:** `data/stage/r2/vector_vote_selection.json`",
+        "- **Detector:** `VectorPrecedentVote` (`name = 'vector_precedent'`, `pattern = 'none'`, `blocks_assumed_clear = False`).",
+        "- **Strict Dual Constraint:** A candidate `(variant, k, theta)` is eligible **if and only if** both:",
+        f"  1. `P(fire | cleared case) <= {MAX_CLEARED_CASE_FPR:.0%}` (`<= 8%`), **and**",
+        f"  2. `P(fire | legit card-day) <= {MAX_LEGIT_CARD_DAY_FPR:.0%}` (`<= 3%`).",
+        "  If no candidate satisfies both constraints, `enabled = False` and the detector abstains (`run(ctx) -> []`).",
+        "",
+        "## 2. Stage & Filter Trace",
+        "```",
+        format_stage_trace(summary),
+        "```",
+        "",
+        "## 3. Measured As-Of Backtest Grid (Aug–Dec 2016 Closed Cases & 2,400 Legitimate Card-Days)",
+        f"- **Evaluation window:** `{summary.eval_start}` .. `{summary.eval_end}`",
+        f"- **Evaluated closed cases:** `{summary.n_fraud + summary.n_cleared}` (`confirmed_fraud = {summary.n_fraud}`, `cleared = {summary.n_cleared}`)",
+        f"- **Sampled legitimate card-days (`seed=42`):** `{summary.n_legit_days}`",
+        f"- **Selection outcome:** `{summary.status_reason}`",
+        "",
+        "| Variant | `k` | `theta` | `P(fire \\| fraud)` | `P(fire \\| cleared)` | `P(fire \\| legit day)` | `LR vs cleared` | `95% CI (cleared)` | `LR vs legit day` | `95% CI (legit day)` | Dual Gate (`<=8%` & `<=3%`) |",
+        "|---|---:|---:|---:|---:|---:|---:|---|---:|---|---|",
+    ]
+
+    for c in summary.grid:
+        gate = "**QUALIFIES**" if c.qualifies else (
+            "FAIL (both)" if (c.p_fire_cleared > MAX_CLEARED_CASE_FPR and c.p_fire_legit_day > MAX_LEGIT_CARD_DAY_FPR)
+            else ("FAIL (`cleared > 8%`)" if c.p_fire_cleared > MAX_CLEARED_CASE_FPR else "FAIL (`legit_day > 3%`)")
+        )
+        is_chosen = (
+            summary.chosen is not None
+            and c.variant == summary.chosen.variant
+            and c.k == summary.chosen.k
+            and abs(c.theta - summary.chosen.theta) < 1e-6
+        )
+        v_label = f"**`{c.variant}` \\***" if is_chosen else f"`{c.variant}`"
+        lines.append(
+            f"| {v_label} | `{c.k}` | `{c.theta:.4f}` | `{c.p_fire_fraud:.2%}` (`{c.fired_fraud}/{c.n_fraud}`) | "
+            f"`{c.p_fire_cleared:.2%}` (`{c.fired_cleared}/{c.n_cleared}`) | "
+            f"`{c.p_fire_legit_day:.2%}` (`{c.fired_legit_days}/{c.n_legit_days}`) | "
+            f"`{c.lr_vs_cleared:.2f}` | `[{c.ci_cleared_low:.2f}, {c.ci_cleared_high:.2f}]` | "
+            f"`{c.lr_vs_legit_day:.2f}` | `[{c.ci_legit_low:.2f}, {c.ci_legit_high:.2f}]` | {gate} |"
+        )
+
+    lines.extend([
+        "",
+        "## 4. Measured Run on the 18 Final-Round Exam Cases (`case_pack()`)",
+        f"- **Detector config:** `enabled={det.enabled}`, `variant={det.variant}`, `k={det.k}`, `theta={det.theta:.4f}`, `weight={det.weight:.4f}`",
+        f"- **Exam cases firing (Local):** `{[e.case_id for e in exam_evals if e.fired]}`",
+        "",
+        "| Case ID | Card ID | Opened At | Score | Fired? | Fraud / `k` | Top-5 Precedent Neighbours (`id:outcome:dist`) |",
+        "|---|---|---|---:|:---:|---:|---|",
+    ])
+
+    for ev in exam_evals:
+        n_f = sum(1 for n in ev.neighbors if n.outcome == "confirmed_fraud")
+        top5 = ", ".join(
+            f"{n.case_id}:{'F' if n.outcome == 'confirmed_fraud' else 'C'}:{n.distance:.3f}"
+            for n in ev.neighbors[:5]
+        )
+        lines.append(
+            f"| `{ev.case_id}` | `{ev.card_id}` | `{ev.opened_at}` | `{ev.score:.4f}` | `{ev.fired}` | `{n_f}/{len(ev.neighbors)}` | `{top5}` |"
+        )
+
+    if parity_res is not None:
+        lines.extend([
+            "",
+            "## 5. TigerGraph vs Local Parity Check",
+        ])
+        if parity_res.get("skipped"):
+            lines.append(f"- **Status:** Skipped (`{parity_res.get('reason')}`)")
+        else:
+            lines.extend([
+                f"- **Fire decision agreement:** `{parity_res['n_fire_identical']}/{parity_res['n_checked']}`",
+                f"- **Score within `<= 0.10`:** `{parity_res['n_score_within_tol']}/{parity_res['n_checked']}`",
+                f"- **Fired under Local:** `{parity_res['fired_local_cases']}`",
+                f"- **Fired under TigerGraph:** `{parity_res['fired_tg_cases']}`",
+            ])
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(lines) + "\n")
+    return out_path

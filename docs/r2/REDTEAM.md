@@ -60,3 +60,28 @@ each persona saw its round-1 results and attacked again. Scenarios and results:
   trigger in place of fake IVR transcripts, fake card-mismatch tags and spoofed R3 links, and all 4
   verdicts came out the same. Its 3 round-2 "wins" came from stealthy fraud underneath the text, not
   from the text.
+
+## Rounds 3 and 4 (run blind on commit d2662ff, local mode)
+Round 3's scenarios were written against the earlier write-ups. Round 4's personas read the current ones
+(cohort links, record conflict, "link, not vote"). Each round compiled 40 scenarios into an overlay
+dataset and ran the single-case command blind. Scenarios, truth and results: `tests/r2/redteam_pack/r3`
+and `r4`.
+
+| | R3 | R4 |
+|---|---:|---:|
+| fraud caught | 1 | 1 |
+| fraud caught, episode under-counted | 8 | 7 |
+| fraud hedged (uncertain, escalated) | 7 | 12 |
+| **fraud missed** | **8** | **3** |
+| legit cleared | 2 | 3 |
+| legit hedged (uncertain) | 3 | 6 |
+| legit blocked, customer denied it (R2 requires the block) | 3 | 4 |
+| **legit blocked, no denial** | **3** | **0** |
+| bad input rejected / answered / crashed | 4 / 0 / 0 | 3 / 0 / 0 |
+| fraud case rejected because the attacker's own case row was invalid | 1 | 1 |
+
+What changed after them: R3's CASE-1040 came back `uncertain` and still carried `BLOCK_CARD`, because
+R5 blocked on a card-testing shape whatever the verdict. Now R5 blocks only when fraud is established.
+Otherwise it declines and steps up authentication (R1: verify before you block). The round 4 misses were
+slow multi-day takeovers on heavy cards and a 6-card ring that rotated user agents and split charges.
+They are what we still miss.
