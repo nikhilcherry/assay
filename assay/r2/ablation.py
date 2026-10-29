@@ -151,6 +151,17 @@ def _patch_card_mismatch_guard() -> Iterator[None]:
 
 
 @contextmanager
+def _patch_record_conflict_guard() -> Iterator[None]:
+    """Switch off the record-conflict guard (R8: the alert states a fact the bank's record contradicts)."""
+    orig = investigate_r2.record_conflict
+    try:
+        investigate_r2.record_conflict = lambda case, flagged: None
+        yield
+    finally:
+        investigate_r2.record_conflict = orig
+
+
+@contextmanager
 def _patch_dispute_episode_builder() -> Iterator[None]:
     """Switch off the N7 dispute episode builder so customer reports use the Round 1 episode window."""
     orig_ep_fn = dispute_episode.episode_for_dispute
@@ -245,6 +256,11 @@ CONFIG_SPECS: list[ConfigSpec] = [
         description="Disable DQ-07 card-mismatch guard on HHF-011 (`_card_mismatch = None`).",
     ),
     ConfigSpec(
+        name="no_record_conflict_guard",
+        category="guard",
+        description="Disable the R8 record-conflict guard (alert text vs the bank's record of the flagged charge).",
+    ),
+    ConfigSpec(
         name="no_dispute_episode",
         category="guard",
         description="Disable N7 dispute episode builder (`dispute_episode.episode_for_dispute` falls back to Round 1 window).",
@@ -295,6 +311,7 @@ _PATCHERS: dict[str, Callable[[], Iterator[None]]] = {
     "no_r2_detectors": _make_all_r2_detectors_patch(),
     "no_jan_drift_guard": _patch_jan_drift_guard,
     "no_card_mismatch_guard": _patch_card_mismatch_guard,
+    "no_record_conflict_guard": _patch_record_conflict_guard,
     "no_dispute_episode": _patch_dispute_episode_builder,
     "no_episode_cap_hours": _patch_episode_cap_hours,
     "no_w_override": _patch_dispute_weight_override,

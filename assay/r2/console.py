@@ -31,10 +31,12 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from assay.r2.attest import dataset_tag
 from assay.r2.approvals import create_app as create_approvals_app
 from assay.r2.frames import case_pack
 from assay.r2.investigate_r2 import R2Investigator
@@ -720,6 +722,44 @@ def create_app() -> FastAPI:
         else:
             os.environ.pop("ASSAY_FAULT", None)
         return {"fault": val or None, "active": bool(val)}
+
+    @app.get("/verify/{case_id}")
+    async def verify_case(case_id: str) -> Dict[str, Any]:
+        """Re-executes every attested ref in one case's answer file; nothing is cached."""
+        if not re.fullmatch(r"HHF-\d{3}", case_id):
+            raise HTTPException(status_code=400, detail="case_id must match HHF-NNN")
+        from assay.r2 import verify_claims as vc
+
+        path = Path(vc.DEFAULT_ANSWERS_DIR) / f"{case_id}.json"
+        if not path.is_file():
+            raise HTTPException(status_code=404, detail=f"No answer file for {case_id}")
+
+        def _go() -> Any:
+            # verify_case_file is uncached: a judge always gets a fresh re-run
+            return vc.verify_case_file(path)
+
+        t0 = time.perf_counter()
+        report = await run_in_threadpool(_go)
+        elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 1)
+        claims = [
+            {
+                "section": c.section,
+                "index": c.index,
+                "ref": c.ref,
+                "status": c.status,
+                "reason": c.reason,
+                "claim": (c.claim or "")[:300],
+            }
+            for c in report.all_checks
+        ]
+        return {
+            "case_id": case_id,
+            "dataset": dataset_tag(),
+            "total": len(claims),
+            "counts": report.status_counts(),
+            "claims": claims,
+            "elapsed_ms": elapsed_ms,
+        }
 
     @app.post("/run/{case_id}")
     def run_case(case_id: str) -> Dict[str, Any]:

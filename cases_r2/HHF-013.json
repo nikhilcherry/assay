@@ -29,15 +29,35 @@
         "source": "graph"
       },
       {
-        "claim": "Policy §6: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
+        "claim": "Vector precedent search (tigergraph:similar_cases_vec, variant=pure, k=20, theta=0.9091) on card C06115-K1 as-of 2017-01-26 20:40:00 retrieved 20/20 confirmed-fraud neighbours (Laplace score 0.9545 >= 0.9091): CC-5436:confirmed_fraud(d=0.0541), CC-3116:confirmed_fraud(d=0.0570), CC-2847:confirmed_fraud(d=0.0812), CC-4959:confirmed_fraud(d=0.0509), CC-4393:confirmed_fraud(d=0.0863).",
+        "entity_ids": [
+          "3626720"
+        ],
+        "ref": "query:similar_cases_vec(as_of=2017-01-26 20:40:00, backend=tigergraph:similar_cases_vec, k=20, neighbor_case_ids=['CC-5436', 'CC-3116', 'CC-2847', 'CC-4959', 'CC-4393', 'CC-1472', 'CC-2289', 'CC-3529', 'CC-3227', 'CC-4460', 'CC-4522', 'CC-5402', 'CC-2317', 'CC-3300', 'CC-5145', 'CC-2365', 'CC-5163', 'CC-3661', 'CC-4106', 'CC-4130'], neighbor_distances=[0.054056, 0.057045, 0.0812, 0.050926, 0.08627, 0.080873, 0.086307, 0.040865, 0.062268, 0.079216, 0.016435, 0.055291, 0.066845, 0.073236, 0.087059, 0.075829, 0.07998, 0.080094, 0.049732, 0.076492], neighbor_outcomes=['confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud'], precedent=True, qv=[0.379623, 0.159863, -0.220656, 0.016949, 0.015701, -0.088645, 0.068686, -0.258104, -0.212452, -0.318696, 0.235065, -0.092192, -0.262252, 0.262252, -0.114528, -0.100436, -0.099666, -0.04588, -0.254854, -0.238687, -0.183057, -0.277376, 0.071379, -0.284952], score=0.9545, theta=0.9091, variant=pure)",
+        "source": "graph"
+      },
+      {
+        "claim": "Simulated customer validation: Cardholder confirms they made the transaction.",
         "entity_ids": [],
-        "ref": "document:fraud-policy#§6",
+        "ref": "evidence_request:1",
+        "source": "customer"
+      },
+      {
+        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#R3",
+        "source": "document"
+      },
+      {
+        "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#§3a",
         "source": "document"
       }
     ],
     "exposure_usd": 0.0,
     "first_suspicious_txn_id": "",
-    "fraud_probability": 0.05,
+    "fraud_probability": 0.01,
     "graph_case_id": "ASSAY-HHF-013",
     "pattern": "none",
     "pattern_description": "",
@@ -46,39 +66,46 @@
       "CC-5137"
     ],
     "status": "closed_legitimate",
-    "summary": "Alert on transaction 3626720 ($409.30) on card C06115-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.05. Closed as legitimate; no report.",
+    "summary": "Alert on transaction 3626720 ($409.30) on card C06115-K1. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.01. Cardholder confirms they made the transaction. Closed as legitimate; no report.",
     "verdict": "legitimate",
     "written_to_graph": true
   },
   "case_id": "HHF-013",
-  "evidence_requests": [],
+  "evidence_requests": [
+    {
+      "asked_after_step": 9,
+      "assumed_response": "Cardholder confirms they made the transaction.",
+      "question": "",
+      "type": "customer_validation"
+    }
+  ],
   "latency_s": 0.0,
   "next_best_actions": {
     "final": [
       {
-        "action": "ALLOW_TRANSACTION",
-        "reason": "Policy §0: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history.",
+        "action": "CLOSE_NO_FRAUD",
+        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file.",
         "route": "auto"
       },
       {
-        "action": "CLOSE_NO_FRAUD",
-        "reason": "Policy §6: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate.",
+        "action": "CREATE_CASE",
+        "reason": "Policy §3a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached.",
         "route": "auto"
       }
     ],
     "initial": [
       {
-        "action": "ALLOW_TRANSACTION",
-        "reason": "Policy §0: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history.",
+        "action": "VERIFY_WITH_CUSTOMER",
+        "reason": "§5 and §3b: probability 0.19 is between 0.15 and 0.85, so ask the cardholder before deciding.",
         "route": "auto"
       },
       {
-        "action": "CLOSE_NO_FRAUD",
-        "reason": "Policy §6: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate.",
+        "action": "CREATE_CASE",
+        "reason": "Policy §3a: evidence was requested, so the investigation is recorded as an internal case and written to the graph.",
         "route": "auto"
       }
     ],
-    "what_changed": "nothing"
+    "what_changed": "Cardholder confirms they made the transaction. Probability moved 0.19 -> 0.01; added CLOSE_NO_FRAUD, dropped VERIFY_WITH_CUSTOMER."
   },
   "sar": {
     "activity_dates": [],
@@ -88,7 +115,7 @@
     "subjects": [],
     "total_amount_usd": 0
   },
-  "stop_reason": "Policy §6: fraud probability 0.05 is at or below 0.15 on 2 independent pieces of evidence.",
+  "stop_reason": "Policy §6: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
   "tokens": 0,
-  "tool_calls": 10
+  "tool_calls": 11
 }

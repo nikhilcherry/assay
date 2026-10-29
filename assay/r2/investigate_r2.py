@@ -18,7 +18,7 @@ from assay.investigate import Investigator
 from assay.r2.finding import CaseCtx, Finding
 from assay.r2.frames import closed_cases, tx_all
 
-ENABLED: list[str] = ["dormant_wake", "FanIn", "ring_wcc", "burst_hub", "campaign", "cpc", "micro_drip_cohort"]
+ENABLED: list[str] = ["dormant_wake", "FanIn", "ring_wcc", "burst_hub", "campaign", "cpc", "micro_drip_cohort", "vector_precedent"]
 
 # The model was trained on Jul-Dec. January is new activity it has never seen (the brief:
 # "a low score is not evidence of innocence"); docs/r2/B1_model.md shows the drift.
@@ -29,6 +29,7 @@ def _load_detectors():
     import assay.r2.detectors.dormant  # noqa: F401  registers DormantWake
     import assay.r2.detectors.fan_in  # noqa: F401  registers FanIn
     import assay.r2.detectors.micro_charge  # noqa: F401  registers MicroDripCohort
+    import assay.r2.detectors.vector_vote  # noqa: F401  registers VectorPrecedentVote
     import assay.r2.detectors.campaign  # noqa: F401  registers CampaignDetector
     import assay.r2.detectors.cpc  # noqa: F401  registers CommonPointOfCompromise
     import assay.r2.detectors.burst_hub  # noqa: F401  registers BurstHub
@@ -132,7 +133,10 @@ class R2Investigator(Investigator):
         # A simulated reply may only settle a case the evidence left unremarkable: if a measured
         # detector fired, an assumed "customer confirms" would be the agent agreeing with itself
         # (red team, docs/r2/REDTEAM.md: dormant wake-ups cleared on an invented confirmation).
-        fired = sorted({f.tag for f in findings if f.tag in ENABLED and f.lr > 1.0})
+        # precedent (TigerVector neighbours) moves the probability but is not a typology, so it alone
+        # cannot stop a confirmation (docs/r2/C5_vector_vote.md)
+        weak = {d.name for d in self.detectors if not getattr(d, "blocks_assumed_clear", True)}
+        fired = sorted({f.tag for f in findings if f.tag in ENABLED and f.tag not in weak and f.lr > 1.0})
         if fired:
             return f"measured detector(s) {', '.join(fired)} fired on this card."
         return None

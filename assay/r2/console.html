@@ -201,6 +201,23 @@
     cursor: not-allowed;
   }
 
+  .vfy-summary { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); }
+  .vfy-row {
+    display: grid; grid-template-columns: 96px 1fr; gap: 8px; align-items: baseline;
+    padding: 3px 6px; background: var(--ground); border: 1px solid var(--rule);
+    font-family: var(--font-mono); font-size: 11px; cursor: pointer;
+  }
+  .vfy-row:hover { border-color: var(--rule-strong); }
+  .vfy-ref { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vfy-detail { grid-column: 1 / -1; display: none; color: var(--ink-2); font-family: var(--font-sans); line-height: 1.4; white-space: pre-wrap; }
+  .vfy-row.open .vfy-detail { display: block; }
+  .vfy-pill { display: inline-block; text-align: center; padding: 1px 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; border: 1px solid; }
+  .vfy-VERIFIED { color: var(--legit); background: var(--legit-soft); border-color: var(--legit); }
+  .vfy-MISMATCH { color: var(--fraud); background: var(--fraud-soft); border-color: var(--fraud); }
+  .vfy-UNVERIFIED { color: var(--ink-2); background: var(--elevated); border-color: var(--rule-strong); }
+  .vfy-UNRESOLVABLE { color: var(--bank); background: var(--bank-soft); border-color: var(--bank); }
+  .vfy-list { max-height: 220px; }
+
   .btn-secondary {
     background: var(--panel-2);
     color: var(--ink);
@@ -999,6 +1016,17 @@
 
     <div id="fail-closed-container" style="display:none;"></div>
 
+    <div id="verify-box" class="panel-card" style="flex: 0 0 auto;">
+      <div class="panel-header">
+        <span>RE-RUN EVERY CLAIM &middot; judges' rule: a claim that differs on re-run scores zero</span>
+        <button id="btn-verify" class="btn btn-secondary" onclick="verifyClaims()" disabled>Re-run every claim</button>
+      </div>
+      <div id="verify-body" class="panel-body" style="display:none;">
+        <div id="verify-summary" class="vfy-summary"></div>
+        <div id="verify-list" class="vfy-list" style="overflow-y:auto; display:flex; flex-direction:column; gap:3px;"></div>
+      </div>
+    </div>
+
     <!-- Band 1B: Verdict Strip + True Log-Odds Slide Rule -->
     <div class="instrument-band">
       <div id="verdict-strip" class="verdict-strip">
@@ -1266,11 +1294,47 @@
     btnRun.disabled = false;
     btnRun.innerHTML = "&#9654; Run Investigation";
     document.getElementById("btn-instant").disabled = false;
+    document.getElementById("btn-verify").disabled = false;
+    document.getElementById("verify-body").style.display = "none";
 
     const bankP = bankScore !== null && bankScore !== undefined ? Number(bankScore) : null;
     drawLogitScale({ bankRisk: bankP, priorP: null, currentP: null, bridges: [], ghostP: null });
     document.getElementById("pulse-svg").innerHTML = `<text x="270" y="95" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">Press Run (Enter) or Instant (I) to render ${escapeHtml(c.case_id)} card pulse (${escapeHtml(c.card_id)}).</text>`;
     document.getElementById("topo-svg").innerHTML = `<text x="235" y="95" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">Press Run (Enter) or Instant (I) to render ${escapeHtml(c.case_id)} evidence topology.</text>`;
+  }
+
+  async function verifyClaims() {
+    const caseId = SELECTED_CASE_ID;
+    if (!caseId) return;
+    const btn = document.getElementById("btn-verify");
+    const body = document.getElementById("verify-body");
+    const sum = document.getElementById("verify-summary");
+    const list = document.getElementById("verify-list");
+    btn.disabled = true;
+    body.style.display = "flex";
+    sum.textContent = `Re-executing every claim for ${caseId}…`;
+    list.innerHTML = "";
+    try {
+      const res = await fetch(`/verify/${encodeURIComponent(caseId)}`);
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || res.status);
+      if (caseId !== SELECTED_CASE_ID) return;
+      const c = d.counts || {};
+      sum.innerHTML = `${d.total} claims re-executed against ${escapeHtml(d.dataset)} in ${Math.round(d.elapsed_ms).toLocaleString()} ms: ` +
+        `<span style="color:var(--legit)">${c.VERIFIED || 0} verified</span>, ` +
+        `<span style="color:${c.MISMATCH ? "var(--fraud)" : "inherit"}">${c.MISMATCH || 0} mismatches</span>` +
+        ` (${c.UNVERIFIED || 0} unverified, ${c.UNRESOLVABLE || 0} unresolvable)`;
+      list.innerHTML = d.claims.map(k => `
+        <div class="vfy-row" onclick="this.classList.toggle('open')" title="${escapeHtml(k.claim)}">
+          <span class="vfy-pill vfy-${escapeHtml(k.status)}">${escapeHtml(k.status)}</span>
+          <span class="vfy-ref">${escapeHtml(k.section)}[${k.index}] ${escapeHtml(k.ref)}</span>
+          <span class="vfy-detail">${escapeHtml(k.claim)}\n\n${escapeHtml(k.reason || "")}</span>
+        </div>`).join("");
+    } catch (e) {
+      sum.textContent = `Re-run failed: ${e.message}`;
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   async function toggleBreakIt() {

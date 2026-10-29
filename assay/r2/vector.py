@@ -796,8 +796,8 @@ class LocalVectorIndex:
                 out_tg.append(
                     VectorNeighbor(
                         case_id=vid,
-                        outcome=str(attrs.get("outcome", "")),
-                        pattern=str(attrs.get("pattern", "")),
+                        outcome=str(attrs.get("outcome", attrs.get("Hits.outcome", ""))),
+                        pattern=str(attrs.get("pattern", attrs.get("Hits.pattern", ""))),
                         distance=dist_val,
                         connecting_path="tigergraph_vectorSearch",
                         shared_cards=tuple(str(x) for x in sc if x),
@@ -995,8 +995,8 @@ class LocalVectorIndex:
                 out_tg.append(
                     VectorNeighbor(
                         case_id=vid,
-                        outcome=str(attrs.get("outcome", "")),
-                        pattern=str(attrs.get("pattern", "")),
+                        outcome=str(attrs.get("outcome", attrs.get("Hits.outcome", ""))),
+                        pattern=str(attrs.get("pattern", attrs.get("Hits.pattern", ""))),
                         distance=dist_val,
                         connecting_path=str(attrs.get("connecting_path", attrs.get("@connecting_path", ""))),
                         shared_cards=tuple(str(x) for x in sc if x),

@@ -610,6 +610,7 @@ def execute_query_ref(
             "cpc_loss_shape_cohort": ["cpc"],
             "cpc_origin_search": ["cpc"],
             "rerun_micro_drip_cohort": ["micro_drip_cohort"],
+            "similar_cases_vec": ["vector_precedent"],
             "ring_for": ["ring_wcc"],
             "dormant_wake_check": ["dormant_wake"],
             "rerun_recipient_fan_in_burst": ["FanIn"],
