@@ -36,7 +36,7 @@
         "source": "graph"
       },
       {
-        "claim": "Cardholder C11663 reported the $1,800.00 charge as not theirs (case pack trigger, 2017-01-31 20:31:28). Measured on October: all 1,203 disputes the bank investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial (0.93). If this is a planted dispute on a legitimate transaction, a score this size is 0.07x as likely on disputed fraud as on a legitimate transaction (0.07). Weighted equally: 0.76.",
+        "claim": "Cardholder C11663 reported the $1,800.00 charge as not theirs (case pack trigger, 2017-01-31 20:31:28). Measured on October: all 1,203 disputes the bank investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial (0.93). If this is a planted dispute on a legitimate transaction, a score this size is 0.07x as likely on disputed fraud as on a legitimate transaction (0.07). Weighted 80% to 20% by the Laplace-smoothed share of Round 1 exam denials confirmed as fraud: 0.76.",
         "entity_ids": [
           "3660153"
         ],

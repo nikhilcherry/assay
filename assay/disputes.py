@@ -89,7 +89,8 @@ def posterior(p_model: float) -> tuple[float, dict]:
     b = next(x for x in r["score_bins"] if x["from"] <= p_model < x["to"] or x["to"] == 1.0)
     p_planted = b["lr"] / (1 + b["lr"])
     w = r["w_history"] if W_OVERRIDE is None else W_OVERRIDE
-    return w * p_hist + (1 - w) * p_planted, {"p_history": p_hist, "p_planted": p_planted, "lr_score": b["lr"]}
+    return w * p_hist + (1 - w) * p_planted, {"p_history": p_hist, "p_planted": p_planted, "lr_score": b["lr"],
+                                              "w_history": w}
 
 
 if __name__ == "__main__":

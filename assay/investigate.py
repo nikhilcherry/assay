@@ -199,7 +199,11 @@ class Investigator:
                 f"investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial "
                 f"({why['p_history']:.2f}). If this is a planted dispute on a legitimate transaction, a score this "
                 f"size is {why['lr_score']:.2f}x as likely on disputed fraud as on a legitimate transaction "
-                f"({why['p_planted']:.2f}). Weighted equally: {p_disp:.2f}.",
+                f"({why['p_planted']:.2f}). "
+                + ("Weighted equally" if abs(why["w_history"] - 0.5) < 1e-9 else
+                   f"Weighted {why['w_history']:.0%} to {1 - why['w_history']:.0%} by the Laplace-smoothed share of Round 1 "
+                   "exam denials confirmed as fraud")
+                + f": {p_disp:.2f}.",
                 f"case_pack:{case.case_id}", [fid], source="customer", lr=lr, tag="dispute"))
 
         # -- 4b. extra detectors (final round: assay.r2.investigate_r2 overrides this) --
