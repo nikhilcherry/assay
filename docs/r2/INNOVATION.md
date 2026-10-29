@@ -44,7 +44,8 @@ and any graph error fails closed. Graph and local code agree on all 18 cases (`d
   selection weighed it ×4.09 until we found a fallback that dropped one constraint. We fixed the code and
   gave up the vote.
 - **New-device takeover** (`C4_new_device.md`): it fails the gate against cleared cases, because
-  `card_id` is an issuer bucket. HHF-009 is verified and closed.
+  `card_id` is an issuer bucket. At the holder level (`C7_holder_shift.md`) it can't apply: every exam
+  holder has at most one prior charge. HHF-009 is verified and closed.
 - **Others that lost to simpler baselines**: per-card micro-charges and the fan-in's old assumed 3.0
   (`docs/r2/B6_micro_fanin.md`), "innocence" signals (`docs/r2/B29_innocence.md`), charge-shape
   campaigns (`docs/r2/B28_campaign.md`), an HMM episode segmenter (`docs/r2/B34_episode.md`), and an
