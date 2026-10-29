@@ -27,7 +27,7 @@
 An alert goes in. A case file comes out: verdict, a calibrated fraud probability, the pattern, the
 affected transactions and exposure, the connected cards, a suspicious activity report when policy
 calls for one, and the next best action before and after asking for evidence. Every claim in it
-names the query that produced it, and **a judge can re-run all 174 of them with one command.**
+names the query that produced it, and **a judge can re-run all 325 of them with one command.**
 
 Built for the **TigerGraph × Hacker House Goa 2026 final round**: 18 unseen cases, live fault drills
 and a 5-minute demo, on the bank's January 2017 data.
@@ -38,7 +38,7 @@ and a 5-minute demo, on the bank's January 2017 data.
 |---|---|---|
 | Official grader (hard + policy, with ID and arithmetic checks) | **18/18 clean** | `make grade` |
 | Verdicts | **6 fraud · 3 uncertain · 9 legitimate**. The brief says nine are legitimate | [`docs/r2/FACTS.md`](docs/r2/FACTS.md) |
-| Every claim re-executed | **174 claims, 0 mismatches, 0 unresolvable** | `python -m assay.r2.verify_claims` |
+| Every claim re-executed | **325 claims checked: every query re-run, every policy citation, threshold and approval route matched; 0 mismatches** | `python -m assay.r2.verify_claims` |
 | Live resilience drills | **84/84 checks**: dependency down, timeouts, garbage replies, hostile input, wrong-role approval, double runs, corrupt startup data, failed graph write-back | `pytest tests/r2/test_drills.py` |
 | Graph vs local code | **identical** ring decisions, cohort members and transaction ids on all 18 cases | [`docs/r2/C6_tg_cohorts.md`](docs/r2/C6_tg_cohorts.md) |
 | Blind red team, latest round (40 scenarios) | **0** legitimate customers blocked without a denial, 3 frauds missed | [`docs/r2/REDTEAM.md`](docs/r2/REDTEAM.md) |

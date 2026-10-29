@@ -95,7 +95,7 @@ no answer.
 
 ```bash
 PYTHONPATH=. .venv/bin/python -m pytest -q tests/r2/test_drills.py   # live drills: 84 checks (docs/r2/B30_drills.md)
-PYTHONPATH=. .venv/bin/python -m assay.r2.verify_claims               # 174 claims re-run, 0 mismatches (VERIFY_CLAIMS.md)
+PYTHONPATH=. .venv/bin/python -m assay.r2.verify_claims               # 325 claims checked, 0 mismatches (VERIFY_CLAIMS.md)
 PYTHONPATH=. .venv/bin/python -m assay.r2.factsheet                   # FACTS.md: 6 fraud, 3 uncertain, 9 legitimate
 PYTHONPATH=. .venv/bin/python -m assay.r2.ablation                    # ABLATION.md
 ```
