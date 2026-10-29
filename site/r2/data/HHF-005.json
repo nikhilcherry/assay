@@ -69,7 +69,7 @@
         "what": "Frame 1/231 of ring RING-WCC-c4e13e20 at 2016-12-30 00:41:09 (txn 3585484 on C06947-K2 for $250.05): 1 cards, 0 edges, $250.05 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -156,7 +156,7 @@
         "what": "Frame 2/231 of ring RING-WCC-c4e13e20 at 2016-12-30 23:11:38 (txn 3587816 on C06947-K2 for $117.06): 1 cards, 0 edges, $367.11 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -247,7 +247,7 @@
         "what": "Frame 3/231 of ring RING-WCC-c4e13e20 at 2016-12-30 23:25:41 (txn 3587861 on C11249-K1 for $107.97): 2 cards, 0 edges, $475.08 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -341,7 +341,7 @@
         "what": "Frame 4/231 of ring RING-WCC-c4e13e20 at 2016-12-30 23:39:14 (txn 3587900 on C11249-K1 for $108.00): 2 cards, 0 edges, $583.08 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -439,7 +439,7 @@
         "what": "Frame 5/231 of ring RING-WCC-c4e13e20 at 2016-12-31 00:01:29 (txn 3587975 on C01983-K1 for $58.97): 3 cards, 0 edges, $642.05 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -542,7 +542,7 @@
         "what": "Frame 6/231 of ring RING-WCC-c4e13e20 at 2016-12-31 01:56:10 (txn 3588252 on C01063-K2 for $43.01): 4 cards, 0 edges, $685.06 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -648,7 +648,7 @@
         "what": "Frame 7/231 of ring RING-WCC-c4e13e20 at 2016-12-31 16:26:01 (txn 3589368 on C01983-K1 for $83.02): 4 cards, 0 edges, $768.08 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -758,7 +758,7 @@
         "what": "Frame 8/231 of ring RING-WCC-c4e13e20 at 2017-01-01 01:51:52 (txn 3635739 on C08072-K1 for $92.89): 5 cards, 0 edges, $860.97 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -871,7 +871,7 @@
         "what": "Frame 9/231 of ring RING-WCC-c4e13e20 at 2017-01-01 01:59:21 (txn 3649861 on C11249-K1 for $30.03): 5 cards, 0 edges, $891.00 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -986,7 +986,7 @@
         "what": "Frame 10/231 of ring RING-WCC-c4e13e20 at 2017-01-01 03:14:53 (txn 3649883 on C11249-K1 for $17.58): 5 cards, 0 edges, $908.58 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -1105,7 +1105,7 @@
         "what": "Frame 11/231 of ring RING-WCC-c4e13e20 at 2017-01-01 03:23:29 (txn 3608558 on C02014-K2 for $81.21): 6 cards, 0 edges, $989.79 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -1227,7 +1227,7 @@
         "what": "Frame 12/231 of ring RING-WCC-c4e13e20 at 2017-01-01 03:44:58 (txn 3608561 on C02014-K2 for $113.43): 6 cards, 0 edges, $1,103.22 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -1353,7 +1353,7 @@
         "what": "Frame 13/231 of ring RING-WCC-c4e13e20 at 2017-01-01 08:35:14 (txn 3604220 on C01063-K2 for $102.07): 6 cards, 0 edges, $1,205.29 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -1481,7 +1481,7 @@
         "what": "Frame 14/231 of ring RING-WCC-c4e13e20 at 2017-01-01 10:04:48 (txn 3658854 on C13067-K1 for $213.87): 7 cards, 1 edges, $1,419.16 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -1623,7 +1623,7 @@
         "what": "Frame 15/231 of ring RING-WCC-c4e13e20 at 2017-01-01 10:40:12 (txn 3635758 on C08072-K1 for $88.91): 7 cards, 1 edges, $1,508.07 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -1767,7 +1767,7 @@
         "what": "Frame 16/231 of ring RING-WCC-c4e13e20 at 2017-01-01 12:03:44 (txn 3630736 on C07033-K1 for $206.94): 8 cards, 1 edges, $1,715.01 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -1914,7 +1914,7 @@
         "what": "Frame 17/231 of ring RING-WCC-c4e13e20 at 2017-01-01 15:37:13 (txn 3658848 on C13067-K1 for $1,364.17): 8 cards, 1 edges, $3,079.18 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -2063,7 +2063,7 @@
         "what": "Frame 18/231 of ring RING-WCC-c4e13e20 at 2017-01-01 15:59:23 (txn 3635749 on C08072-K1 for $46.75): 8 cards, 1 edges, $3,125.93 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -2216,7 +2216,7 @@
         "what": "Frame 19/231 of ring RING-WCC-c4e13e20 at 2017-01-01 17:49:10 (txn 3602883 on C00779-K1 for $29.96): 9 cards, 1 edges, $3,155.89 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -2374,7 +2374,7 @@
         "what": "Frame 20/231 of ring RING-WCC-c4e13e20 at 2017-01-02 01:12:58 (txn 3635718 on C08072-K1 for $110.89): 9 cards, 1 edges, $3,266.78 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -2536,7 +2536,7 @@
         "what": "Frame 21/231 of ring RING-WCC-c4e13e20 at 2017-01-02 03:41:08 (txn 3621714 on C05039-K1 for $22.39): 10 cards, 1 edges, $3,289.17 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -2699,7 +2699,7 @@
         "what": "Frame 22/231 of ring RING-WCC-c4e13e20 at 2017-01-02 04:11:20 (txn 3621712 on C05039-K1 for $156.15): 10 cards, 1 edges, $3,445.32 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -2864,7 +2864,7 @@
         "what": "Frame 23/231 of ring RING-WCC-c4e13e20 at 2017-01-02 14:39:37 (txn 3630728 on C07033-K1 for $12.85): 10 cards, 1 edges, $3,458.17 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -3033,7 +3033,7 @@
         "what": "Frame 24/231 of ring RING-WCC-c4e13e20 at 2017-01-02 18:06:15 (txn 3601224 on C00348-K1 for $50.37): 11 cards, 1 edges, $3,508.54 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -3205,7 +3205,7 @@
         "what": "Frame 25/231 of ring RING-WCC-c4e13e20 at 2017-01-02 20:44:24 (txn 3608552 on C02014-K2 for $85.49): 11 cards, 1 edges, $3,594.03 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -3381,7 +3381,7 @@
         "what": "Frame 26/231 of ring RING-WCC-c4e13e20 at 2017-01-02 23:55:48 (txn 3656897 on C12656-K1 for $32.88): 12 cards, 1 edges, $3,626.91 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": true,
@@ -3560,7 +3560,7 @@
         "what": "Frame 27/231 of ring RING-WCC-c4e13e20 at 2017-01-03 10:45:22 (txn 3604223 on C01063-K2 for $59.82): 12 cards, 1 edges, $3,686.73 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -3741,7 +3741,7 @@
         "what": "Frame 28/231 of ring RING-WCC-c4e13e20 at 2017-01-03 16:26:59 (txn 3608224 on C01983-K1 for $380.72): 12 cards, 1 edges, $4,067.45 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -3924,7 +3924,7 @@
         "what": "Frame 29/231 of ring RING-WCC-c4e13e20 at 2017-01-03 21:41:15 (txn 3608196 on C01983-K1 for $40.80): 12 cards, 1 edges, $4,108.25 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -4109,7 +4109,7 @@
         "what": "Frame 30/231 of ring RING-WCC-c4e13e20 at 2017-01-03 23:27:02 (txn 3608557 on C02014-K2 for $120.57): 12 cards, 1 edges, $4,228.82 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -4298,7 +4298,7 @@
         "what": "Frame 31/231 of ring RING-WCC-c4e13e20 at 2017-01-04 01:07:36 (txn 3630731 on C07033-K1 for $33.81): 12 cards, 1 edges, $4,262.63 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -4487,7 +4487,7 @@
         "what": "Frame 32/231 of ring RING-WCC-c4e13e20 at 2017-01-04 10:10:16 (txn 3630745 on C07033-K1 for $20.41): 12 cards, 1 edges, $4,283.04 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -4678,7 +4678,7 @@
         "what": "Frame 33/231 of ring RING-WCC-c4e13e20 at 2017-01-04 16:46:39 (txn 3635728 on C08072-K1 for $186.51): 12 cards, 1 edges, $4,469.55 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -4871,7 +4871,7 @@
         "what": "Frame 34/231 of ring RING-WCC-c4e13e20 at 2017-01-04 23:53:38 (txn 3602887 on C00779-K1 for $151.31): 12 cards, 1 edges, $4,620.86 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -5066,7 +5066,7 @@
         "what": "Frame 35/231 of ring RING-WCC-c4e13e20 at 2017-01-05 11:26:32 (txn 3635756 on C08072-K1 for $166.14): 12 cards, 1 edges, $4,787.00 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -5263,7 +5263,7 @@
         "what": "Frame 36/231 of ring RING-WCC-c4e13e20 at 2017-01-05 13:11:08 (txn 3656898 on C12656-K1 for $18.78): 12 cards, 1 edges, $4,805.78 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -5462,7 +5462,7 @@
         "what": "Frame 37/231 of ring RING-WCC-c4e13e20 at 2017-01-05 15:31:32 (txn 3608209 on C01983-K1 for $104.99): 12 cards, 1 edges, $4,910.77 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -5663,7 +5663,7 @@
         "what": "Frame 38/231 of ring RING-WCC-c4e13e20 at 2017-01-05 16:12:55 (txn 3656896 on C12656-K1 for $150.73): 12 cards, 1 edges, $5,061.50 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -5866,7 +5866,7 @@
         "what": "Frame 39/231 of ring RING-WCC-c4e13e20 at 2017-01-05 22:10:48 (txn 3649878 on C11249-K1 for $43.27): 12 cards, 1 edges, $5,104.77 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -6073,7 +6073,7 @@
         "what": "Frame 40/231 of ring RING-WCC-c4e13e20 at 2017-01-06 00:26:44 (txn 3602890 on C00779-K1 for $44.00): 12 cards, 1 edges, $5,148.77 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -6280,7 +6280,7 @@
         "what": "Frame 41/231 of ring RING-WCC-c4e13e20 at 2017-01-06 00:43:08 (txn 3649872 on C11249-K1 for $97.53): 12 cards, 1 edges, $5,246.30 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -6489,7 +6489,7 @@
         "what": "Frame 42/231 of ring RING-WCC-c4e13e20 at 2017-01-06 01:00:48 (txn 3621710 on C05039-K1 for $96.10): 12 cards, 1 edges, $5,342.40 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -6700,7 +6700,7 @@
         "what": "Frame 43/231 of ring RING-WCC-c4e13e20 at 2017-01-06 04:23:46 (txn 3608208 on C01983-K1 for $31.32): 12 cards, 1 edges, $5,373.72 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -6913,7 +6913,7 @@
         "what": "Frame 44/231 of ring RING-WCC-c4e13e20 at 2017-01-06 07:48:25 (txn 3630744 on C07033-K1 for $18.31): 12 cards, 1 edges, $5,392.03 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -7128,7 +7128,7 @@
         "what": "Frame 45/231 of ring RING-WCC-c4e13e20 at 2017-01-06 07:52:01 (txn 3656902 on C12656-K1 for $33.25): 12 cards, 1 edges, $5,425.28 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -7345,7 +7345,7 @@
         "what": "Frame 46/231 of ring RING-WCC-c4e13e20 at 2017-01-06 08:38:14 (txn 3608233 on C01983-K1 for $41.33): 12 cards, 1 edges, $5,466.61 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -7564,7 +7564,7 @@
         "what": "Frame 47/231 of ring RING-WCC-c4e13e20 at 2017-01-06 08:44:09 (txn 3630359 on C06947-K2 for $90.72): 12 cards, 1 edges, $5,557.33 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -7785,7 +7785,7 @@
         "what": "Frame 48/231 of ring RING-WCC-c4e13e20 at 2017-01-06 13:01:06 (txn 3608555 on C02014-K2 for $1,014.57): 12 cards, 1 edges, $6,571.90 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -8008,7 +8008,7 @@
         "what": "Frame 49/231 of ring RING-WCC-c4e13e20 at 2017-01-07 07:56:28 (txn 3656895 on C12656-K1 for $42.58): 12 cards, 1 edges, $6,614.48 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -8233,7 +8233,7 @@
         "what": "Frame 50/231 of ring RING-WCC-c4e13e20 at 2017-01-07 13:23:16 (txn 3630366 on C06947-K2 for $110.20): 12 cards, 1 edges, $6,724.68 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -8460,7 +8460,7 @@
         "what": "Frame 51/231 of ring RING-WCC-c4e13e20 at 2017-01-07 14:25:27 (txn 3608201 on C01983-K1 for $177.59): 12 cards, 1 edges, $6,902.27 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -8689,7 +8689,7 @@
         "what": "Frame 52/231 of ring RING-WCC-c4e13e20 at 2017-01-07 15:32:31 (txn 3660245 on C00348-K1 for $4.30): 12 cards, 1 edges, $6,906.57 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -8920,7 +8920,7 @@
         "what": "Frame 53/231 of ring RING-WCC-c4e13e20 at 2017-01-07 18:04:57 (txn 3658847 on C13067-K1 for $157.90): 12 cards, 1 edges, $7,064.47 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -9153,7 +9153,7 @@
         "what": "Frame 54/231 of ring RING-WCC-c4e13e20 at 2017-01-07 18:39:41 (txn 3658844 on C13067-K1 for $40.58): 12 cards, 1 edges, $7,105.05 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -9388,7 +9388,7 @@
         "what": "Frame 55/231 of ring RING-WCC-c4e13e20 at 2017-01-07 22:25:33 (txn 3630361 on C06947-K2 for $63.27): 12 cards, 1 edges, $7,168.32 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -9625,7 +9625,7 @@
         "what": "Frame 56/231 of ring RING-WCC-c4e13e20 at 2017-01-07 23:19:35 (txn 3602882 on C00779-K1 for $40.75): 12 cards, 1 edges, $7,209.07 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -9864,7 +9864,7 @@
         "what": "Frame 57/231 of ring RING-WCC-c4e13e20 at 2017-01-07 23:22:36 (txn 3608559 on C02014-K2 for $51.24): 12 cards, 1 edges, $7,260.31 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -10105,7 +10105,7 @@
         "what": "Frame 58/231 of ring RING-WCC-c4e13e20 at 2017-01-07 23:30:17 (txn 3602889 on C00779-K1 for $42.04): 12 cards, 1 edges, $7,302.35 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -10348,7 +10348,7 @@
         "what": "Frame 59/231 of ring RING-WCC-c4e13e20 at 2017-01-08 00:05:40 (txn 3601227 on C00348-K1 for $37.86): 12 cards, 1 edges, $7,340.21 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -10593,7 +10593,7 @@
         "what": "Frame 60/231 of ring RING-WCC-c4e13e20 at 2017-01-08 02:55:35 (txn 3635746 on C08072-K1 for $195.41): 12 cards, 1 edges, $7,535.62 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -10840,7 +10840,7 @@
         "what": "Frame 61/231 of ring RING-WCC-c4e13e20 at 2017-01-08 05:08:23 (txn 3656899 on C12656-K1 for $33.47): 12 cards, 1 edges, $7,569.09 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -11089,7 +11089,7 @@
         "what": "Frame 62/231 of ring RING-WCC-c4e13e20 at 2017-01-08 07:00:55 (txn 3602897 on C00779-K1 for $131.17): 12 cards, 1 edges, $7,700.26 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -11340,7 +11340,7 @@
         "what": "Frame 63/231 of ring RING-WCC-c4e13e20 at 2017-01-08 09:06:45 (txn 3658852 on C13067-K1 for $520.60): 12 cards, 1 edges, $8,220.86 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -11593,7 +11593,7 @@
         "what": "Frame 64/231 of ring RING-WCC-c4e13e20 at 2017-01-08 09:24:11 (txn 3602892 on C00779-K1 for $105.90): 12 cards, 1 edges, $8,326.76 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -11848,7 +11848,7 @@
         "what": "Frame 65/231 of ring RING-WCC-c4e13e20 at 2017-01-08 17:37:31 (txn 3601223 on C00348-K1 for $40.20): 12 cards, 1 edges, $8,366.96 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -12105,7 +12105,7 @@
         "what": "Frame 66/231 of ring RING-WCC-c4e13e20 at 2017-01-08 23:27:50 (txn 3608207 on C01983-K1 for $29.43): 12 cards, 1 edges, $8,396.39 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -12364,7 +12364,7 @@
         "what": "Frame 67/231 of ring RING-WCC-c4e13e20 at 2017-01-09 04:42:11 (txn 3602900 on C00779-K1 for $184.43): 12 cards, 1 edges, $8,580.82 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -12625,7 +12625,7 @@
         "what": "Frame 68/231 of ring RING-WCC-c4e13e20 at 2017-01-09 06:50:55 (txn 3635726 on C08072-K1 for $57.66): 12 cards, 1 edges, $8,638.48 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -12888,7 +12888,7 @@
         "what": "Frame 69/231 of ring RING-WCC-c4e13e20 at 2017-01-09 08:33:18 (txn 3602893 on C00779-K1 for $31.95): 12 cards, 1 edges, $8,670.43 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -13155,7 +13155,7 @@
         "what": "Frame 70/231 of ring RING-WCC-c4e13e20 at 2017-01-09 14:52:59 (txn 3608560 on C02014-K2 for $74.12): 12 cards, 1 edges, $8,744.55 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -13422,7 +13422,7 @@
         "what": "Frame 71/231 of ring RING-WCC-c4e13e20 at 2017-01-09 15:44:48 (txn 3608219 on C01983-K1 for $94.99): 12 cards, 1 edges, $8,839.54 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -13691,7 +13691,7 @@
         "what": "Frame 72/231 of ring RING-WCC-c4e13e20 at 2017-01-09 17:03:26 (txn 3635757 on C08072-K1 for $120.30): 12 cards, 1 edges, $8,959.84 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -13962,7 +13962,7 @@
         "what": "Frame 73/231 of ring RING-WCC-c4e13e20 at 2017-01-10 00:13:56 (txn 3649880 on C11249-K1 for $51.04): 12 cards, 1 edges, $9,010.88 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -14235,7 +14235,7 @@
         "what": "Frame 74/231 of ring RING-WCC-c4e13e20 at 2017-01-10 07:01:16 (txn 3630365 on C06947-K2 for $186.28): 12 cards, 3 edges, $9,197.16 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -14528,7 +14528,7 @@
         "what": "Frame 75/231 of ring RING-WCC-c4e13e20 at 2017-01-10 07:09:07 (txn 3621715 on C05039-K1 for $75.39): 12 cards, 3 edges, $9,272.55 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -14821,7 +14821,7 @@
         "what": "Frame 76/231 of ring RING-WCC-c4e13e20 at 2017-01-10 07:18:48 (txn 3649864 on C11249-K1 for $18.29): 12 cards, 3 edges, $9,290.84 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -15116,7 +15116,7 @@
         "what": "Frame 77/231 of ring RING-WCC-c4e13e20 at 2017-01-10 09:53:32 (txn 3621713 on C05039-K1 for $292.37): 12 cards, 3 edges, $9,583.21 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -15413,7 +15413,7 @@
         "what": "Frame 78/231 of ring RING-WCC-c4e13e20 at 2017-01-10 14:01:39 (txn 3602894 on C00779-K1 for $93.48): 12 cards, 6 edges, $9,676.69 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -15739,7 +15739,7 @@
         "what": "Frame 79/231 of ring RING-WCC-c4e13e20 at 2017-01-10 16:42:43 (txn 3608554 on C02014-K2 for $126.19): 12 cards, 6 edges, $9,802.88 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -16066,7 +16066,7 @@
         "what": "Frame 80/231 of ring RING-WCC-c4e13e20 at 2017-01-10 20:48:25 (txn 3649881 on C11249-K1 for $53.01): 12 cards, 6 edges, $9,855.89 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -16393,7 +16393,7 @@
         "what": "Frame 81/231 of ring RING-WCC-c4e13e20 at 2017-01-11 00:17:31 (txn 3621717 on C05039-K1 for $84.14): 12 cards, 6 edges, $9,940.03 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -16722,7 +16722,7 @@
         "what": "Frame 82/231 of ring RING-WCC-c4e13e20 at 2017-01-11 01:03:53 (txn 3649869 on C11249-K1 for $72.80): 12 cards, 6 edges, $10,012.83 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -17053,7 +17053,7 @@
         "what": "Frame 83/231 of ring RING-WCC-c4e13e20 at 2017-01-11 02:49:53 (txn 3656901 on C12656-K1 for $44.04): 12 cards, 6 edges, $10,056.87 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -17386,7 +17386,7 @@
         "what": "Frame 84/231 of ring RING-WCC-c4e13e20 at 2017-01-11 14:29:06 (txn 3658853 on C13067-K1 for $153.23): 12 cards, 6 edges, $10,210.10 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -17721,7 +17721,7 @@
         "what": "Frame 85/231 of ring RING-WCC-c4e13e20 at 2017-01-11 21:07:54 (txn 3658849 on C13067-K1 for $125.48): 12 cards, 6 edges, $10,335.58 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -18058,7 +18058,7 @@
         "what": "Frame 86/231 of ring RING-WCC-c4e13e20 at 2017-01-11 21:51:46 (txn 3601212 on C00348-K1 for $26.13): 12 cards, 6 edges, $10,361.71 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -18397,7 +18397,7 @@
         "what": "Frame 87/231 of ring RING-WCC-c4e13e20 at 2017-01-12 01:13:05 (txn 3658851 on C13067-K1 for $107.54): 12 cards, 6 edges, $10,469.25 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -18738,7 +18738,7 @@
         "what": "Frame 88/231 of ring RING-WCC-c4e13e20 at 2017-01-12 01:46:29 (txn 3635751 on C08072-K1 for $97.19): 12 cards, 6 edges, $10,566.44 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -19081,7 +19081,7 @@
         "what": "Frame 89/231 of ring RING-WCC-c4e13e20 at 2017-01-12 02:47:02 (txn 3630373 on C06947-K2 for $132.68): 12 cards, 6 edges, $10,699.12 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -19426,7 +19426,7 @@
         "what": "Frame 90/231 of ring RING-WCC-c4e13e20 at 2017-01-12 08:59:14 (txn 3635731 on C08072-K1 for $46.16): 12 cards, 6 edges, $10,745.28 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -19773,7 +19773,7 @@
         "what": "Frame 91/231 of ring RING-WCC-c4e13e20 at 2017-01-12 11:53:37 (txn 3608215 on C01983-K1 for $53.29): 12 cards, 6 edges, $10,798.57 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -20122,7 +20122,7 @@
         "what": "Frame 92/231 of ring RING-WCC-c4e13e20 at 2017-01-12 14:53:56 (txn 3635723 on C08072-K1 for $166.36): 12 cards, 6 edges, $10,964.93 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -20473,7 +20473,7 @@
         "what": "Frame 93/231 of ring RING-WCC-c4e13e20 at 2017-01-12 17:21:43 (txn 3635734 on C08072-K1 for $782.60): 12 cards, 6 edges, $11,747.53 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -20826,7 +20826,7 @@
         "what": "Frame 94/231 of ring RING-WCC-c4e13e20 at 2017-01-13 02:41:10 (txn 3608197 on C01983-K1 for $41.77): 12 cards, 6 edges, $11,789.30 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -21181,7 +21181,7 @@
         "what": "Frame 95/231 of ring RING-WCC-c4e13e20 at 2017-01-13 04:10:53 (txn 3604221 on C01063-K2 for $50.98): 12 cards, 7 edges, $11,840.28 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -21548,7 +21548,7 @@
         "what": "Frame 96/231 of ring RING-WCC-c4e13e20 at 2017-01-13 11:05:44 (txn 3604222 on C01063-K2 for $108.10): 12 cards, 7 edges, $11,948.38 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -21915,7 +21915,7 @@
         "what": "Frame 97/231 of ring RING-WCC-c4e13e20 at 2017-01-13 12:16:05 (txn 3658850 on C13067-K1 for $91.88): 12 cards, 7 edges, $12,040.26 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -22284,7 +22284,7 @@
         "what": "Frame 98/231 of ring RING-WCC-c4e13e20 at 2017-01-13 13:18:51 (txn 3630729 on C07033-K1 for $34.08): 12 cards, 7 edges, $12,074.34 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -22655,7 +22655,7 @@
         "what": "Frame 99/231 of ring RING-WCC-c4e13e20 at 2017-01-13 14:45:40 (txn 3608550 on C02014-K2 for $20.41): 12 cards, 7 edges, $12,094.75 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -23028,7 +23028,7 @@
         "what": "Frame 100/231 of ring RING-WCC-c4e13e20 at 2017-01-13 18:43:14 (txn 3630369 on C06947-K2 for $191.28): 12 cards, 7 edges, $12,286.03 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -23403,7 +23403,7 @@
         "what": "Frame 101/231 of ring RING-WCC-c4e13e20 at 2017-01-13 19:45:23 (txn 3656903 on C12656-K1 for $30.36): 12 cards, 7 edges, $12,316.39 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -23780,7 +23780,7 @@
         "what": "Frame 102/231 of ring RING-WCC-c4e13e20 at 2017-01-13 21:42:59 (txn 3656905 on C12656-K1 for $31.43): 12 cards, 7 edges, $12,347.82 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -24159,7 +24159,7 @@
         "what": "Frame 103/231 of ring RING-WCC-c4e13e20 at 2017-01-13 21:59:54 (txn 3649871 on C11249-K1 for $47.25): 12 cards, 7 edges, $12,395.07 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -24540,7 +24540,7 @@
         "what": "Frame 104/231 of ring RING-WCC-c4e13e20 at 2017-01-13 23:38:21 (txn 3608551 on C02014-K2 for $190.22): 12 cards, 7 edges, $12,585.29 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -24923,7 +24923,7 @@
         "what": "Frame 105/231 of ring RING-WCC-c4e13e20 at 2017-01-14 00:00:16 (txn 3630737 on C07033-K1 for $54.06): 12 cards, 7 edges, $12,639.35 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -25308,7 +25308,7 @@
         "what": "Frame 106/231 of ring RING-WCC-c4e13e20 at 2017-01-14 00:36:21 (txn 3630368 on C06947-K2 for $55.87): 12 cards, 9 edges, $12,695.22 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -25713,7 +25713,7 @@
         "what": "Frame 107/231 of ring RING-WCC-c4e13e20 at 2017-01-14 01:33:00 (txn 3608206 on C01983-K1 for $91.19): 12 cards, 9 edges, $12,786.41 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -26118,7 +26118,7 @@
         "what": "Frame 108/231 of ring RING-WCC-c4e13e20 at 2017-01-14 07:08:56 (txn 3608556 on C02014-K2 for $87.10): 12 cards, 9 edges, $12,873.51 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -26527,7 +26527,7 @@
         "what": "Frame 109/231 of ring RING-WCC-c4e13e20 at 2017-01-14 07:14:26 (txn 3630732 on C07033-K1 for $69.99): 12 cards, 9 edges, $12,943.50 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -26936,7 +26936,7 @@
         "what": "Frame 110/231 of ring RING-WCC-c4e13e20 at 2017-01-14 17:55:42 (txn 3608199 on C01983-K1 for $39.34): 12 cards, 9 edges, $12,982.84 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -27347,7 +27347,7 @@
         "what": "Frame 111/231 of ring RING-WCC-c4e13e20 at 2017-01-14 18:15:22 (txn 3635737 on C08072-K1 for $84.10): 12 cards, 9 edges, $13,066.94 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -27760,7 +27760,7 @@
         "what": "Frame 112/231 of ring RING-WCC-c4e13e20 at 2017-01-14 20:54:15 (txn 3608203 on C01983-K1 for $107.63): 12 cards, 9 edges, $13,174.57 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -28175,7 +28175,7 @@
         "what": "Frame 113/231 of ring RING-WCC-c4e13e20 at 2017-01-14 21:41:43 (txn 3635750 on C08072-K1 for $839.61): 12 cards, 9 edges, $14,014.18 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -28592,7 +28592,7 @@
         "what": "Frame 114/231 of ring RING-WCC-c4e13e20 at 2017-01-14 23:48:27 (txn 3630730 on C07033-K1 for $39.87): 12 cards, 9 edges, $14,054.05 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -29011,7 +29011,7 @@
         "what": "Frame 115/231 of ring RING-WCC-c4e13e20 at 2017-01-15 00:15:10 (txn 3649866 on C11249-K1 for $56.18): 12 cards, 9 edges, $14,110.23 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -29432,7 +29432,7 @@
         "what": "Frame 116/231 of ring RING-WCC-c4e13e20 at 2017-01-15 03:28:12 (txn 3608216 on C01983-K1 for $69.30): 12 cards, 9 edges, $14,179.53 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -29855,7 +29855,7 @@
         "what": "Frame 117/231 of ring RING-WCC-c4e13e20 at 2017-01-15 06:15:13 (txn 3649879 on C11249-K1 for $50.64): 12 cards, 9 edges, $14,230.17 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -30282,7 +30282,7 @@
         "what": "Frame 118/231 of ring RING-WCC-c4e13e20 at 2017-01-15 08:05:06 (txn 3601218 on C00348-K1 for $29.11): 12 cards, 9 edges, $14,259.28 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -30709,7 +30709,7 @@
         "what": "Frame 119/231 of ring RING-WCC-c4e13e20 at 2017-01-15 09:47:29 (txn 3630734 on C07033-K1 for $29.43): 12 cards, 9 edges, $14,288.71 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -31138,7 +31138,7 @@
         "what": "Frame 120/231 of ring RING-WCC-c4e13e20 at 2017-01-15 12:41:34 (txn 3658858 on C13067-K1 for $43.15): 12 cards, 9 edges, $14,331.86 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -31569,7 +31569,7 @@
         "what": "Frame 121/231 of ring RING-WCC-c4e13e20 at 2017-01-15 17:29:06 (txn 3630740 on C07033-K1 for $52.97): 12 cards, 9 edges, $14,384.83 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -32002,7 +32002,7 @@
         "what": "Frame 122/231 of ring RING-WCC-c4e13e20 at 2017-01-15 20:38:58 (txn 3635755 on C08072-K1 for $83.47): 12 cards, 9 edges, $14,468.30 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -32437,7 +32437,7 @@
         "what": "Frame 123/231 of ring RING-WCC-c4e13e20 at 2017-01-15 22:51:07 (txn 3660246 on C00348-K1 for $5.08): 12 cards, 9 edges, $14,473.38 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -32874,7 +32874,7 @@
         "what": "Frame 124/231 of ring RING-WCC-c4e13e20 at 2017-01-16 02:35:13 (txn 3608222 on C01983-K1 for $65.51): 12 cards, 9 edges, $14,538.89 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -33313,7 +33313,7 @@
         "what": "Frame 125/231 of ring RING-WCC-c4e13e20 at 2017-01-16 07:36:39 (txn 3658857 on C13067-K1 for $31.34): 12 cards, 9 edges, $14,570.23 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -33754,7 +33754,7 @@
         "what": "Frame 126/231 of ring RING-WCC-c4e13e20 at 2017-01-16 07:47:34 (txn 3635740 on C08072-K1 for $193.33): 12 cards, 9 edges, $14,763.56 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -34197,7 +34197,7 @@
         "what": "Frame 127/231 of ring RING-WCC-c4e13e20 at 2017-01-16 09:23:14 (txn 3656904 on C12656-K1 for $12.07): 12 cards, 10 edges, $14,775.63 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -34652,7 +34652,7 @@
         "what": "Frame 128/231 of ring RING-WCC-c4e13e20 at 2017-01-16 09:52:06 (txn 3635732 on C08072-K1 for $650.57): 12 cards, 10 edges, $15,426.20 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -35107,7 +35107,7 @@
         "what": "Frame 129/231 of ring RING-WCC-c4e13e20 at 2017-01-16 11:22:59 (txn 3608221 on C01983-K1 for $167.29): 12 cards, 10 edges, $15,593.49 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -35564,7 +35564,7 @@
         "what": "Frame 130/231 of ring RING-WCC-c4e13e20 at 2017-01-16 11:56:05 (txn 3602901 on C00779-K1 for $75.40): 12 cards, 10 edges, $15,668.89 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -36023,7 +36023,7 @@
         "what": "Frame 131/231 of ring RING-WCC-c4e13e20 at 2017-01-16 13:14:20 (txn 3608218 on C01983-K1 for $157.46): 12 cards, 10 edges, $15,826.35 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -36484,7 +36484,7 @@
         "what": "Frame 132/231 of ring RING-WCC-c4e13e20 at 2017-01-16 14:04:39 (txn 3660247 on C00348-K1 for $2.70): 12 cards, 10 edges, $15,829.05 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -36947,7 +36947,7 @@
         "what": "Frame 133/231 of ring RING-WCC-c4e13e20 at 2017-01-16 15:18:44 (txn 3604217 on C01063-K2 for $64.68): 12 cards, 10 edges, $15,893.73 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -37412,7 +37412,7 @@
         "what": "Frame 134/231 of ring RING-WCC-c4e13e20 at 2017-01-16 17:42:21 (txn 3608204 on C01983-K1 for $24.63): 12 cards, 10 edges, $15,918.36 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -37879,7 +37879,7 @@
         "what": "Frame 135/231 of ring RING-WCC-c4e13e20 at 2017-01-16 22:13:42 (txn 3649882 on C11249-K1 for $181.79): 12 cards, 10 edges, $16,100.15 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -38348,7 +38348,7 @@
         "what": "Frame 136/231 of ring RING-WCC-c4e13e20 at 2017-01-17 01:30:30 (txn 3601217 on C00348-K1 for $69.36): 12 cards, 10 edges, $16,169.51 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -38819,7 +38819,7 @@
         "what": "Frame 137/231 of ring RING-WCC-c4e13e20 at 2017-01-17 05:29:19 (txn 3608238 on C01983-K1 for $44.88): 12 cards, 10 edges, $16,214.39 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -39292,7 +39292,7 @@
         "what": "Frame 138/231 of ring RING-WCC-c4e13e20 at 2017-01-17 06:41:09 (txn 3630363 on C06947-K2 for $242.66): 12 cards, 10 edges, $16,457.05 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -39767,7 +39767,7 @@
         "what": "Frame 139/231 of ring RING-WCC-c4e13e20 at 2017-01-17 08:17:33 (txn 3602884 on C00779-K1 for $40.83): 12 cards, 10 edges, $16,497.88 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -40244,7 +40244,7 @@
         "what": "Frame 140/231 of ring RING-WCC-c4e13e20 at 2017-01-17 09:38:08 (txn 3649870 on C11249-K1 for $44.60): 12 cards, 10 edges, $16,542.48 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -40723,7 +40723,7 @@
         "what": "Frame 141/231 of ring RING-WCC-c4e13e20 at 2017-01-17 10:37:29 (txn 3649884 on C11249-K1 for $128.97): 12 cards, 10 edges, $16,671.45 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -41204,7 +41204,7 @@
         "what": "Frame 142/231 of ring RING-WCC-c4e13e20 at 2017-01-17 14:40:16 (txn 3601210 on C00348-K1 for $663.22): 12 cards, 10 edges, $17,334.67 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -41687,7 +41687,7 @@
         "what": "Frame 143/231 of ring RING-WCC-c4e13e20 at 2017-01-17 19:32:56 (txn 3608549 on C02014-K2 for $100.87): 12 cards, 10 edges, $17,435.54 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -42174,7 +42174,7 @@
         "what": "Frame 144/231 of ring RING-WCC-c4e13e20 at 2017-01-17 20:58:16 (txn 3635724 on C08072-K1 for $68.78): 12 cards, 10 edges, $17,504.32 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -42661,7 +42661,7 @@
         "what": "Frame 145/231 of ring RING-WCC-c4e13e20 at 2017-01-18 08:33:01 (txn 3658856 on C13067-K1 for $1,784.19): 12 cards, 10 edges, $19,288.51 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -43150,7 +43150,7 @@
         "what": "Frame 146/231 of ring RING-WCC-c4e13e20 at 2017-01-18 08:42:53 (txn 3602898 on C00779-K1 for $20.33): 12 cards, 10 edges, $19,308.84 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -43641,7 +43641,7 @@
         "what": "Frame 147/231 of ring RING-WCC-c4e13e20 at 2017-01-18 10:51:46 (txn 3635722 on C08072-K1 for $115.96): 12 cards, 10 edges, $19,424.80 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -44134,7 +44134,7 @@
         "what": "Frame 148/231 of ring RING-WCC-c4e13e20 at 2017-01-18 15:05:15 (txn 3649862 on C11249-K1 for $22.89): 12 cards, 10 edges, $19,447.69 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -44629,7 +44629,7 @@
         "what": "Frame 149/231 of ring RING-WCC-c4e13e20 at 2017-01-18 17:41:35 (txn 3621716 on C05039-K1 for $21.75): 12 cards, 10 edges, $19,469.44 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -45126,7 +45126,7 @@
         "what": "Frame 150/231 of ring RING-WCC-c4e13e20 at 2017-01-18 18:38:24 (txn 3608220 on C01983-K1 for $63.00): 12 cards, 10 edges, $19,532.44 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -45625,7 +45625,7 @@
         "what": "Frame 151/231 of ring RING-WCC-c4e13e20 at 2017-01-18 19:25:46 (txn 3608211 on C01983-K1 for $103.54): 12 cards, 10 edges, $19,635.98 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -46126,7 +46126,7 @@
         "what": "Frame 152/231 of ring RING-WCC-c4e13e20 at 2017-01-18 19:30:07 (txn 3660248 on C00348-K1 for $4.94): 12 cards, 10 edges, $19,640.92 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -46629,7 +46629,7 @@
         "what": "Frame 153/231 of ring RING-WCC-c4e13e20 at 2017-01-18 23:04:12 (txn 3630741 on C07033-K1 for $29.13): 12 cards, 10 edges, $19,670.05 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -47134,7 +47134,7 @@
         "what": "Frame 154/231 of ring RING-WCC-c4e13e20 at 2017-01-19 04:23:58 (txn 3630364 on C06947-K2 for $78.24): 12 cards, 10 edges, $19,748.29 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -47641,7 +47641,7 @@
         "what": "Frame 155/231 of ring RING-WCC-c4e13e20 at 2017-01-19 17:09:51 (txn 3608553 on C02014-K2 for $338.53): 12 cards, 10 edges, $20,086.82 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -48150,7 +48150,7 @@
         "what": "Frame 156/231 of ring RING-WCC-c4e13e20 at 2017-01-19 20:52:47 (txn 3635747 on C08072-K1 for $964.31): 12 cards, 10 edges, $21,051.13 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -48661,7 +48661,7 @@
         "what": "Frame 157/231 of ring RING-WCC-c4e13e20 at 2017-01-19 23:27:06 (txn 3608210 on C01983-K1 for $62.41): 12 cards, 11 edges, $21,113.54 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -49184,7 +49184,7 @@
         "what": "Frame 158/231 of ring RING-WCC-c4e13e20 at 2017-01-20 00:20:01 (txn 3608234 on C01983-K1 for $68.41): 12 cards, 11 edges, $21,181.95 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -49707,7 +49707,7 @@
         "what": "Frame 159/231 of ring RING-WCC-c4e13e20 at 2017-01-20 00:51:25 (txn 3601222 on C00348-K1 for $88.81): 12 cards, 11 edges, $21,270.76 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -50232,7 +50232,7 @@
         "what": "Frame 160/231 of ring RING-WCC-c4e13e20 at 2017-01-20 05:33:56 (txn 3608232 on C01983-K1 for $41.24): 12 cards, 11 edges, $21,312.00 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -50759,7 +50759,7 @@
         "what": "Frame 161/231 of ring RING-WCC-c4e13e20 at 2017-01-20 05:45:01 (txn 3602888 on C00779-K1 for $40.36): 12 cards, 11 edges, $21,352.36 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -51288,7 +51288,7 @@
         "what": "Frame 162/231 of ring RING-WCC-c4e13e20 at 2017-01-20 06:43:51 (txn 3602885 on C00779-K1 for $102.58): 12 cards, 11 edges, $21,454.94 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -51819,7 +51819,7 @@
         "what": "Frame 163/231 of ring RING-WCC-c4e13e20 at 2017-01-20 08:41:40 (txn 3635720 on C08072-K1 for $192.81): 12 cards, 11 edges, $21,647.75 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -52352,7 +52352,7 @@
         "what": "Frame 164/231 of ring RING-WCC-c4e13e20 at 2017-01-20 10:57:05 (txn 3601226 on C00348-K1 for $328.64): 12 cards, 11 edges, $21,976.39 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -52887,7 +52887,7 @@
         "what": "Frame 165/231 of ring RING-WCC-c4e13e20 at 2017-01-20 11:03:40 (txn 3660249 on C00348-K1 for $2.10): 12 cards, 11 edges, $21,978.49 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -53424,7 +53424,7 @@
         "what": "Frame 166/231 of ring RING-WCC-c4e13e20 at 2017-01-20 13:18:18 (txn 3635735 on C08072-K1 for $222.21): 12 cards, 11 edges, $22,200.70 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -53963,7 +53963,7 @@
         "what": "Frame 167/231 of ring RING-WCC-c4e13e20 at 2017-01-20 19:20:58 (txn 3630367 on C06947-K2 for $56.40): 12 cards, 11 edges, $22,257.10 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -54504,7 +54504,7 @@
         "what": "Frame 168/231 of ring RING-WCC-c4e13e20 at 2017-01-20 20:10:46 (txn 3601220 on C00348-K1 for $185.61): 12 cards, 15 edges, $22,442.71 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -55081,7 +55081,7 @@
         "what": "Frame 169/231 of ring RING-WCC-c4e13e20 at 2017-01-21 00:08:36 (txn 3604227 on C01063-K2 for $39.20): 12 cards, 15 edges, $22,481.91 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -55658,7 +55658,7 @@
         "what": "Frame 170/231 of ring RING-WCC-c4e13e20 at 2017-01-21 03:45:43 (txn 3602891 on C00779-K1 for $76.97): 12 cards, 15 edges, $22,558.88 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -56237,7 +56237,7 @@
         "what": "Frame 171/231 of ring RING-WCC-c4e13e20 at 2017-01-21 05:45:18 (txn 3604226 on C01063-K2 for $152.00): 12 cards, 15 edges, $22,710.88 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -56818,7 +56818,7 @@
         "what": "Frame 172/231 of ring RING-WCC-c4e13e20 at 2017-01-21 07:42:40 (txn 3601216 on C00348-K1 for $39.44): 12 cards, 15 edges, $22,750.32 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -57401,7 +57401,7 @@
         "what": "Frame 173/231 of ring RING-WCC-c4e13e20 at 2017-01-21 12:57:59 (txn 3602896 on C00779-K1 for $58.19): 12 cards, 15 edges, $22,808.51 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -57986,7 +57986,7 @@
         "what": "Frame 174/231 of ring RING-WCC-c4e13e20 at 2017-01-21 13:40:50 (txn 3621709 on C05039-K1 for $96.29): 12 cards, 15 edges, $22,904.80 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -58573,7 +58573,7 @@
         "what": "Frame 175/231 of ring RING-WCC-c4e13e20 at 2017-01-21 14:56:22 (txn 3608213 on C01983-K1 for $56.55): 12 cards, 15 edges, $22,961.35 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -59164,7 +59164,7 @@
         "what": "Frame 176/231 of ring RING-WCC-c4e13e20 at 2017-01-21 16:49:04 (txn 3649863 on C11249-K1 for $63.98): 12 cards, 15 edges, $23,025.33 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -59755,7 +59755,7 @@
         "what": "Frame 177/231 of ring RING-WCC-c4e13e20 at 2017-01-21 23:01:19 (txn 3635741 on C08072-K1 for $61.78): 12 cards, 15 edges, $23,087.11 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -60348,7 +60348,7 @@
         "what": "Frame 178/231 of ring RING-WCC-c4e13e20 at 2017-01-21 23:10:30 (txn 3608229 on C01983-K1 for $96.39): 12 cards, 15 edges, $23,183.50 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -60943,7 +60943,7 @@
         "what": "Frame 179/231 of ring RING-WCC-c4e13e20 at 2017-01-22 04:59:18 (txn 3604224 on C01063-K2 for $50.67): 12 cards, 15 edges, $23,234.17 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -61540,7 +61540,7 @@
         "what": "Frame 180/231 of ring RING-WCC-c4e13e20 at 2017-01-22 06:07:43 (txn 3635744 on C08072-K1 for $177.88): 12 cards, 15 edges, $23,412.05 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -62139,7 +62139,7 @@
         "what": "Frame 181/231 of ring RING-WCC-c4e13e20 at 2017-01-22 10:36:13 (txn 3635745 on C08072-K1 for $84.75): 12 cards, 15 edges, $23,496.80 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -62740,7 +62740,7 @@
         "what": "Frame 182/231 of ring RING-WCC-c4e13e20 at 2017-01-22 13:07:08 (txn 3635742 on C08072-K1 for $106.70): 12 cards, 15 edges, $23,603.50 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -63343,7 +63343,7 @@
         "what": "Frame 183/231 of ring RING-WCC-c4e13e20 at 2017-01-22 14:34:45 (txn 3608231 on C01983-K1 for $81.73): 12 cards, 15 edges, $23,685.23 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -63948,7 +63948,7 @@
         "what": "Frame 184/231 of ring RING-WCC-c4e13e20 at 2017-01-22 20:38:55 (txn 3649877 on C11249-K1 for $71.89): 12 cards, 15 edges, $23,757.12 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -64555,7 +64555,7 @@
         "what": "Frame 185/231 of ring RING-WCC-c4e13e20 at 2017-01-22 21:07:59 (txn 3658855 on C13067-K1 for $552.11): 12 cards, 15 edges, $24,309.23 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -65164,7 +65164,7 @@
         "what": "Frame 186/231 of ring RING-WCC-c4e13e20 at 2017-01-23 01:52:23 (txn 3601221 on C00348-K1 for $48.18): 12 cards, 15 edges, $24,357.41 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -65775,7 +65775,7 @@
         "what": "Frame 187/231 of ring RING-WCC-c4e13e20 at 2017-01-23 06:45:50 (txn 3635753 on C08072-K1 for $163.80): 12 cards, 15 edges, $24,521.21 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -66388,7 +66388,7 @@
         "what": "Frame 188/231 of ring RING-WCC-c4e13e20 at 2017-01-23 08:54:26 (txn 3635736 on C08072-K1 for $122.85): 12 cards, 15 edges, $24,644.06 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -67003,7 +67003,7 @@
         "what": "Frame 189/231 of ring RING-WCC-c4e13e20 at 2017-01-23 13:02:44 (txn 3658846 on C13067-K1 for $469.01): 12 cards, 15 edges, $25,113.07 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -67620,7 +67620,7 @@
         "what": "Frame 190/231 of ring RING-WCC-c4e13e20 at 2017-01-23 22:18:14 (txn 3608227 on C01983-K1 for $73.88): 12 cards, 15 edges, $25,186.95 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -68239,7 +68239,7 @@
         "what": "Frame 191/231 of ring RING-WCC-c4e13e20 at 2017-01-23 23:36:56 (txn 3649876 on C11249-K1 for $107.47): 12 cards, 15 edges, $25,294.42 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -68860,7 +68860,7 @@
         "what": "Frame 192/231 of ring RING-WCC-c4e13e20 at 2017-01-24 01:04:47 (txn 3608214 on C01983-K1 for $67.55): 12 cards, 15 edges, $25,361.97 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -69483,7 +69483,7 @@
         "what": "Frame 193/231 of ring RING-WCC-c4e13e20 at 2017-01-24 01:31:00 (txn 3649885 on C11249-K1 for $45.88): 12 cards, 15 edges, $25,407.85 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -70108,7 +70108,7 @@
         "what": "Frame 194/231 of ring RING-WCC-c4e13e20 at 2017-01-24 01:56:37 (txn 3630376 on C06947-K2 for $46.15): 12 cards, 15 edges, $25,454.00 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -70735,7 +70735,7 @@
         "what": "Frame 195/231 of ring RING-WCC-c4e13e20 at 2017-01-24 08:09:16 (txn 3630371 on C06947-K2 for $58.84): 12 cards, 15 edges, $25,512.84 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -71364,7 +71364,7 @@
         "what": "Frame 196/231 of ring RING-WCC-c4e13e20 at 2017-01-24 10:49:47 (txn 3604225 on C01063-K2 for $75.41): 12 cards, 15 edges, $25,588.25 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -71995,7 +71995,7 @@
         "what": "Frame 197/231 of ring RING-WCC-c4e13e20 at 2017-01-24 11:13:39 (txn 3630370 on C06947-K2 for $229.69): 12 cards, 15 edges, $25,817.94 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -72628,7 +72628,7 @@
         "what": "Frame 198/231 of ring RING-WCC-c4e13e20 at 2017-01-24 11:40:44 (txn 3649875 on C11249-K1 for $91.53): 12 cards, 15 edges, $25,909.47 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -73263,7 +73263,7 @@
         "what": "Frame 199/231 of ring RING-WCC-c4e13e20 at 2017-01-24 13:55:42 (txn 3602880 on C00779-K1 for $106.48): 12 cards, 15 edges, $26,015.95 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -73903,7 +73903,7 @@
         "what": "Frame 200/231 of ring RING-WCC-c4e13e20 at 2017-01-25 01:34:17 (txn 3608198 on C01983-K1 for $51.78): 12 cards, 15 edges, $26,067.73 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -74542,7 +74542,7 @@
         "what": "Frame 201/231 of ring RING-WCC-c4e13e20 at 2017-01-25 08:25:05 (txn 3608235 on C01983-K1 for $78.25): 12 cards, 15 edges, $26,145.98 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -75183,7 +75183,7 @@
         "what": "Frame 202/231 of ring RING-WCC-c4e13e20 at 2017-01-25 11:50:01 (txn 3630742 on C07033-K1 for $41.20): 12 cards, 15 edges, $26,187.18 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -75826,7 +75826,7 @@
         "what": "Frame 203/231 of ring RING-WCC-c4e13e20 at 2017-01-25 12:53:37 (txn 3649868 on C11249-K1 for $21.57): 12 cards, 20 edges, $26,208.75 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -76515,7 +76515,7 @@
         "what": "Frame 204/231 of ring RING-WCC-c4e13e20 at 2017-01-25 14:36:05 (txn 3608217 on C01983-K1 for $17.91): 12 cards, 20 edges, $26,226.66 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -77203,7 +77203,7 @@
         "what": "Frame 205/231 of ring RING-WCC-c4e13e20 at 2017-01-25 18:47:31 (txn 3601225 on C00348-K1 for $46.66): 12 cards, 20 edges, $26,273.32 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -77893,7 +77893,7 @@
         "what": "Frame 206/231 of ring RING-WCC-c4e13e20 at 2017-01-26 04:34:14 (txn 3630358 on C06947-K2 for $86.19): 12 cards, 20 edges, $26,359.51 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -78585,7 +78585,7 @@
         "what": "Frame 207/231 of ring RING-WCC-c4e13e20 at 2017-01-26 04:44:27 (txn 3635754 on C08072-K1 for $141.84): 12 cards, 20 edges, $26,501.35 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -79279,7 +79279,7 @@
         "what": "Frame 208/231 of ring RING-WCC-c4e13e20 at 2017-01-26 06:30:24 (txn 3608200 on C01983-K1 for $47.71): 12 cards, 20 edges, $26,549.06 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -79975,7 +79975,7 @@
         "what": "Frame 209/231 of ring RING-WCC-c4e13e20 at 2017-01-26 07:36:35 (txn 3635743 on C08072-K1 for $201.92): 12 cards, 20 edges, $26,750.98 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -80673,7 +80673,7 @@
         "what": "Frame 210/231 of ring RING-WCC-c4e13e20 at 2017-01-26 08:59:09 (txn 3601211 on C00348-K1 for $47.59): 12 cards, 20 edges, $26,798.57 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -81373,7 +81373,7 @@
         "what": "Frame 211/231 of ring RING-WCC-c4e13e20 at 2017-01-26 09:22:55 (txn 3635748 on C08072-K1 for $655.21): 12 cards, 20 edges, $27,453.78 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -82075,7 +82075,7 @@
         "what": "Frame 212/231 of ring RING-WCC-c4e13e20 at 2017-01-26 12:46:12 (txn 3635719 on C08072-K1 for $112.62): 12 cards, 20 edges, $27,566.40 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -82779,7 +82779,7 @@
         "what": "Frame 213/231 of ring RING-WCC-c4e13e20 at 2017-01-26 16:15:39 (txn 3621711 on C05039-K1 for $115.78): 12 cards, 26 edges, $27,682.18 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -83535,7 +83535,7 @@
         "what": "Frame 214/231 of ring RING-WCC-c4e13e20 at 2017-01-26 17:44:48 (txn 3635733 on C08072-K1 for $147.94): 12 cards, 26 edges, $27,830.12 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -84291,7 +84291,7 @@
         "what": "Frame 215/231 of ring RING-WCC-c4e13e20 at 2017-01-26 18:49:29 (txn 3608226 on C01983-K1 for $225.28): 12 cards, 26 edges, $28,055.40 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -85049,7 +85049,7 @@
         "what": "Frame 216/231 of ring RING-WCC-c4e13e20 at 2017-01-26 23:26:41 (txn 3635729 on C08072-K1 for $28.37): 12 cards, 26 edges, $28,083.77 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -85809,7 +85809,7 @@
         "what": "Frame 217/231 of ring RING-WCC-c4e13e20 at 2017-01-27 08:49:26 (txn 3602881 on C00779-K1 for $178.06): 12 cards, 26 edges, $28,261.83 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -86571,7 +86571,7 @@
         "what": "Frame 218/231 of ring RING-WCC-c4e13e20 at 2017-01-27 09:31:07 (txn 3601219 on C00348-K1 for $142.17): 12 cards, 26 edges, $28,404.00 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -87335,7 +87335,7 @@
         "what": "Frame 219/231 of ring RING-WCC-c4e13e20 at 2017-01-27 11:56:15 (txn 3608236 on C01983-K1 for $76.49): 12 cards, 26 edges, $28,480.49 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -88101,7 +88101,7 @@
         "what": "Frame 220/231 of ring RING-WCC-c4e13e20 at 2017-01-27 12:31:26 (txn 3608225 on C01983-K1 for $54.17): 12 cards, 26 edges, $28,534.66 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -88871,7 +88871,7 @@
         "what": "Frame 221/231 of ring RING-WCC-c4e13e20 at 2017-01-27 22:09:51 (txn 3635738 on C08072-K1 for $50.04): 12 cards, 26 edges, $28,584.70 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -89641,7 +89641,7 @@
         "what": "Frame 222/231 of ring RING-WCC-c4e13e20 at 2017-01-28 02:59:59 (txn 3649874 on C11249-K1 for $55.90): 12 cards, 26 edges, $28,640.60 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -90413,7 +90413,7 @@
         "what": "Frame 223/231 of ring RING-WCC-c4e13e20 at 2017-01-28 05:36:13 (txn 3601214 on C00348-K1 for $139.34): 12 cards, 26 edges, $28,779.94 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -91187,7 +91187,7 @@
         "what": "Frame 224/231 of ring RING-WCC-c4e13e20 at 2017-01-28 10:24:01 (txn 3656900 on C12656-K1 for $24.18): 12 cards, 26 edges, $28,804.12 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -91963,7 +91963,7 @@
         "what": "Frame 225/231 of ring RING-WCC-c4e13e20 at 2017-01-28 11:21:45 (txn 3602895 on C00779-K1 for $14.79): 12 cards, 26 edges, $28,818.91 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -92741,7 +92741,7 @@
         "what": "Frame 226/231 of ring RING-WCC-c4e13e20 at 2017-01-28 11:50:23 (txn 3649865 on C11249-K1 for $21.77): 12 cards, 26 edges, $28,840.68 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -93524,7 +93524,7 @@
         "what": "Frame 227/231 of ring RING-WCC-c4e13e20 at 2017-01-28 16:50:44 (txn 3630735 on C07033-K1 for $44.29): 12 cards, 26 edges, $28,884.97 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -94306,7 +94306,7 @@
         "what": "Frame 228/231 of ring RING-WCC-c4e13e20 at 2017-01-28 19:28:10 (txn 3630360 on C06947-K2 for $400.86): 12 cards, 26 edges, $29,285.83 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -95090,7 +95090,7 @@
         "what": "Frame 229/231 of ring RING-WCC-c4e13e20 at 2017-01-28 19:36:48 (txn 3601215 on C00348-K1 for $257.41): 12 cards, 26 edges, $29,543.24 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -95876,7 +95876,7 @@
         "what": "Frame 230/231 of ring RING-WCC-c4e13e20 at 2017-01-28 20:45:16 (txn 3660250 on C00348-K1 for $4.05): 12 cards, 26 edges, $29,547.29 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -96664,7 +96664,7 @@
         "what": "Frame 231/231 of ring RING-WCC-c4e13e20 at 2017-01-28 23:13:04 (txn 3630743 on C07033-K1 for $21.70): 12 cards, 33 edges, $29,568.99 cumulative loss.",
         "when": {
           "dataset": "r2-2017q1@1693bdeeccd1",
-          "ts": "2026-10-28T18:16:12+00:00"
+          "ts": "2026-10-29T05:15:03+00:00"
         }
       },
       "card_joined": false,
@@ -97250,237 +97250,237 @@
           "C13067"
         ],
         "txn_ids": [
-          "3601224",
-          "3660245",
-          "3601227",
-          "3601223",
-          "3601212",
-          "3601218",
-          "3660246",
-          "3660247",
-          "3601217",
-          "3601210",
-          "3660248",
-          "3601222",
-          "3601226",
-          "3660249",
-          "3601220",
-          "3601216",
-          "3601221",
-          "3601225",
-          "3601211",
-          "3601219",
-          "3601214",
-          "3601215",
-          "3660250",
-          "3602883",
-          "3602887",
-          "3602890",
-          "3602882",
-          "3602889",
-          "3602897",
-          "3602892",
-          "3602900",
-          "3602893",
-          "3602894",
-          "3602901",
-          "3602884",
-          "3602898",
-          "3602888",
-          "3602885",
-          "3602891",
-          "3602896",
-          "3602880",
-          "3602881",
-          "3602895",
-          "3588252",
-          "3604220",
-          "3604223",
-          "3604221",
-          "3604222",
-          "3604217",
-          "3604227",
-          "3604226",
-          "3604224",
-          "3604225",
-          "3587975",
-          "3589368",
-          "3608224",
-          "3608196",
-          "3608209",
-          "3608208",
-          "3608233",
-          "3608201",
-          "3608207",
-          "3608219",
-          "3608215",
-          "3608197",
-          "3608206",
-          "3608199",
-          "3608203",
-          "3608216",
-          "3608222",
-          "3608221",
-          "3608218",
-          "3608204",
-          "3608238",
-          "3608220",
-          "3608211",
-          "3608210",
-          "3608234",
-          "3608232",
-          "3608213",
-          "3608229",
-          "3608231",
-          "3608227",
-          "3608214",
-          "3608198",
-          "3608235",
-          "3608217",
-          "3608200",
-          "3608226",
-          "3608236",
-          "3608225",
-          "3608558",
-          "3608561",
-          "3608552",
-          "3608557",
-          "3608555",
-          "3608559",
-          "3608560",
-          "3608554",
-          "3608550",
-          "3608551",
-          "3608556",
-          "3608549",
-          "3608553",
-          "3621714",
-          "3621712",
-          "3621710",
-          "3621715",
-          "3621713",
-          "3621717",
-          "3621716",
-          "3621709",
-          "3621711",
           "3585484",
           "3587816",
+          "3587861",
+          "3587900",
+          "3587975",
+          "3588252",
+          "3589368",
+          "3601210",
+          "3601211",
+          "3601212",
+          "3601214",
+          "3601215",
+          "3601216",
+          "3601217",
+          "3601218",
+          "3601219",
+          "3601220",
+          "3601221",
+          "3601222",
+          "3601223",
+          "3601224",
+          "3601225",
+          "3601226",
+          "3601227",
+          "3602880",
+          "3602881",
+          "3602882",
+          "3602883",
+          "3602884",
+          "3602885",
+          "3602887",
+          "3602888",
+          "3602889",
+          "3602890",
+          "3602891",
+          "3602892",
+          "3602893",
+          "3602894",
+          "3602895",
+          "3602896",
+          "3602897",
+          "3602898",
+          "3602900",
+          "3602901",
+          "3604217",
+          "3604220",
+          "3604221",
+          "3604222",
+          "3604223",
+          "3604224",
+          "3604225",
+          "3604226",
+          "3604227",
+          "3608196",
+          "3608197",
+          "3608198",
+          "3608199",
+          "3608200",
+          "3608201",
+          "3608203",
+          "3608204",
+          "3608206",
+          "3608207",
+          "3608208",
+          "3608209",
+          "3608210",
+          "3608211",
+          "3608213",
+          "3608214",
+          "3608215",
+          "3608216",
+          "3608217",
+          "3608218",
+          "3608219",
+          "3608220",
+          "3608221",
+          "3608222",
+          "3608224",
+          "3608225",
+          "3608226",
+          "3608227",
+          "3608229",
+          "3608231",
+          "3608232",
+          "3608233",
+          "3608234",
+          "3608235",
+          "3608236",
+          "3608238",
+          "3608549",
+          "3608550",
+          "3608551",
+          "3608552",
+          "3608553",
+          "3608554",
+          "3608555",
+          "3608556",
+          "3608557",
+          "3608558",
+          "3608559",
+          "3608560",
+          "3608561",
+          "3621709",
+          "3621710",
+          "3621711",
+          "3621712",
+          "3621713",
+          "3621714",
+          "3621715",
+          "3621716",
+          "3621717",
+          "3630358",
           "3630359",
-          "3630366",
+          "3630360",
           "3630361",
-          "3630365",
-          "3630373",
-          "3630369",
-          "3630368",
           "3630363",
           "3630364",
+          "3630365",
+          "3630366",
           "3630367",
-          "3630376",
-          "3630371",
+          "3630368",
+          "3630369",
           "3630370",
-          "3630358",
-          "3630360",
-          "3630736",
+          "3630371",
+          "3630373",
+          "3630376",
           "3630728",
-          "3630731",
-          "3630745",
-          "3630744",
           "3630729",
-          "3630737",
-          "3630732",
           "3630730",
+          "3630731",
+          "3630732",
           "3630734",
+          "3630735",
+          "3630736",
+          "3630737",
           "3630740",
           "3630741",
           "3630742",
-          "3630735",
           "3630743",
-          "3635739",
-          "3635758",
-          "3635749",
+          "3630744",
+          "3630745",
           "3635718",
-          "3635728",
-          "3635756",
-          "3635746",
-          "3635726",
-          "3635757",
-          "3635751",
-          "3635731",
-          "3635723",
-          "3635734",
-          "3635737",
-          "3635750",
-          "3635755",
-          "3635740",
-          "3635732",
-          "3635724",
-          "3635722",
-          "3635747",
+          "3635719",
           "3635720",
+          "3635722",
+          "3635723",
+          "3635724",
+          "3635726",
+          "3635728",
+          "3635729",
+          "3635731",
+          "3635732",
+          "3635733",
+          "3635734",
           "3635735",
+          "3635736",
+          "3635737",
+          "3635738",
+          "3635739",
+          "3635740",
           "3635741",
+          "3635742",
+          "3635743",
           "3635744",
           "3635745",
-          "3635742",
-          "3635753",
-          "3635736",
-          "3635754",
-          "3635743",
+          "3635746",
+          "3635747",
           "3635748",
-          "3635719",
-          "3635733",
-          "3635729",
-          "3635738",
-          "3587861",
-          "3587900",
+          "3635749",
+          "3635750",
+          "3635751",
+          "3635753",
+          "3635754",
+          "3635755",
+          "3635756",
+          "3635757",
+          "3635758",
           "3649861",
-          "3649883",
-          "3649878",
-          "3649872",
-          "3649880",
-          "3649864",
-          "3649881",
-          "3649869",
-          "3649871",
-          "3649866",
-          "3649879",
-          "3649882",
-          "3649870",
-          "3649884",
           "3649862",
           "3649863",
-          "3649877",
-          "3649876",
-          "3649885",
-          "3649875",
-          "3649868",
-          "3649874",
+          "3649864",
           "3649865",
+          "3649866",
+          "3649868",
+          "3649869",
+          "3649870",
+          "3649871",
+          "3649872",
+          "3649874",
+          "3649875",
+          "3649876",
+          "3649877",
+          "3649878",
+          "3649879",
+          "3649880",
+          "3649881",
+          "3649882",
+          "3649883",
+          "3649884",
+          "3649885",
+          "3656895",
+          "3656896",
           "3656897",
           "3656898",
-          "3656896",
-          "3656902",
-          "3656895",
           "3656899",
-          "3656901",
-          "3656903",
-          "3656905",
-          "3656904",
           "3656900",
-          "3658854",
-          "3658848",
-          "3658847",
+          "3656901",
+          "3656902",
+          "3656903",
+          "3656904",
+          "3656905",
           "3658844",
+          "3658846",
+          "3658847",
+          "3658848",
+          "3658849",
+          "3658850",
+          "3658851",
           "3658852",
           "3658853",
-          "3658849",
-          "3658851",
-          "3658850",
-          "3658858",
-          "3658857",
-          "3658856",
+          "3658854",
           "3658855",
-          "3658846"
+          "3658856",
+          "3658857",
+          "3658858",
+          "3660245",
+          "3660246",
+          "3660247",
+          "3660248",
+          "3660249",
+          "3660250"
         ]
       },
       "how": {
@@ -97497,7 +97497,7 @@
       "what": "Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members)",
       "when": {
         "dataset": "r2-2017q1@1693bdeeccd1",
-        "ts": "2026-10-28T18:16:12+00:00"
+        "ts": "2026-10-29T05:15:03+00:00"
       }
     },
     "cards": [

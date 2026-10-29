@@ -352,9 +352,9 @@ def _verify_store_integrity_for_case(store: R2LocalStore, inv: R2Investigator, c
     fid = int(case_row["flagged_txn_id"])
     hit = inv._tx.loc[inv._tx["TransactionID"] == fid]
     if hit.empty or fid not in store.tx.index:
-        raise DependencyDown(
-            f"Flagged transaction {fid} is missing from transaction store (empty/truncated store response)"
-        )
+        # The store answered and is not truncated (checked above), so this is the case row naming a
+        # transaction the bank never recorded: bad input, not a failed dependency.
+        raise InvalidInput(f"Flagged transaction {fid} does not exist in the bank's records")
     t0 = pd.Timestamp(case_row["opened_at"])
     if pd.Timestamp(hit["t"].iat[0]) > t0:
         raise InvalidInput(

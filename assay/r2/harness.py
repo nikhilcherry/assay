@@ -14,6 +14,7 @@ import hashlib
 import importlib
 import inspect
 import json
+import math
 import os
 import re
 import sys
@@ -290,15 +291,19 @@ def validate_case_row(case_row: Any) -> tuple[bool, str | None]:
             if re.search(pat, val_str, re.IGNORECASE):
                 return False, f"Hostile or invalid input detected matching pattern '{pat}'"
 
-    # risk_score range check if present
+    # risk_score: a number in [0, 1] when present ("NaN"/"inf" strings parse as floats, so check
+    # finiteness), and required when the bank's model is what raised the alert
     rs = d.get("risk_score")
-    if rs is not None and not (isinstance(rs, float) and pd.isna(rs)) and str(rs).strip() != "":
+    has_rs = rs is not None and not (isinstance(rs, float) and pd.isna(rs)) and str(rs).strip() != ""
+    if has_rs:
         try:
             rs_val = float(rs)
-            if rs_val < 0.0 or rs_val > 1.0:
-                return False, f"risk_score {rs_val} out of range [0, 1]"
         except (ValueError, TypeError):
             return False, f"Invalid risk_score value: '{rs}'"
+        if not math.isfinite(rs_val) or rs_val < 0.0 or rs_val > 1.0:
+            return False, f"risk_score {rs!r} out of range: not a number in [0, 1]"
+    if str(d.get("trigger_type", "")).strip() == "risk_score" and not has_rs:
+        return False, "trigger_type risk_score needs the bank's risk_score"
 
     # opened_at: a bank-local timestamp inside the data's period (red team: a "...Z" date passed the
     # parse check and crashed mid-run on a tz-aware comparison)

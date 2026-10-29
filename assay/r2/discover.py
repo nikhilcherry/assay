@@ -468,7 +468,10 @@ def featurize_closed_cases() -> pd.DataFrame:
         if not t_list and row.txn_list:
             t_list = [tid for tid in row.txn_list if tid in preds_tx.index]
         if t_list:
-            sub = preds_tx.loc[t_list].any(axis=0).to_numpy(dtype=bool)
+            # The case is its representative transaction: a rule is a conjunction on ONE transaction
+            # (that is what the generated detector checks live), so OR-ing each predicate across the
+            # episode would credit catches no single transaction can reproduce.
+            sub = preds_tx.loc[t_list[0]].to_numpy(dtype=bool)
             rep_txn_ids.append(int(t_list[0]))
         else:
             sub = np.zeros(len(PREDICATE_NAMES), dtype=bool)

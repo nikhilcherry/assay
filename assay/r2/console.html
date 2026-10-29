@@ -65,6 +65,7 @@
   }
 
   .brand-badge {
+    white-space: nowrap;
     background: var(--accent);
     color: #030712;
     font-family: var(--font-mono);
@@ -76,12 +77,17 @@
   }
 
   .brand-title {
+    white-space: nowrap;
     font-weight: 700;
     font-size: 17px;
     letter-spacing: 0.02em;
   }
 
   .brand-sub {
+    display: flex;
+    gap: 6px;
+    margin-top: 3px;
+    white-space: nowrap;
     color: var(--text-dim);
     font-size: 13px;
     font-family: var(--font-mono);
@@ -90,7 +96,8 @@
   .controls-bar {
     display: flex;
     align-items: center;
-    gap: 14px;
+    justify-content: flex-end;
+    gap: 10px;
     flex-wrap: wrap;
   }
 
@@ -120,7 +127,7 @@
     padding: 4px 8px;
     font-family: var(--font-mono);
     font-size: 13px;
-    width: 185px;
+    width: 160px;
   }
 
   .btn {
@@ -210,6 +217,53 @@
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
   }
+
+  .case-card:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .case-card.hidden { display: none; }
+
+  .control-input.case-filter {
+    margin: 8px 8px 0;
+    width: calc(100% - 16px);
+  }
+
+  .status-pill {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: var(--bg-2);
+    white-space: nowrap;
+  }
+
+  .status-pill.on { color: var(--green); border-color: var(--green); background: var(--green-bg); }
+  .status-pill.wait { color: var(--amber); border-color: var(--amber); background: var(--amber-bg); }
+
+  .kbd-hint {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 6px 14px 8px;
+  }
+
+  .verdict-strip { display: none; }
+
+  .ring-link {
+    display: inline-block;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .ring-link:hover { text-decoration: underline; }
 
   .case-card:hover {
     border-color: var(--accent);
@@ -315,6 +369,7 @@
   }
 
   .banner-case-id {
+    white-space: nowrap;
     font-family: var(--font-mono);
     font-size: 22px;
     font-weight: 800;
@@ -510,8 +565,11 @@
   }
 
   .metric-value {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-family: var(--font-mono);
-    font-size: 19px;
+    font-size: 18px;
     font-weight: 800;
   }
 
@@ -610,20 +668,23 @@
   <div class="brand">
     <span class="brand-badge">ASSAY R2</span>
     <div>
-      <div class="brand-title">Fraud Investigation &amp; Audit Replay Console</div>
-      <div class="brand-sub">TigerGraph &times; Hacker House Goa Final Round &middot; 18 Cases</div>
+      <div class="brand-title">Fraud Investigation Console</div>
+      <div class="brand-sub">
+        <span id="pill-tg" class="status-pill" title="ASSAY_TG=1 routes ring detection and case write-back through TigerGraph">TigerGraph: …</span>
+        <span id="pill-warm" class="status-pill wait" title="The first investigation loads lazy data; the console runs one at startup">Engine: warming up</span>
+      </div>
     </div>
   </div>
 
   <div class="controls-bar">
     <div class="control-group">
-      <label for="approver-token">Approver Token (RAM only)</label>
+      <label for="approver-token" title="Kept in this page's memory only, never stored">Approver token</label>
       <input id="approver-token" class="control-input" type="password" placeholder="e.g. demo-l2-token" autocomplete="off" />
     </div>
 
     <div class="control-group">
-      <label for="fault-spec">Fault Spec</label>
-      <input id="fault-spec" class="control-input" type="text" value="get_transaction:down@2" />
+      <label for="fault-spec">Fault</label>
+      <input id="fault-spec" class="control-input" type="text" value="card_history:down@1" title="tool:down@N fails the Nth call to that tool (* = any tool)" />
       <button id="btn-break-toggle" class="btn btn-break" onclick="toggleBreakIt()">Break it: OFF</button>
     </div>
   </div>
@@ -635,7 +696,9 @@
       <span>FINAL PACK (<span id="case-count">0</span>)</span>
       <span>QUARANTINE GUARD: ON</span>
     </div>
-    <div id="case-list" class="case-list"></div>
+    <input id="case-filter" class="control-input case-filter" type="search" placeholder="Filter: 007, risk_score, C09582…" aria-label="Filter cases" autocomplete="off" />
+    <div id="case-list" class="case-list" role="listbox" aria-label="Final pack cases"></div>
+    <div class="kbd-hint">↑/↓ pick a case · Enter run · I instant · B break it</div>
   </aside>
 
   <main class="main-panel">
@@ -675,6 +738,29 @@
       </div>
     </div>
 
+    <div id="verdict-strip" class="verdict-strip">
+    <div class="outcome-grid">
+        <div class="metric-box">
+          <div class="metric-label">Final Verdict</div>
+          <div id="out-verdict" class="metric-value">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Pattern Typology</div>
+          <div id="out-pattern" class="metric-value">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Attested Exposure (USD)</div>
+          <div id="out-exposure" class="metric-value">--</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">SAR Filing (&sect;3a)</div>
+          <div id="out-sar" class="metric-value">--</div>
+        </div>
+      </div>
+
+      <a id="ring-link" class="ring-link" href="#" target="_blank" rel="noopener" style="display:none;">Open the ring replay (graph timeline) &rarr;</a>
+    </div>
+
     <div class="replay-grid">
       <div class="panel-card">
         <div class="panel-header">
@@ -694,25 +780,6 @@
     </div>
 
     <div id="outcome-section" style="display:none; flex-direction:column; gap:16px;">
-      <div class="outcome-grid">
-        <div class="metric-box">
-          <div class="metric-label">Final Verdict</div>
-          <div id="out-verdict" class="metric-value">--</div>
-        </div>
-        <div class="metric-box">
-          <div class="metric-label">Pattern Typology</div>
-          <div id="out-pattern" class="metric-value">--</div>
-        </div>
-        <div class="metric-box">
-          <div class="metric-label">Attested Exposure (USD)</div>
-          <div id="out-exposure" class="metric-value">--</div>
-        </div>
-        <div class="metric-box">
-          <div class="metric-label">SAR Filing (&sect;3a)</div>
-          <div id="out-sar" class="metric-value">--</div>
-        </div>
-      </div>
-
       <div class="panel-card" style="min-height:auto;">
         <div class="panel-header">
           <span>3. NEXT BEST ACTIONS &amp; SERVER-SIDE APPROVAL ROUTING</span>
@@ -741,6 +808,29 @@
   let SELECTED_CASE_ID = null;
   let BREAK_ACTIVE = false;
   let REPLAY_TIMERS = [];
+  let RUN_TICK = null;
+
+  // Small probabilities matter here (a January model score of 0.001 is not 0.00)
+  function fmtP(p) {
+    const x = Number(p || 0);
+    if (x > 0 && x < 0.01) return x < 0.001 ? "<0.001" : x.toFixed(3);
+    return x.toFixed(2);
+  }
+
+  async function pollStatus() {
+    try {
+      const st = await (await fetch("/status")).json();
+      const tg = document.getElementById("pill-tg");
+      tg.textContent = st.tigergraph ? "TigerGraph: live" : "TigerGraph: off (local store)";
+      tg.className = "status-pill" + (st.tigergraph ? " on" : "");
+      const warm = document.getElementById("pill-warm");
+      warm.textContent = st.warm ? "Engine: warm" : "Engine: warming up";
+      warm.className = "status-pill " + (st.warm ? "on" : "wait");
+      if (!st.warm) setTimeout(pollStatus, 1500);
+    } catch (e) {
+      setTimeout(pollStatus, 3000);
+    }
+  }
 
   function clearReplayTimers() {
     while (REPLAY_TIMERS.length > 0) {
@@ -777,7 +867,13 @@
       const card = document.createElement("div");
       card.className = "case-card";
       card.id = `card-${c.case_id}`;
+      card.tabIndex = 0;
+      card.setAttribute("role", "option");
+      card.dataset.search = `${c.case_id} ${c.trigger_type} ${c.card_id} ${c.flagged_txn_id} ${c.trigger_text}`.toLowerCase();
       card.onclick = () => selectCase(c.case_id);
+      card.onkeydown = ev => {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); selectCase(c.case_id); runSelectedCase(true); }
+      };
 
       const rsText = c.risk_score !== null && c.risk_score !== undefined ? ` &middot; score=${c.risk_score}` : "";
       card.innerHTML = `
@@ -798,9 +894,13 @@
 
   function selectCase(caseId) {
     SELECTED_CASE_ID = caseId;
-    document.querySelectorAll(".case-card").forEach(el => el.classList.remove("selected"));
+    document.querySelectorAll(".case-card").forEach(el => { el.classList.remove("selected"); el.removeAttribute("aria-selected"); });
     const cardEl = document.getElementById(`card-${caseId}`);
-    if (cardEl) cardEl.classList.add("selected");
+    if (cardEl) {
+      cardEl.classList.add("selected");
+      cardEl.setAttribute("aria-selected", "true");
+      cardEl.scrollIntoView({ block: "nearest" });
+    }
 
     const c = CASES.find(x => x.case_id === caseId);
     if (!c) return;
@@ -816,7 +916,7 @@
   }
 
   async function toggleBreakIt() {
-    const specInput = document.getElementById("fault-spec").value.trim() || "get_transaction:down@2";
+    const specInput = document.getElementById("fault-spec").value.trim() || "card_history:down@1";
     const nextFault = BREAK_ACTIVE ? null : specInput;
     const res = await fetch("/fault", {
       method: "POST",
@@ -839,8 +939,9 @@
     const p = Math.max(0, Math.min(1, Number(prob || 0)));
     const pct = (p * 100).toFixed(1);
     document.getElementById("needle-marker").style.left = `${pct}%`;
+    document.getElementById("needle-marker").style.opacity = "1";
     document.getElementById("needle-readout").textContent =
-      `${p.toFixed(2)}${labelSuffix ? " (" + labelSuffix + ")" : ""}`;
+      `${fmtP(p)}${labelSuffix ? " (" + labelSuffix + ")" : ""}`;
   }
 
   async function runSelectedCase(animate = true) {
@@ -849,7 +950,13 @@
 
     const btnRun = document.getElementById("btn-run");
     btnRun.disabled = true;
-    btnRun.textContent = "Running...";
+    document.getElementById("btn-instant").disabled = true;
+    const tStart = performance.now();
+    const tick = () => { btnRun.textContent = `Running… ${((performance.now() - tStart) / 1000).toFixed(1)}s`; };
+    tick();
+    RUN_TICK = setInterval(tick, 100);
+    document.querySelector(".main-panel").scrollTop = 0;
+    document.getElementById("verdict-strip").style.display = "none";
 
     document.getElementById("fail-closed-container").style.display = "none";
     document.getElementById("outcome-section").style.display = "none";
@@ -867,6 +974,8 @@
       fc.style.display = "block";
       fc.innerHTML = `<div class="fail-closed-box"><div class="fail-closed-title">FAIL CLOSED</div>${escapeHtml(err.message)}</div>`;
     } finally {
+      clearInterval(RUN_TICK);
+      document.getElementById("btn-instant").disabled = false;
       btnRun.disabled = false;
       btnRun.innerHTML = "&#9654; Run Investigation";
     }
@@ -896,7 +1005,7 @@
     div.className = "step-item";
     div.innerHTML = `
       <div class="step-top">
-        <span class="lr-badge">LR ${Number(item.lr).toFixed(2)}&times; &rarr; p=${Number(item.probability_after).toFixed(2)}</span>
+        <span class="lr-badge">LR ${Number(item.lr).toFixed(2)}&times; &rarr; p=${fmtP(item.probability_after)}</span>
         <span class="step-badge">${escapeHtml(item.ref)}</span>
       </div>
       <div class="trigger-text">${escapeHtml(item.claim)}</div>
@@ -919,12 +1028,24 @@
           </div>
         </div>
       `;
-      setNeedle(0.5, "HALTED / FAIL-CLOSED");
+      // No verdict exists, so no probability is shown either
+      document.getElementById("needle-marker").style.opacity = "0.25";
+      document.getElementById("needle-readout").textContent = "HALTED · no verdict";
       return;
     }
 
     const outSec = document.getElementById("outcome-section");
     outSec.style.display = "flex";
+    document.getElementById("verdict-strip").style.display = "block";
+    const ring = document.getElementById("ring-link");
+    // Only when a ring finding is in the ledger: a replay file alone says nothing about this verdict
+    const ringFinding = (data.ledger || []).some(l => /ring_for|ring_wcc/.test(l.ref || ""));
+    if (data.ring_view && ringFinding) {
+      ring.href = data.ring_view;
+      ring.style.display = "inline-block";
+    } else {
+      ring.style.display = "none";
+    }
 
     const vEl = document.getElementById("out-verdict");
     vEl.textContent = data.verdict;
@@ -936,7 +1057,8 @@
 
     const sarRequired = Boolean(data.sar && data.sar.file);
     const sarEl = document.getElementById("out-sar");
-    sarEl.textContent = sarRequired ? "YES (FILE_REPORT)" : "NO";
+    sarEl.textContent = sarRequired ? "YES · FILE_REPORT" : "NO";
+    document.getElementById("out-pattern").title = data.pattern;
     sarEl.style.color = sarRequired ? "var(--amber)" : "var(--text-dim)";
 
     document.getElementById("out-elapsed").textContent = `${data.elapsed_ms} ms`;
@@ -1046,7 +1168,40 @@
     if (btnEl) btnEl.disabled = true;
   }
 
-  window.addEventListener("DOMContentLoaded", loadCases);
+  function visibleCards() {
+    return [...document.querySelectorAll(".case-card:not(.hidden)")];
+  }
+
+  function moveSelection(step) {
+    const cards = visibleCards();
+    if (!cards.length) return;
+    let i = cards.findIndex(el => el.id === `card-${SELECTED_CASE_ID}`);
+    i = i < 0 ? 0 : Math.max(0, Math.min(cards.length - 1, i + step));
+    selectCase(cards[i].id.replace(/^card-/, ""));
+    cards[i].focus({ preventScroll: true });
+  }
+
+  document.addEventListener("keydown", ev => {
+    const el = ev.target instanceof Element ? ev.target : document.body;
+    const typing = el.matches("input, textarea");
+    if (typing && ev.key !== "ArrowDown" && ev.key !== "ArrowUp") return;
+    if (ev.key === "ArrowDown") { ev.preventDefault(); moveSelection(1); }
+    else if (ev.key === "ArrowUp") { ev.preventDefault(); moveSelection(-1); }
+    else if (ev.key === "Enter" && !el.matches(".case-card, button, a")) { runSelectedCase(true); }
+    else if (ev.key === "i" || ev.key === "I") { runSelectedCase(false); }
+    else if (ev.key === "b" || ev.key === "B") { toggleBreakIt(); }
+  });
+
+  window.addEventListener("DOMContentLoaded", () => {
+    loadCases();
+    pollStatus();
+    document.getElementById("case-filter").addEventListener("input", ev => {
+      const q = ev.target.value.trim().toLowerCase();
+      document.querySelectorAll(".case-card").forEach(el => {
+        el.classList.toggle("hidden", Boolean(q) && !el.dataset.search.includes(q));
+      });
+    });
+  });
 </script>
 </body>
 </html>

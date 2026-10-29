@@ -113,7 +113,11 @@ def attack(persona: str, rnd: int) -> str:
                      "try new routes:\n" + prev.read_text()[:12000])
     sys_prompt = RULES + "\n\n" + context()
     for attempt in range(3):
-        text = call(MODEL, sys_prompt, [{"role": "user", "parts": [{"text": user}]}], None)
+        try:
+            text = call(MODEL, sys_prompt, [{"role": "user", "parts": [{"text": user}]}], None)
+        except RuntimeError as exc:   # e.g. promptFeedback blockReason: one persona must not sink the round
+            (out / f"{persona}.error.txt").write_text(str(exc))
+            continue
         (out / f"{persona}.raw.txt").write_text(text)
         try:
             sc = extract_json(text)

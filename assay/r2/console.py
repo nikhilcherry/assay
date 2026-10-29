@@ -24,13 +24,15 @@ import os
 import re
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from assay.r2.approvals import create_app as create_approvals_app
@@ -39,6 +41,10 @@ from assay.r2.investigate_r2 import R2Investigator
 from assay.r2.store_r2 import R2LocalStore, case_writer, r2_pattern_model
 
 HTML_PATH = Path(__file__).with_name("console.html")
+# The ring replay page and its traces (python -m assay.r2.ring_replay writes them)
+RING_SITE = Path(__file__).resolve().parents[2] / "site" / "r2"
+FAVICON = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" '
+           'fill="#38bdf8"/><path d="M4 12 8 3l4 9" stroke="#030712" stroke-width="2" fill="none"/></svg>')
 
 # Default demo tokens (documented in UI placeholder / docs for live presenter demo;
 # can be overridden via ASSAY_APPROVERS env var).
@@ -113,7 +119,7 @@ def quarantine_segments(text: str) -> Dict[str, Any]:
 
 
 def _parse_fault_spec(spec: str) -> Dict[str, Any]:
-    """Parses fault strings like 'get_transaction:down@2' or 'card_window:down@1'."""
+    """Parses fault strings like 'card_history:down@1' or 'card_window:down@1'."""
     spec = (spec or "").strip()
     if not spec:
         return {}
@@ -345,6 +351,28 @@ def create_app() -> FastAPI:
     app.state.approvals_app = approvals_app
     app.state.case_pack = cp_df
     app.state.startup_sec = startup_sec
+    app.state.warm = False
+    # One investigation at a time: the store's call log and memory are shared state
+    run_lock = threading.Lock()
+
+    ring_cases: set = set()
+    if (RING_SITE / "data" / "manifest.json").exists():
+        ring_cases = {c["case_id"] for c in json.loads((RING_SITE / "data" / "manifest.json").read_text())["cases"]}
+        app.mount("/ring", StaticFiles(directory=str(RING_SITE), html=True), name="ring")
+
+    def _warm_up() -> None:
+        # The first investigation pays for lazy loads (~20 s cold); pay it before the judges press Run
+        with run_lock:
+            try:
+                inv.run(cp_df.iloc[0])
+            except Exception:
+                pass
+            finally:
+                store.reset()
+                store.memory.clear()
+                app.state.warm = True
+
+    threading.Thread(target=_warm_up, daemon=True).start()
 
     def _register_proposals_for_case(case_id: str, ans: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Registers L1/L2/auto proposals in the mounted approvals store so L1/L2 wait for approval."""
@@ -421,6 +449,19 @@ def create_app() -> FastAPI:
     async def index() -> HTMLResponse:
         return HTMLResponse(HTML_PATH.read_text(encoding="utf-8"))
 
+    @app.get("/favicon.ico")
+    async def favicon() -> Response:
+        return Response(FAVICON, media_type="image/svg+xml")
+
+    @app.get("/status")
+    async def status() -> Dict[str, Any]:
+        return {
+            "warm": app.state.warm,
+            "tigergraph": os.environ.get("ASSAY_TG") == "1",
+            "startup_sec": app.state.startup_sec,
+            "ring_cases": sorted(ring_cases),
+        }
+
     @app.get("/cases")
     async def list_cases() -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
@@ -459,7 +500,16 @@ def create_app() -> FastAPI:
         return {"fault": val or None, "active": bool(val)}
 
     @app.post("/run/{case_id}")
-    async def run_case(case_id: str) -> Dict[str, Any]:
+    def run_case(case_id: str) -> Dict[str, Any]:
+        # Plain def: FastAPI runs it in a worker thread, so a long run never freezes /status or /cases
+        with run_lock:
+            out = _run_case(case_id)
+        if out.get("ok"):
+            out["ring_view"] = f"/ring/ring.html#data=data/{case_id}.json" if case_id in ring_cases else None
+            out["tigergraph"] = os.environ.get("ASSAY_TG") == "1"
+        return out
+
+    def _run_case(case_id: str) -> Dict[str, Any]:
         sub = app.state.case_pack[app.state.case_pack.case_id == case_id]
         if sub.empty:
             raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
