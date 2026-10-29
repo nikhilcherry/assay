@@ -19,8 +19,8 @@ make data                  # prints the two exact gdown commands below:
 # 3. Stage Parquet frames and train/score models (~2–4 min total)
 make stage
 #   - python -m assay.data         (~35 s) -> data/stage/*.parquet
-#   - python -m assay.model        (~90 s) -> data/stage/lgbm_fraud.txt
-#   - python -m assay.patterns     (~20 s) -> data/stage/pattern_lgb.txt
+#   - python -m assay.model        (~90 s) -> data/stage/model.txt + isotonic.json
+#   - python -m assay.patterns     (~20 s) -> data/stage/pattern_model.txt
 #   - python -m assay.r2.frames    (~25 s) -> data/stage/r2/tx_all.parquet (650,938 rows)
 #   - python -m assay.r2.score_jan (~40 s) -> data/stage/r2/scores_r2.parquet (60,196 rows)
 
