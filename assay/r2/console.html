@@ -380,7 +380,7 @@
     color: var(--ink-2);
     line-height: 1.3;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -948,6 +948,55 @@
     overflow: hidden;
   }
 
+  /* ---- Decluttered layout: dropdown menu + collapsible sections ---- */
+  .menu { position: relative; }
+  .menu > summary {
+    list-style: none; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-2); background: var(--ground); border: 1px solid var(--rule); padding: 5px 10px;
+  }
+  .menu > summary::-webkit-details-marker { display: none; }
+  .menu > summary:hover, .menu[open] > summary { border-color: var(--rule-strong); color: var(--ink); }
+  .menu > summary .caret { transition: transform 0.15s ease; font-size: 9px; }
+  .menu[open] > summary .caret { transform: rotate(180deg); }
+  .menu-pop {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; width: 340px;
+    background: var(--panel-2); border: 1px solid var(--rule-strong); padding: 12px;
+    display: flex; flex-direction: column; gap: 12px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+  .menu-pop .control-group { flex-wrap: wrap; }
+  .menu-pop .menu-note { font-size: 11px; color: var(--ink-3); line-height: 1.4; }
+  .menu-section-title {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 4px;
+  }
+  .fault-flag { display: none; color: var(--fraud); font-weight: 700; }
+  .fault-flag.on { display: inline; }
+
+  .sidebar-tools { display: flex; gap: 6px; padding: 0 10px 8px; }
+  .sidebar-tools .case-filter { flex: 1; margin: 0; min-width: 0; }
+  .trigger-select {
+    background: var(--panel); color: var(--ink-2); border: 1px solid var(--rule);
+    font-family: var(--font-mono); font-size: 11px; padding: 4px 6px; max-width: 132px;
+  }
+
+  details.fold { background: var(--panel); min-width: 0; display: block; }
+  details.fold > summary {
+    list-style: none; cursor: pointer; user-select: none;
+  }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary .fold-title::before {
+    content: "\25B8"; display: inline-block; margin-right: 8px; color: var(--ink-3);
+    transition: transform 0.15s ease;
+  }
+  details.fold[open] > summary .fold-title::before { transform: rotate(90deg); }
+  details.fold > summary:hover { color: var(--ink); }
+  details.fold:not([open]) > summary { border-bottom-color: transparent; }
+  details.fold > .panel-body { max-height: 440px; }
+  .right-stack > details.fold, .replay-grid > details.fold { flex: 0 0 auto; }
+  .fold-hint { font-weight: 400; color: var(--ink-3); font-size: 10px; letter-spacing: 0.02em; }
+
   @media (max-width: 1180px) {
     .instrument-band,
     .forensic-canvas-grid,
@@ -971,18 +1020,29 @@
   </div>
 
   <div class="controls-bar">
+   <details class="menu" id="drills-menu">
+    <summary title="Approver token and live fault injection">Drills &amp; approvals <span id="fault-flag" class="fault-flag">&bull; fault armed</span><span class="caret">&#9660;</span></summary>
+    <div class="menu-pop">
+    <div>
+    <div class="menu-section-title">Approver (server checks the role)</div>
     <div class="control-group">
-      <label for="approver-token" title="Kept in this page's memory only, never stored">Approver</label>
+      <label for="approver-token" title="Kept in this page's memory only, never stored">Token</label>
       <input id="approver-token" class="control-input" type="password" placeholder="e.g. demo-l2-token" autocomplete="off" />
       <button type="button" class="token-preset" onclick="setApproverToken('demo-l1-token')" title="Fill L1 analyst token (rejects L2 actions with 403)">L1</button>
       <button type="button" class="token-preset" onclick="setApproverToken('demo-l2-token')" title="Fill L2 manager token (approves L1 & L2 actions)">L2</button>
     </div>
-
+    </div>
+    <div>
+    <div class="menu-section-title">Fault injection (drills)</div>
     <div class="control-group">
       <label for="fault-spec">Fault</label>
       <input id="fault-spec" class="control-input" type="text" value="card_history:down@1" title="tool:down@N fails the Nth call to that tool (* = any tool)" />
       <button id="btn-break-toggle" class="btn btn-break" onclick="toggleBreakIt()">Break it: OFF</button>
     </div>
+    <div class="menu-note"><code>tool:down@N</code> fails the Nth call to that tool. The run must stop with exit 3 and write no answer. Shortcut: <b>B</b>.</div>
+    </div>
+    </div>
+   </details>
   </div>
 </header>
 
@@ -992,7 +1052,16 @@
       <span>FINAL PACK (<span id="case-count">0</span>)</span>
       <span>QUARANTINE GUARD: ON</span>
     </div>
-    <input id="case-filter" class="control-input case-filter" type="search" placeholder="Filter: 007, risk_score, C09582…" aria-label="Filter cases" autocomplete="off" />
+    <div class="sidebar-tools">
+      <input id="case-filter" class="control-input case-filter" type="search" placeholder="Search…" aria-label="Filter cases" autocomplete="off" />
+      <select id="trigger-filter" class="trigger-select" aria-label="Filter by trigger">
+        <option value="">All triggers</option>
+        <option value="analyst_request">Analyst request</option>
+        <option value="customer_report">Customer report</option>
+        <option value="risk_score">Risk score</option>
+        <option value="INJ">Hostile text</option>
+      </select>
+    </div>
     <div id="case-list" class="case-list" role="listbox" aria-label="Final pack cases"></div>
     <div class="kbd-hint">↑/↓ pick · Enter run · I instant · B break · click LR for what-if</div>
   </aside>
@@ -1016,16 +1085,16 @@
 
     <div id="fail-closed-container" style="display:none;"></div>
 
-    <div id="verify-box" class="panel-card" style="flex: 0 0 auto;">
-      <div class="panel-header">
-        <span>RE-RUN EVERY CLAIM &middot; judges' rule: a claim that differs on re-run scores zero</span>
-        <button id="btn-verify" class="btn btn-secondary" onclick="verifyClaims()" disabled>Re-run every claim</button>
-      </div>
+    <details id="verify-box" class="panel-card fold" data-fold="verify">
+      <summary class="panel-header">
+        <span class="fold-title">Claim re-run <span class="fold-hint">&middot; every attested query, executed again</span></span>
+        <button id="btn-verify" class="btn btn-secondary" onclick="event.preventDefault(); verifyClaims()" disabled>Re-run every claim</button>
+      </summary>
       <div id="verify-body" class="panel-body" style="display:none;">
         <div id="verify-summary" class="vfy-summary"></div>
         <div id="verify-list" class="vfy-list" style="overflow-y:auto; display:flex; flex-direction:column; gap:3px;"></div>
       </div>
-    </div>
+    </details>
 
     <!-- Band 1B: Verdict Strip + True Log-Odds Slide Rule -->
     <div class="instrument-band">
@@ -1056,7 +1125,7 @@
 
       <div class="needle-panel">
         <div class="needle-header">
-          <span class="needle-label">Log-Odds Bayesian Scale (logit p &in; [&minus;7, +7])</span>
+          <span class="needle-label">Fraud probability (log-odds scale)</span>
           <span id="needle-readout" class="needle-readout">--</span>
         </div>
         <div class="needle-track">
@@ -1070,10 +1139,12 @@
     </div>
 
     <!-- Band 2: Dual-Pane SVG Forensic Evidence Canvas -->
+    <details class="fold" data-fold="canvas" open>
+    <summary class="panel-header"><span class="fold-title">Card activity &amp; evidence graph</span></summary>
     <div class="forensic-canvas-grid">
       <div class="canvas-card">
         <div class="canvas-header">
-          <span>A. CARD ACTIVITY &amp; EPISODE PULSE vs. HOLDER BASELINE</span>
+          <span>Card activity vs. the holder's baseline</span>
           <span id="pulse-meta" class="canvas-sub">Median &amp; 95th percentile band</span>
         </div>
         <div class="canvas-body">
@@ -1083,7 +1154,7 @@
 
       <div class="canvas-card">
         <div class="canvas-header">
-          <span>B. DETERMINISTIC EVIDENCE TOPOLOGY &amp; GUARD MATRIX</span>
+          <span>Evidence topology &amp; guards</span>
           <span id="topo-meta" class="canvas-sub">Attested graph structure</span>
         </div>
         <div class="canvas-body">
@@ -1091,47 +1162,48 @@
         </div>
       </div>
     </div>
+    </details>
 
     <!-- Band 3: Interactive Evidence Ledger + Approvals / Tool Trace / SAR -->
     <div class="replay-grid">
-      <div class="panel-card">
-        <div class="panel-header">
-          <span>1. EVIDENCE LEDGER &amp; LR UPDATES (click ×LR to toggle counterfactual)</span>
+      <details class="panel-card fold" data-fold="ledger" open>
+        <summary class="panel-header">
+          <span class="fold-title">Evidence ledger <span class="fold-hint">&middot; click &times;LR for what-if</span></span>
           <span id="ledger-counter">0 findings</span>
-        </div>
+        </summary>
         <div id="ledger-list" class="panel-body"></div>
-      </div>
+      </details>
 
       <div class="right-stack">
-        <div id="outcome-section" class="panel-card" style="display:flex; flex: 0 0 auto;">
-          <div class="panel-header">
-            <span>2. NEXT BEST ACTIONS &amp; SERVER-SIDE APPROVAL ROUTING</span>
+        <details id="outcome-section" class="panel-card fold" data-fold="actions" open>
+          <summary class="panel-header">
+            <span class="fold-title">Next best actions &amp; approvals</span>
             <span id="out-elapsed"></span>
-          </div>
+          </summary>
           <div class="panel-body">
             <div id="actions-list" class="actions-list">
               <div style="color:var(--ink-3); font-family:var(--font-mono); font-size:11.5px;">Run a case to compute policy routes (auto / L1 / L2 awaiting approval).</div>
             </div>
           </div>
-        </div>
+        </details>
 
-        <div id="sar-box" class="panel-card" style="display:none; flex: 0 0 auto;">
-          <div class="panel-header">
-            <span>3. SUSPICIOUS ACTIVITY REPORT (SAR) NARRATIVE</span>
+        <details id="sar-box" class="panel-card fold" data-fold="sar" style="display:none;">
+          <summary class="panel-header">
+            <span class="fold-title">Suspicious activity report</span>
             <span>Policy &sect;3a</span>
-          </div>
+          </summary>
           <div class="panel-body">
             <div id="sar-narrative" class="sar-narrative"></div>
           </div>
-        </div>
+        </details>
 
-        <div class="panel-card" style="flex: 1 1 auto;">
-          <div class="panel-header">
-            <span>4. TOOL CALL TRACE (store.calls)</span>
+        <details class="panel-card fold" data-fold="trace">
+          <summary class="panel-header">
+            <span class="fold-title">Tool call trace</span>
             <span id="calls-counter">0 calls</span>
-          </div>
+          </summary>
           <div id="calls-list" class="panel-body"></div>
-        </div>
+        </details>
       </div>
     </div>
   </main>
@@ -1236,6 +1308,7 @@
       card.tabIndex = 0;
       card.setAttribute("role", "option");
       card.dataset.search = `${c.case_id} ${c.trigger_type} ${c.card_id} ${c.flagged_txn_id} ${c.trigger_text}`.toLowerCase();
+      card.dataset.trigger = c.has_injection ? `${c.trigger_type} INJ` : c.trigger_type;
       card.onclick = () => selectCase(c.case_id);
       card.onkeydown = ev => {
         if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); selectCase(c.case_id); runSelectedCase(true); }
@@ -1311,6 +1384,7 @@
     const sum = document.getElementById("verify-summary");
     const list = document.getElementById("verify-list");
     btn.disabled = true;
+    document.getElementById("verify-box").open = true;
     body.style.display = "flex";
     sum.textContent = `Re-executing every claim for ${caseId}…`;
     list.innerHTML = "";
@@ -1348,6 +1422,7 @@
     const data = await res.json();
     BREAK_ACTIVE = Boolean(data.active);
     const btn = document.getElementById("btn-break-toggle");
+    document.getElementById("fault-flag").classList.toggle("on", BREAK_ACTIVE);
     if (BREAK_ACTIVE) {
       btn.classList.add("active");
       btn.textContent = `Break it: ON (${data.fault})`;
@@ -1891,7 +1966,7 @@
     if (vdot) vdot.className = `case-vdot ${data.verdict}`;
 
     const outSec = document.getElementById("outcome-section");
-    outSec.style.display = "flex";
+    outSec.style.display = "";
     document.getElementById("verdict-strip").style.display = "flex";
     const ring = document.getElementById("ring-link");
     const ringFinding = (data.ledger || []).some(l => /ring_for|ring_wcc/.test(l.ref || ""));
@@ -1956,7 +2031,7 @@
 
     const sarBox = document.getElementById("sar-box");
     if (sarRequired && data.sar.narrative) {
-      sarBox.style.display = "flex";
+      sarBox.style.display = "";
       document.getElementById("sar-narrative").textContent = data.sar.narrative;
     } else {
       sarBox.style.display = "none";
@@ -2064,12 +2139,32 @@
   window.addEventListener("DOMContentLoaded", () => {
     loadCases();
     pollStatus();
-    document.getElementById("case-filter").addEventListener("input", ev => {
-      const q = ev.target.value.trim().toLowerCase();
+    const applyCaseFilter = () => {
+      const q = document.getElementById("case-filter").value.trim().toLowerCase();
+      const trig = document.getElementById("trigger-filter").value;
       document.querySelectorAll(".case-card").forEach(el => {
-        el.classList.toggle("hidden", Boolean(q) && !el.dataset.search.includes(q));
+        const hitText = !q || el.dataset.search.includes(q);
+        const hitTrig = !trig || (el.dataset.trigger || "").split(" ").includes(trig);
+        el.classList.toggle("hidden", !(hitText && hitTrig));
+      });
+    };
+    document.getElementById("case-filter").addEventListener("input", applyCaseFilter);
+    document.getElementById("trigger-filter").addEventListener("change", applyCaseFilter);
+
+    // Remember which sections each viewer keeps open (per-browser convenience only).
+    document.querySelectorAll("details.fold[data-fold]").forEach(d => {
+      try {
+        const saved = localStorage.getItem(`assay.fold.${d.dataset.fold}`);
+        if (saved !== null) d.open = saved === "1";
+      } catch (e) { /* storage unavailable: keep the defaults */ }
+      d.addEventListener("toggle", () => {
+        try { localStorage.setItem(`assay.fold.${d.dataset.fold}`, d.open ? "1" : "0"); } catch (e) {}
       });
     });
+    // Close the drills menu on an outside click or Escape.
+    const menu = document.getElementById("drills-menu");
+    document.addEventListener("click", ev => { if (menu.open && !menu.contains(ev.target)) menu.open = false; });
+    document.addEventListener("keydown", ev => { if (ev.key === "Escape") menu.open = false; });
   });
 </script>
 </body>
