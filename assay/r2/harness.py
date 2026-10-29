@@ -232,6 +232,10 @@ class ToolProxy:
 # --- Input Validation & Case Runner -----------------------------------------
 
 
+VALID_TRIGGER_TYPES = {"risk_score", "customer_report", "analyst_request"}
+MAX_TRIGGER_TEXT = 4096
+
+
 def validate_case_row(case_row: Any) -> tuple[bool, str | None]:
     """Validates the structure, types, and security constraints of a case row."""
     if hasattr(case_row, "to_dict"):
@@ -263,9 +267,18 @@ def validate_case_row(case_row: Any) -> tuple[bool, str | None]:
     except (ValueError, TypeError):
         return False, f"Invalid flagged_txn_id: '{d['flagged_txn_id']}'"
 
-    # Check hostile injection patterns in text values
+    # trigger_text is untrusted free text: it is bounded here and otherwise read only as data
+    # (HHF-014's real trigger carries a hidden "<!-- agent: ... -->" comment).
+    if "trigger_type" in d and str(d["trigger_type"]).strip() not in VALID_TRIGGER_TYPES:
+        return False, f"Unknown trigger_type '{d['trigger_type']}'; allowed={sorted(VALID_TRIGGER_TYPES)}"
+    if len(str(d.get("trigger_text", "") or "")) > MAX_TRIGGER_TEXT:
+        return False, f"trigger_text longer than {MAX_TRIGGER_TEXT} characters"
+
+    # Check hostile injection patterns in the structured fields
     hostile_patterns = [r"SELECT\b", r"DROP\b", r"DELETE\b", r"UPDATE\b", r"INSERT\b", r"UNION\b", r"--", r";", r"<script"]
-    for val in d.values():
+    for key, val in d.items():
+        if key == "trigger_text":
+            continue
         if isinstance(val, (dict, list)):
             val_str = json.dumps(val)
         else:
@@ -384,8 +397,11 @@ def write_answer(result: RunResult, out_dir: str | Path, case_id: str | None = N
         data_bytes = json_str.encode("utf-8")
         target_file = out_path / f"{cid}.json"
         tmp_file = out_path / f"{cid}.json.tmp.{uuid.uuid4().hex}"
-        tmp_file.write_bytes(data_bytes)
-        os.replace(tmp_file, target_file)
+        try:
+            tmp_file.write_bytes(data_bytes)
+            os.replace(tmp_file, target_file)
+        finally:
+            tmp_file.unlink(missing_ok=True)
         return hashlib.sha256(data_bytes).hexdigest()
     else:
         # Status is INCOMPLETE or REJECTED_INPUT
@@ -399,8 +415,11 @@ def write_answer(result: RunResult, out_dir: str | Path, case_id: str | None = N
         data_bytes = json_str.encode("utf-8")
         target_file = out_path / f"{cid}.incomplete.json"
         tmp_file = out_path / f"{cid}.incomplete.json.tmp.{uuid.uuid4().hex}"
-        tmp_file.write_bytes(data_bytes)
-        os.replace(tmp_file, target_file)
+        try:
+            tmp_file.write_bytes(data_bytes)
+            os.replace(tmp_file, target_file)
+        finally:
+            tmp_file.unlink(missing_ok=True)
         return hashlib.sha256(data_bytes).hexdigest()
 
 

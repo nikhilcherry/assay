@@ -22,11 +22,14 @@ data:
 stage:
 	$(PY) -m assay.data && $(PY) -m assay.model && $(PY) -m assay.r2.frames && $(PY) -m assay.r2.score_jan
 
+# One case, the command the drills use (set ASSAY_TG=1 to use TigerGraph for rings and write-back)
 case:
-	$(PY) -m assay.r2.run_r2 $(CASE)
+	$(PY) -m assay.r2.agent $(CASE) --out cases_r2
 
+# The shipped answers: each case in its own fresh process, exactly as `make case` runs it
 all:
-	$(PY) -m assay.r2.run_r2
+	for c in $$($(PY) -c "import pandas as p; print(' '.join(p.read_csv('$(SHARE)/cases/case_pack_final.csv').case_id))"); do \
+		$(PY) -m assay.r2.agent $$c --out cases_r2 || exit 1; done
 
 grade:
 	rm -rf $${TMPDIR:-/tmp}/assay-grade && mkdir -p $${TMPDIR:-/tmp}/assay-grade/teams/assay/cases

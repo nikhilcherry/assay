@@ -96,3 +96,20 @@ def r2_pattern_model():
     old = old[keep]
     pm.tx = novelty(pd.concat([old, jan[[c for c in keep if c in jan.columns]]], ignore_index=True)).set_index("TransactionID")
     return pm
+
+
+def case_writer(store):
+    """Investigation write-back: the store's in-process memory always, and with ASSAY_TG=1
+    also a FraudCase vertex in TigerGraph (`r2_upsert_case`), failing closed if it is down."""
+    import os
+
+    def write(answer, card_id=""):
+        gid = store.write_case(answer, card_id)
+        if os.environ.get("ASSAY_TG") == "1":
+            from assay.r2 import tg_r2
+
+            gid = tg_r2.write_case(answer, card_id)["graph_case_id"]
+        return gid
+
+    return write
+

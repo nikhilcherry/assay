@@ -125,6 +125,8 @@ class Signals:
     # R2, R3, R4.
     customer_reply: CustomerReply = CustomerReply.NOT_ASKED
     evidence_requested: bool = False
+    # Why the case stays open when the probability alone would settle it (shown in the §5 reason).
+    uncertain_reason: str = ""
 
     # R5. Card testing needs the sequence, not just the pattern label.
     card_testing_sequence: bool = False
@@ -331,9 +333,13 @@ def decide(s: Signals) -> list[Recommendation]:
             _add(out, Action.DECLINE_TRANSACTION, exp,
                  f"§3b: probability {s.fraud_probability:.2f} leans fraud; hold this authorization "
                  "while the cardholder is asked, rather than block the card.")
+        if STOP_LOW <= s.fraud_probability <= STOP_HIGH:
+            why = f"probability {s.fraud_probability:.2f} is between 0.15 and 0.85"
+        else:
+            why = (f"probability {s.fraud_probability:.2f} is outside 0.15-0.85 but the case is not settled"
+                   + (f": {s.uncertain_reason}" if s.uncertain_reason else ""))
         _add(out, Action.VERIFY_WITH_CUSTOMER, exp,
-             f"§5 and §3b: probability {s.fraud_probability:.2f} is between 0.15 and 0.85, so ask the "
-             "cardholder before deciding.")
+             f"§5 and §3b: {why}, so ask the cardholder before deciding.")
 
     # --- §6: fraud established on independent evidence without a customer
     # contact (e.g. a risk-score alert whose graph evidence is conclusive).

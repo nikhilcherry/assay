@@ -23,6 +23,29 @@ An alert goes in. A case file comes out: verdict, calibrated fraud probability, 
 
 When assay says 0.30, about three in ten of those transactions were fraud. The reliability table on the held-out month tracks the diagonal from 0.005 to 0.77.
 
+## Final round (HHF-001 … HHF-018)
+
+```bash
+docker --context default start assay-tg     # TigerGraph 4.2 CE, then: gadmin start all
+ASSAY_TG=1 python -m assay.r2.agent HHF-007 --out cases_r2   # one case: exit 0 answer, 2 invalid input, 3 tool failed
+make grade                                  # official grader, with --transactions
+ASSAY_TG=1 python -m assay.r2.console --port 8742            # the demo console
+```
+
+| what | result | check it |
+|---|---|---|
+| Official grader (hard + policy, with ID and arithmetic checks) | **18/18 clean** | `make grade` |
+| Verdicts | 6 fraud, 2 uncertain, 10 legitimate | `docs/r2/FACTS.md` |
+| Live resilience drills | **75/75** checks on HHF-003, 007, 012 | `pytest tests/r2/test_drills.py` |
+| TigerGraph on the decision path | rings from `r2_ring_wcc`, cases upserted as `FraudCase`; 18/18 ring decisions match the local code | `tg_r2.parity()` |
+| Dispute episodes on 4,631 Jul–Oct reports | 0.6266 exact match (flagged-only 0.5498) | `docs/r2/N7_dispute_episode.md` |
+| LLM tokens on the decision path | **0** | every answer's `tokens` |
+
+Every answer in `cases_r2/` is the output of the single-case command above, run in its own process
+(`make all`), so the console, the command and the files agree. The idea we want judged is in
+[`docs/r2/INNOVATION.md`](docs/r2/INNOVATION.md), the boundary in [`docs/r2/RESILIENCE.md`](docs/r2/RESILIENCE.md),
+and a per-case trace sheet in [`docs/r2/DEMO_CASES.md`](docs/r2/DEMO_CASES.md).
+
 ## The case it was built to find
 
 One Samsung handset, behind an anonymous proxy and marked new on every card it touches, placed 60 purchases on **28 unrelated cards**. The bank's model scored the flagged one 0.05, and no single card looks wrong. The fraud is only visible as a shape in the graph: from the transaction to its device to every other card that device touched. assay walks that path, raises the probability to 0.85, blocks the card and puts the 27 connected cards under monitoring.

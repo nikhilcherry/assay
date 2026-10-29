@@ -1,94 +1,94 @@
 {
-  "case_id": "HHF-017",
   "case": {
-    "status": "closed_legitimate",
-    "verdict": "legitimate",
-    "fraud_probability": 0.01,
-    "pattern": "none",
-    "pattern_description": "",
     "affected_txn_ids": [],
-    "first_suspicious_txn_id": "",
     "connected_card_ids": [],
     "connected_device_profiles": [],
-    "exposure_usd": 0.0,
     "evidence": [
       {
         "claim": "Flagged transaction 3638829 ($43.92, product H, online) scores 0.00 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.01.",
-        "source": "graph",
-        "ref": "query:get_transaction(txn_id=3638829)",
         "entity_ids": [
           "3638829"
-        ]
+        ],
+        "ref": "query:get_transaction(txn_id=3638829)",
+        "source": "graph"
       },
       {
         "claim": "Card baseline from 784 earlier transactions: median $100.56, 95th percentile $541.58; the flagged amount is 0.4x the median.",
-        "source": "graph",
-        "ref": "query:card_history(card_id=C08842-K2)",
         "entity_ids": [
           "C08842-K2"
-        ]
+        ],
+        "ref": "query:card_history(card_id=C08842-K2)",
+        "source": "graph"
       },
       {
         "claim": "Device profile 'Windows | Windows 7 | chrome 61.0 | 1680x1050' was used by this card before; identity record marks it New, proxy IP_PROXY:ANONYMOUS.",
-        "source": "graph",
-        "ref": "query:card_history(card_id=C08842-K2)",
         "entity_ids": [
           "C08842-K2"
-        ]
+        ],
+        "ref": "query:card_history(card_id=C08842-K2)",
+        "source": "graph"
       },
       {
-        "claim": "Policy \u00a76: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
-        "source": "document",
-        "ref": "document:fraud-policy#\u00a76",
-        "entity_ids": []
+        "claim": "Policy §6: Stop at probability >= 0.85 or <= 0.15 on two independent pieces of evidence, when a verification response settles it, or when further steps would not change the decision.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#§6",
+        "source": "document"
       }
     ],
+    "exposure_usd": 0.0,
+    "first_suspicious_txn_id": "",
+    "fraud_probability": 0.01,
+    "graph_case_id": "ASSAY-HHF-017",
+    "pattern": "none",
+    "pattern_description": "",
     "similar_prior_cases": [
       "CC-0026",
       "CC-1272"
     ],
+    "status": "closed_legitimate",
     "summary": "Alert on transaction 3638829 ($43.92) on card C08842-K2. The graph evidence does not support fraud: the transaction is consistent with the holder's own history, and the calibrated model puts it at 0.01. Closed as legitimate; no report.",
-    "written_to_graph": true,
-    "graph_case_id": "ASSAY-HHF-017"
+    "verdict": "legitimate",
+    "written_to_graph": true
   },
+  "case_id": "HHF-017",
   "evidence_requests": [],
+  "latency_s": 0.0,
   "next_best_actions": {
-    "initial": [
-      {
-        "action": "ALLOW_TRANSACTION",
-        "route": "auto",
-        "reason": "Policy \u00a70: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history."
-      },
-      {
-        "action": "CLOSE_NO_FRAUD",
-        "route": "auto",
-        "reason": "Policy \u00a76: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate."
-      }
-    ],
     "final": [
       {
         "action": "ALLOW_TRANSACTION",
-        "route": "auto",
-        "reason": "Policy \u00a70: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history."
+        "reason": "Policy §0: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history.",
+        "route": "auto"
       },
       {
         "action": "CLOSE_NO_FRAUD",
-        "route": "auto",
-        "reason": "Policy \u00a76: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate."
+        "reason": "Policy §6: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate.",
+        "route": "auto"
+      }
+    ],
+    "initial": [
+      {
+        "action": "ALLOW_TRANSACTION",
+        "reason": "Policy §0: the risk score is a reason to look, not a verdict. The graph evidence is consistent with the cardholder's own history.",
+        "route": "auto"
+      },
+      {
+        "action": "CLOSE_NO_FRAUD",
+        "reason": "Policy §6: probability is at or below 0.15 on independent evidence, so the alert closes as legitimate.",
+        "route": "auto"
       }
     ],
     "what_changed": "nothing"
   },
   "sar": {
+    "activity_dates": [],
     "file": false,
-    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is legitimate at probability 0.00.",
     "narrative": "",
+    "reason": "Policy §3a: activity is assessed as legitimate; no SAR is owed.",
     "subjects": [],
-    "total_amount_usd": 0,
-    "activity_dates": []
+    "total_amount_usd": 0
   },
-  "stop_reason": "Policy \u00a76: fraud probability 0.00 is at or below 0.15 on 2 independent pieces of evidence.",
-  "tool_calls": 8,
+  "stop_reason": "Policy §6: fraud probability 0.00 is at or below 0.15 on 2 independent pieces of evidence.",
   "tokens": 0,
-  "latency_s": 42.26
+  "tool_calls": 10
 }

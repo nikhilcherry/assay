@@ -253,7 +253,7 @@ def ring_for(
 
     ring_id = f"RING-{algo_lower.upper()}-{hashlib.sha256(','.join(ring_cards).encode()).hexdigest()[:8]}"
 
-    all_txn_ids = [tid for tids in txn_ids.values() for tid in tids]
+    all_txn_ids = sorted(tid for tids in txn_ids.values() for tid in tids)
     customer_ids = sorted(tx_win.customer_id.unique().tolist()) if len(tx_win) > 0 else []
     prior_case_ids = sorted([cid for cids in member_prior_case_ids.values() for cid in cids])
 

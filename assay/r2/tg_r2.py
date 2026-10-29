@@ -17,6 +17,7 @@ Key implementation details (Round 3):
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import subprocess
@@ -648,16 +649,19 @@ def ring_wcc(
     prior_fraud_cards = sorted(str(x) for x in row.get("prior_fraud_cards", []) if x)
     prior_case_ids = sorted(str(x) for x in row.get("prior_case_ids", []) if x)
 
-    qualifies = (3 <= len(members) <= max_ring_size) and (len(prior_fraud_cards) > 0 or len(shared_elements) > 0)
+    max_risk = float(row.get("max_risk", 0.0) or 0.0)
+    # Same ring rule as assay.r2.rings.ring_for: 3..max_ring_size members, and a member with
+    # prior confirmed fraud or a bank score >= 0.70 in the window.
+    qualifies = (3 <= len(members) <= max_ring_size) and (len(prior_fraud_cards) > 0 or max_risk >= 0.70)
+    ring_id = f"RING-WCC-{hashlib.sha256(','.join(members).encode()).hexdigest()[:8]}"
 
     attestation = Attestation(
         what=(
-            f"TigerGraph r2_ring_wcc from card {card} as-of {as_of_str} found component of "
-            f"{len(members)} card(s) sharing {len(shared_elements)} capped element(s) "
-            f"(${total_amount:,.2f} window volume, {len(prior_fraud_cards)} prior fraud card(s))."
+            f"Card {card} is in wcc ring {ring_id} containing {len(members)} cards "
+            f"(${total_amount:,.2f} vol, {len(prior_fraud_cards)} prior fraud members)"
         ),
         evidence=Evidence(
-            txn_ids=txn_ids[:50],
+            txn_ids=txn_ids,
             card_ids=members,
             customer_ids=sorted({c.split("-")[0] for c in members}),
             case_ids=prior_case_ids,
@@ -676,6 +680,8 @@ def ring_wcc(
         "as_of": as_of_str,
         "members": members,
         "qualifies_as_ring": qualifies,
+        "ring_id": ring_id,
+        "max_risk": max_risk,
         "shared_elements": shared_elements,
         "txn_ids": txn_ids,
         "total_amount": total_amount,
@@ -918,7 +924,8 @@ def parity(k: int = 5) -> dict[str, Any]:
         tg_rw = ring_wcc(actual_card, opened_at, window_days=30, cap=15)
         loc_ring = ring_for(actual_card, opened_at, tx=tx, cc=cc, window_days=30, cardinality_cap=15, algo="wcc")
 
-        tg_members = tg_rw["members"] if len(tg_rw["members"]) >= 3 else [actual_card]
+        # Compare the decision: the qualifying ring, or just the card when there is none
+        tg_members = tg_rw["members"] if tg_rw["qualifies_as_ring"] else [actual_card]
         loc_members = loc_ring.cards if loc_ring is not None else [actual_card]
 
         set_tg = set(tg_members)
@@ -978,7 +985,7 @@ def parity(k: int = 5) -> dict[str, Any]:
         for m in vec_mismatches:
             print("  ", m)
     if ring_mismatches:
-        print("\nRing WCC differences (TG R_emaildomain+addr1+device vs Local id_23+dev_addr+device):")
+        print("\nRing WCC differences (qualifying ring, TG vs local):")
         for m in ring_mismatches:
             print("  ", m)
 

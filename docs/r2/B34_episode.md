@@ -25,3 +25,15 @@ Metrics reported in test output:
 - `mean_exposure_abs_err` / `median_exposure_abs_err`: Absolute USD error on `exposure_usd`.
 - Cleared-case expansion rate on Oct–Dec cleared (`legitimate`) closed cases.
 - Full episode table (`first_txn_id`, `n_txns`, `exposure_usd`, `confidence`, `txn_ids`) for all 18 exam cases (`HHF-001` … `HHF-018`).
+
+## Measured result (2026-10-29, `pytest -q -s tests/r2/test_episode.py`)
+
+| window | method | n | exact match | mean Jaccard | first-txn accuracy |
+|---|---|---|---|---|---|
+| Oct–Dec | `hmm_2state` | 1,238 | 0.4241 | 0.6108 | 0.4725 |
+| Oct–Dec | flagged only | 1,238 | 0.5202 | 0.6752 | 0.5202 |
+| Oct–Dec | same product ±7d | 1,238 | 0.1648 | 0.2901 | 0.2246 |
+| Nov–Dec | `hmm_2state` | 35 | 0.4286 | 0.6096 | 0.4286 |
+| Nov–Dec | flagged only | 35 | 0.4286 | 0.5996 | 0.4286 |
+
+The HMM loses to "flagged transaction only" (0.4241 vs 0.5202 exact match), so it is not enabled.

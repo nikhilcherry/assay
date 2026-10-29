@@ -14,7 +14,7 @@ import time
 from assay.data import ROOT
 from assay.r2.investigate_r2 import R2Investigator
 from assay.r2.frames import case_pack
-from assay.r2.store_r2 import R2LocalStore, r2_pattern_model
+from assay.r2.store_r2 import R2LocalStore, case_writer, r2_pattern_model
 from assay.validate import validate
 
 OUT = ROOT / "cases_r2"
@@ -26,7 +26,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args(argv)
     store = R2LocalStore()
-    inv = R2Investigator(store, r2_pattern_model(), writer=store.write_case)
+    inv = R2Investigator(store, r2_pattern_model(), writer=case_writer(store))
     cp = case_pack().sort_values("opened_at")
     if a.cases:
         cp = cp[cp.case_id.isin(a.cases)]

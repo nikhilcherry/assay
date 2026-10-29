@@ -1082,8 +1082,8 @@ def run_ablation(
 
     filter_trace = {
         "total_closed_cases": int(len(cc)),
-        "opened_ge_2016_11_01": int(np.sum(after_start)),
-        "opened_in_nov_dec_2016": int(len(eval_indices)),
+        "opened_ge_eval_start": int(np.sum(after_start)),
+        "opened_in_eval_window": int(len(eval_indices)),
         "min_asof_prior_cases_available": int(
             min((int(np.sum(index.closed_sec <= index.opened_sec[i])) for i in eval_indices), default=0)
         ),

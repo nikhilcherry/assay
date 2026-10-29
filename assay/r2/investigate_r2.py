@@ -87,7 +87,7 @@ class R2Investigator(Investigator):
         ep = super()._episode(f, card_win, scenario, ring)
         if self._case is not None and self._case.trigger_type == "customer_report":
             # "I did not make these charges": the run of novel same-shape charges, not a 24h window.
-            # Backtest on Jul-Oct disputes: exact match 0.806 vs 0.714 (docs/r2/N7_dispute_episode.md).
+            # Backtest on 4,631 Jul-Oct disputes: exact match 0.6266 vs 0.5498 flagged-only (docs/r2/N7_dispute_episode.md).
             from assay.r2.dispute_episode import episode_for_dispute
             ids, _ = episode_for_dispute(f.card_id, int(f.TransactionID), self._case.opened_at, tx=self._tx)
             ids = [i for i in ids if i in self.s.tx.index]

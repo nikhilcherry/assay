@@ -20,7 +20,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import os
 import re
 import sys
@@ -37,7 +36,7 @@ from pydantic import BaseModel
 from assay.r2.approvals import create_app as create_approvals_app
 from assay.r2.frames import case_pack
 from assay.r2.investigate_r2 import R2Investigator
-from assay.r2.store_r2 import R2LocalStore, r2_pattern_model
+from assay.r2.store_r2 import R2LocalStore, case_writer, r2_pattern_model
 
 HTML_PATH = Path(__file__).with_name("console.html")
 
@@ -280,98 +279,40 @@ def _ensure_default_approvers(tmp_dir: Path) -> Path:
     return p
 
 
-def _parse_lr_from_finding(ev_item: Dict[str, Any]) -> Optional[float]:
-    """Extracts the likelihood ratio from an evidence item or its claim string."""
-    if "lr" in ev_item and ev_item["lr"] is not None:
-        try:
-            return float(ev_item["lr"])
-        except (TypeError, ValueError):
-            pass
-    claim = str(ev_item.get("claim", ""))
-    # Look for patterns like '(LR 4.2x)' or 'LR=3.1' or 'lr 2.5'
-    m = re.search(r"\bLR[=:\s]+([0-9]+(?:\.[0-9]+)?)x?\b", claim, re.IGNORECASE)
-    if m:
-        try:
-            return float(m.group(1))
-        except ValueError:
-            pass
-    return None
+def _real_ledger_steps(last: Dict[str, Any], ans: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The investigator's own log-odds ledger (`R2Investigator.last`): the model's score, then each
+    finding at the likelihood ratio the ledger actually applied (1.0 = shown, not weighed), then the
+    requested evidence, then the reported value. Nothing is inferred or spread across steps."""
+    def odds(p: float) -> float:
+        p = min(max(p, 1e-6), 1 - 1e-6)
+        return p / (1 - p)
 
-
-def _build_ledger_steps(
-    ans: Dict[str, Any], flagged_row: Optional[pd.Series]
-) -> List[Dict[str, Any]]:
-    """Constructs the step-by-step probability needle progression from the evidence ledger."""
-    evidence_list: List[Dict[str, Any]] = ans.get("case", {}).get("evidence", [])
-    final_p = float(ans.get("case", {}).get("fraud_probability", 0.5))
-
-    # Determine starting prior probability from the flagged transaction's model score or risk score
-    prior_p = 0.5
-    if flagged_row is not None:
-        if "p_fraud" in flagged_row and pd.notna(flagged_row["p_fraud"]):
-            prior_p = float(flagged_row["p_fraud"])
-        elif "risk_score" in flagged_row and pd.notna(flagged_row["risk_score"]):
-            prior_p = float(flagged_row["risk_score"])
-    prior_p = min(max(prior_p, 0.001), 0.999)
-    final_p_clamped = min(max(final_p, 0.001), 0.999)
-
-    # First check if evidence items carry explicit LRs; if not, derive effective per-step LRs
-    # so the log-odds trajectory reproduces the exact final probability from the answer.
-    explicit_lrs: List[Optional[float]] = [_parse_lr_from_finding(e) for e in evidence_list]
-
-    prior_lo = math.log(prior_p / (1.0 - prior_p))
-    final_lo = math.log(final_p_clamped / (1.0 - final_p_clamped))
-
-    steps: List[Dict[str, Any]] = []
-    if not evidence_list:
-        return steps
-
-    # Item 0 is typically the base score finding itself if it references get_transaction
-    first_ref = str(evidence_list[0].get("ref", ""))
-    has_base_step = first_ref.startswith("query:get_transaction(")
-
-    cur_lo = prior_lo
-    known_delta = sum(
-        math.log(max(lr, 1e-4))
-        for idx, lr in enumerate(explicit_lrs)
-        if lr is not None and not (idx == 0 and has_base_step)
-    )
-    unknown_indices = [
-        idx
-        for idx, lr in enumerate(explicit_lrs)
-        if lr is None and not (idx == 0 and has_base_step)
-    ]
-    rem_delta = (final_lo - prior_lo) - known_delta
-    per_unknown_delta = rem_delta / len(unknown_indices) if unknown_indices else 0.0
-
-    for idx, ev in enumerate(evidence_list):
-        if idx == 0 and has_base_step:
-            lr_val = explicit_lrs[idx] if explicit_lrs[idx] is not None else 1.0
-            p_after = 1.0 / (1.0 + math.exp(-cur_lo))
-        else:
-            if explicit_lrs[idx] is not None:
-                lr_val = float(explicit_lrs[idx])
-                cur_lo += math.log(max(lr_val, 1e-4))
-            else:
-                cur_lo += per_unknown_delta
-                lr_val = math.exp(per_unknown_delta)
-            p_after = 1.0 / (1.0 + math.exp(-cur_lo))
-
-        # Snap last step to exact reported fraud_probability
-        if idx == len(evidence_list) - 1:
-            p_after = final_p
-
-        steps.append(
-            {
-                "step": idx + 1,
-                "claim": ev.get("claim", ""),
-                "ref": ev.get("ref", ""),
-                "ids": ev.get("ids", []),
-                "lr": round(float(lr_val), 3),
-                "probability_after": round(float(p_after), 4),
-            }
-        )
-
+    p = float(last["p_model"])
+    steps = [{"step": 1, "claim": "Calibrated transaction model score (trained on the bank's closed cases).",
+              "ref": f"model:p_fraud(txn_id={int(last['flagged'].TransactionID)})", "ids": [],
+              "lr": 1.0, "probability_after": round(p, 4), "kind": "prior"}]
+    for f in last["findings"]:
+        if f.lr != 1.0:
+            o = odds(p) * f.lr
+            p = o / (1 + o)
+        steps.append({"step": len(steps) + 1, "claim": f.claim, "ref": f.ref,
+                      "ids": [str(e) for e in f.entity_ids], "lr": round(float(f.lr), 4),
+                      "probability_after": round(p, 4), "kind": "evidence" if f.lr != 1.0 else "context"})
+    p2 = last.get("p2")
+    if p2 is not None and abs(float(p2) - p) > 1e-9:
+        lr = odds(float(p2)) / odds(p)
+        reqs = ans.get("evidence_requests") or []
+        what = "; ".join(str(r.get("assumed_response", r.get("type", ""))) for r in reqs) or "requested evidence"
+        steps.append({"step": len(steps) + 1, "claim": f"Evidence request answered: {what}",
+                      "ref": "evidence_requests", "ids": [], "lr": round(lr, 4),
+                      "probability_after": round(float(p2), 4), "kind": "evidence_request"})
+        p = float(p2)
+    reported = float(ans["case"]["fraud_probability"])
+    steps.append({"step": len(steps) + 1,
+                  "claim": f"Reported fraud_probability {reported:.2f} (ledger {p:.4f}, rounded to 2 places "
+                           "and clipped to [0.01, 0.99]).",
+                  "ref": "answer.case.fraud_probability", "ids": [], "lr": 1.0,
+                  "probability_after": reported, "kind": "reported"})
     return steps
 
 
@@ -394,7 +335,7 @@ def create_app() -> FastAPI:
     t0 = time.time()
     store = InstrumentedR2Store()
     _wrap_store_queries(store)
-    inv = R2Investigator(store, r2_pattern_model(), writer=store.write_case)
+    inv = R2Investigator(store, r2_pattern_model(), writer=case_writer(store))
     startup_sec = round(time.time() - t0, 3)
 
     cp_df = case_pack().copy()
@@ -528,6 +469,7 @@ def create_app() -> FastAPI:
         inv: R2Investigator = app.state.investigator
 
         store.reset()
+        store.memory.clear()   # same answer as `python -m assay.r2.agent <case>`, whatever ran before
         t_start = time.time()
         active_fault = os.environ.get("ASSAY_FAULT", "").strip()
 
@@ -578,12 +520,10 @@ def create_app() -> FastAPI:
 
         fid = int(case_row.flagged_txn_id)
         flagged_tx = store.tx.loc[fid] if fid in store.tx.index else None
-        ledger_steps = _build_ledger_steps(ans, flagged_tx)
+        ledger_steps = _real_ledger_steps(inv.last, ans) if inv.last.get("findings") is not None else []
         proposals = _register_proposals_for_case(case_id, ans)
 
-        prior_p = 0.5
-        if flagged_tx is not None and pd.notna(flagged_tx.get("p_fraud")):
-            prior_p = round(float(flagged_tx["p_fraud"]), 4)
+        prior_p = round(float(inv.last.get("p_model", 0.5)), 4)
 
         return {
             "ok": True,

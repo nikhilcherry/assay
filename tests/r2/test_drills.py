@@ -18,7 +18,7 @@ from assay.r2.drills import (
 
 @pytest.fixture(scope="module")
 def shared_agent():
-    """Load tx_all() ONCE per test session via build_slim_agent() (< 2.5 GB RSS)."""
+    """Build the agent ONCE per test session via build_slim_agent() (~4 GB RSS)."""
     store, inv = build_slim_agent()
     return store, inv
 
@@ -40,7 +40,7 @@ def scorecard(shared_agent) -> Scorecard:
 
 def test_scorecard_has_all_drills_and_zero_failures(scorecard: Scorecard):
     assert scorecard.cases == ["HHF-007", "HHF-012", "HHF-003"]
-    assert scorecard.total == 69  # 23 drill checks per case across 3 cases
+    assert scorecard.total == 75  # 25 drill checks per case across 3 cases
     assert scorecard.failed == 0, f"Unexpected drill failures: {[r for r in scorecard.rows if r.outcome != 'PASS']}"
     assert scorecard.passed == scorecard.total
 

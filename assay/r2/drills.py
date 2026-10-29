@@ -173,20 +173,16 @@ class Scorecard:
 def build_slim_agent(
     store: R2LocalStore | None = None,
 ) -> tuple[R2LocalStore, R2Investigator]:
-    """Constructs `R2LocalStore` and `R2Investigator` once using already-staged
-    `tx_all()` (~180 MB) instead of reading the raw 397-column CSVs (~10 GB RSS)."""
-    import lightgbm as lgb
-    from assay.patterns import PATH, PatternModel, novelty
+    """Constructs `R2LocalStore` and `R2Investigator` once, the way the shipped agent does
+    (column-trimmed pattern frame, ~4 GB RSS) but with no case-memory writer."""
+    from assay.r2.store_r2 import r2_pattern_model
 
     if store is None:
         store = R2LocalStore()
 
-    pm = PatternModel.__new__(PatternModel)
-    pm.m = lgb.Booster(model_file=str(PATH))
-    # Build novelty features from the slim tx_all() frame (rename amount -> TransactionAmt)
-    slim_tx = tx_all().rename(columns={"amount": "TransactionAmt"})
-    pm.tx = novelty(slim_tx).set_index("TransactionID")
-    del slim_tx
+    # Same pattern classifier the shipped agent uses; a slimmer frame lacked C13/C14 and crashed
+    # any drill that pushed a case off the legit band.
+    pm = r2_pattern_model()
     gc.collect()
 
     inv = R2Investigator(store, pm, writer=None)
@@ -330,7 +326,7 @@ def strip_timestamps(obj: Any) -> Any:
     if isinstance(obj, dict):
         out = {}
         for k, v in obj.items():
-            if k in ("ts", "timestamp", "created_at", "decided_at", "started", "ms", "elapsed_s"):
+            if k in ("ts", "timestamp", "created_at", "decided_at", "started", "ms", "elapsed_s", "latency_s"):
                 out[k] = "<TS>"
             else:
                 out[k] = strip_timestamps(v)
@@ -502,12 +498,12 @@ class CorruptedStoreProxy:
             bad["TransactionID"] = -bad["TransactionID"].abs() - 1
         return bad
 
-    def holder_history(self, uid: str, before_dt: float):
-        df, ref = self._base.holder_history(uid, before_dt)
+    def holder_history(self, uid, *args, **kwargs):
+        df, ref = self._base.holder_history(uid, *args, **kwargs)
         return self._corrupt_df(df), ref
 
-    def card_window(self, card_id: str, center_dt: float, hours: float = 2.0):
-        df, ref = self._base.card_window(card_id, center_dt, hours=hours)
+    def card_window(self, card_id, *args, **kwargs):
+        df, ref = self._base.card_window(card_id, *args, **kwargs)
         return self._corrupt_df(df), ref
 
 
@@ -634,8 +630,8 @@ def run_d4_hostile_input(
         if note not in bug_notes:
             bug_notes.append(note)
 
-    # 1. SQL injection in trigger_text -> REJECTED_INPUT
-    sql_row = dict(base_dict, trigger_text="Customer note'; DROP TABLE transactions; --")
+    # 1a. SQL injection in a structured field -> REJECTED_INPUT before any tool runs
+    sql_row = dict(base_dict, card_id=f"{card_id}'; DROP TABLE transactions; --")
     res_sql = run_case(sql_row, inv_fn, store, timeout_s=DEFAULT_TIMEOUT_S, validators=validators)
     f_sql, s_sql = _write_and_inspect(res_sql, cid)
     ok_sql = res_sql.status == "REJECTED_INPUT" and res_sql.error_type == "InvalidInput" and not s_sql
@@ -644,7 +640,7 @@ def run_d4_hostile_input(
             drill_id="D4",
             category="hostile_input",
             case_id=cid,
-            subcase="sql_injection",
+            subcase="sql_injection_card_id",
             expected="REJECTED_INPUT / InvalidInput / no <case>.json",
             observed=f"{res_sql.status} / {res_sql.error_type} / saved={s_sql}",
             outcome="PASS" if ok_sql else "FAIL",
@@ -653,7 +649,32 @@ def run_d4_hostile_input(
             error_text=res_sql.error or "",
             files_written=f_sql,
             saved_complete_file=s_sql,
-            attestation=_attest("D4 SQL injection rejected before tool execution.", cid, "D4_sql", fid, card_id),
+            attestation=_attest("D4 SQL injection in card_id rejected before tool execution.", cid, "D4_sql", fid, card_id),
+        )
+    )
+
+    # 1b. The same SQL in trigger_text is free text: read as data, verdict unchanged
+    base_verdict0 = baseline_res.answer["case"]["verdict"] if baseline_res.answer else None
+    sqlt_row = dict(base_dict, trigger_text="Customer note'; DROP TABLE transactions; --")
+    res_sqlt = run_case(sqlt_row, inv_fn, store, timeout_s=DEFAULT_TIMEOUT_S, validators=validators)
+    f_sqlt, _ = _write_and_inspect(res_sqlt, cid)
+    sqlt_verdict = res_sqlt.answer["case"]["verdict"] if res_sqlt.answer else None
+    ok_sqlt = res_sqlt.status == "COMPLETE" and base_verdict0 is not None and sqlt_verdict == base_verdict0
+    rows.append(
+        DrillRow(
+            drill_id="D4",
+            category="hostile_input",
+            case_id=cid,
+            subcase="sql_in_trigger_text_is_data",
+            expected=f"COMPLETE / verdict={base_verdict0} (text never executed)",
+            observed=f"{res_sqlt.status} / verdict={sqlt_verdict}",
+            outcome="PASS" if ok_sqlt else "FAIL",
+            status=res_sqlt.status,
+            error_type=res_sqlt.error_type or "None",
+            error_text=f"verdict={sqlt_verdict} (clean baseline={base_verdict0})",
+            files_written=f_sqlt,
+            saved_complete_file=False,
+            attestation=_attest("D4 SQL inside trigger_text treated as data; verdict unchanged.", cid, "D4_sql_text", fid, card_id),
         )
     )
 
@@ -788,11 +809,16 @@ def run_d4_hostile_input(
     res_mm = run_case(mismatch_row, inv_fn, store, timeout_s=DEFAULT_TIMEOUT_S, validators=validators)
     f_mm, _ = _write_and_inspect(res_mm, cid)
     mm_verdict = res_mm.answer["case"]["verdict"] if res_mm.answer else None
+    mm_actions = json.dumps(res_mm.answer.get("next_best_actions", "")) if res_mm.answer else ""
+    # DQ-07: when the case names a card the bank did not record the charge on, the cardholder to ask
+    # is not established, so a would-be clear becomes uncertain + escalate; any other verdict holds.
+    want_mm = "uncertain" if base_verdict == "legitimate" else base_verdict
     ok_mm = (
         res_mm.status == "COMPLETE"
         and res_mm.answer is not None
         and baseline_res.answer is not None
-        and mm_verdict == base_verdict
+        and mm_verdict == want_mm
+        and (want_mm != "uncertain" or not any(a in mm_actions for a in ("CLOSE_NO_FRAUD", "ALLOW_TRANSACTION")))
     )
     rows.append(
         DrillRow(
@@ -800,15 +826,15 @@ def run_d4_hostile_input(
             category="hostile_input",
             case_id=cid,
             subcase="card_id_mismatch_resolved",
-            expected=f"COMPLETE / resolved to txn truth / verdict={base_verdict}",
+            expected=f"COMPLETE / resolved to txn truth / verdict={want_mm} (DQ-07)",
             observed=f"{res_mm.status} / verdict={mm_verdict}",
             outcome="PASS" if ok_mm else "FAIL",
             status=res_mm.status,
             error_type=res_mm.error_type or "None",
-            error_text=f"resolved to txn truth card={card_id}; verdict={mm_verdict}",
+            error_text=f"resolved to txn truth card={card_id}; verdict={mm_verdict}; cleared={'CLOSE_NO_FRAUD' in mm_actions}",
             files_written=f_mm,
             saved_complete_file=False,
-            attestation=_attest("D4 card_id mismatch resolved against transaction ground truth.", cid, "D4_card_mismatch", fid, card_id),
+            attestation=_attest("D4 card_id mismatch resolved against transaction ground truth; never cleared on an unestablished cardholder.", cid, "D4_card_mismatch", fid, card_id),
         )
     )
 
@@ -1064,6 +1090,15 @@ def run_d6_idempotency_bytes(
         b2 = (Path(td2) / f"{cid}.json").read_bytes() if (Path(td2) / f"{cid}.json").exists() else b""
 
     ok = res1.status == "COMPLETE" and res2.status == "COMPLETE" and sha1 == sha2 and b1 == b2 and len(b1) > 0
+    diff_keys: list[str] = []
+    if not ok and b1 and b2:
+        j1, j2 = json.loads(b1), json.loads(b2)
+        diff_keys = sorted(k for k in set(j1) | set(j2) if j1.get(k) != j2.get(k))
+    detail = (
+        f"sha256={sha1[:16]}... ({len(b1)} bytes identical across both runs)"
+        if ok
+        else f"sha256 {sha1[:12]} != {sha2[:12]}; differing keys: {diff_keys}"
+    )
     return [
         DrillRow(
             drill_id="D6",
@@ -1075,7 +1110,7 @@ def run_d6_idempotency_bytes(
             outcome="PASS" if ok else "FAIL",
             status=f"{res1.status}/{res2.status}",
             error_type="None",
-            error_text=f"sha256={sha1[:16]}... ({len(b1)} bytes identical across both runs)",
+            error_text=detail,
             files_written=[f"{cid}.json"],
             saved_complete_file=False,
             attestation=_attest(f"D6 {cid} twice produced identical SHA256 {sha1}.", cid, "D6_identical_bytes", fid, card_id),
@@ -1337,7 +1372,6 @@ def run_drill_battery(
             raise KeyError(f"Case {cid} not found in case_pack()")
         case_row = cp.loc[cid]
 
-        # Run clean baseline once per case (with SQL-neutralized trigger_text if the case_pack row has ';')
         inv_fn = make_agent_investigate_fn(inv, store, strict_row_checks=True)
         baseline_res = run_case(case_row, inv_fn, store, timeout_s=DEFAULT_TIMEOUT_S, validators=validators)
 

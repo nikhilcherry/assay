@@ -1,0 +1,439 @@
+{
+  "enabled": [
+    "dormant_wake",
+    "FanIn",
+    "ring_wcc",
+    "campaign",
+    "cpc"
+  ],
+  "fired_on": {
+    "FanIn": [
+      "HHF-006"
+    ],
+    "cpc": [
+      "HHF-001",
+      "HHF-002",
+      "HHF-003"
+    ],
+    "dormant_wake": [
+      "HHF-003"
+    ],
+    "ring_wcc": [
+      "HHF-005"
+    ]
+  },
+  "verdicts": {
+    "fraud": 6,
+    "uncertain": 2,
+    "legitimate": 10
+  },
+  "cases": [
+    {
+      "case_id": "HHF-001",
+      "trigger_type": "analyst_request",
+      "verdict": "fraud",
+      "fraud_probability": 0.99,
+      "pattern": "undocumented",
+      "exposure_usd": 2189.02,
+      "affected_txns": 3,
+      "connected_cards": 2,
+      "sar": true,
+      "similar_prior_cases": 3,
+      "final_actions": [
+        "BLOCK_CARD",
+        "CREATE_CASE",
+        "MONITOR_CONNECTED_CARDS",
+        "FILE_REPORT",
+        "ESCALATE_TO_ANALYST"
+      ],
+      "card_mismatch": false,
+      "findings": [
+        {
+          "detector": "cpc",
+          "kind": "evidence",
+          "lr": 68.6622,
+          "pattern": "undocumented:coordinated_cnp_burst_no_shared_device",
+          "connected_cards": 2,
+          "affected_txns": 3,
+          "what": "Coordinated loss-shape cohort across 3 cards (bucket '3', measured LR=714.57, 95% CI low=68.66: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: "
+        }
+      ]
+    },
+    {
+      "case_id": "HHF-002",
+      "trigger_type": "analyst_request",
+      "verdict": "fraud",
+      "fraud_probability": 0.94,
+      "pattern": "undocumented",
+      "exposure_usd": 2166.71,
+      "affected_txns": 3,
+      "connected_cards": 11,
+      "sar": true,
+      "similar_prior_cases": 3,
+      "final_actions": [
+        "BLOCK_CARD",
+        "CREATE_CASE",
+        "MONITOR_CONNECTED_CARDS",
+        "FILE_REPORT",
+        "ESCALATE_TO_ANALYST"
+      ],
+      "card_mismatch": false,
+      "findings": [
+        {
+          "detector": "cpc",
+          "kind": "evidence",
+          "lr": 23.4945,
+          "pattern": "undocumented:common_point_of_compromise",
+          "connected_cards": 11,
+          "affected_txns": 3,
+          "what": "Affected loss-shape cohort (12 cards, bucket '6+', measured LR=357.29) shares common origin ProductCD_addr1:W_122 within 60 days before loss (matched lift=14.3x, Fisher p=6.51e-05, cardinality=142)."
+        }
+      ]
+    },
+    {
+      "case_id": "HHF-003",
+      "trigger_type": "customer_report",
+      "verdict": "fraud",
+      "fraud_probability": 0.99,
+      "pattern": "undocumented",
+      "exposure_usd": 2339.55,
+      "affected_txns": 3,
+      "connected_cards": 10,
+      "sar": true,
+      "similar_prior_cases": 3,
+      "final_actions": [
+        "BLOCK_CARD",
+        "CREATE_CASE",
+        "MONITOR_CONNECTED_CARDS",
+        "FILE_REPORT",
+        "ESCALATE_TO_ANALYST"
+      ],
+      "card_mismatch": false,
+      "findings": [
+        {
+          "detector": "dormant_wake",
+          "kind": "evidence",
+          "lr": 5.653,
+          "pattern": "undocumented:dormant_card_wake",
+          "connected_cards": 0,
+          "affected_txns": 2,
+          "what": "Card C11663-K1 woke up after 21.8d card silence with burst of 2 txns (max $357.82, total $539.55) in 48h."
+        },
+        {
+          "detector": "cpc",
+          "kind": "evidence",
+          "lr": 23.4945,
+          "pattern": "undocumented:coordinated_cnp_burst_no_shared_device",
+          "connected_cards": 10,
+          "affected_txns": 2,
+          "what": "Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate"
+        }
+      ]
+    },
+    {
+      "case_id": "HHF-004",
+      "trigger_type": "customer_report",
+      "verdict": "fraud",
+      "fraud_probability": 0.76,
+      "pattern": "card_not_present_fraud",
+      "exposure_usd": 23.99,
+      "affected_txns": 6,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 3,
+      "final_actions": [
+        "BLOCK_CARD",
+        "CREATE_CASE"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-005",
+      "trigger_type": "customer_report",
+      "verdict": "fraud",
+      "fraud_probability": 0.96,
+      "pattern": "card_not_present_fraud",
+      "exposure_usd": 23.17,
+      "affected_txns": 6,
+      "connected_cards": 11,
+      "sar": true,
+      "similar_prior_cases": 3,
+      "final_actions": [
+        "BLOCK_CARD",
+        "CREATE_CASE",
+        "MONITOR_CONNECTED_CARDS",
+        "FILE_REPORT"
+      ],
+      "card_mismatch": false,
+      "findings": [
+        {
+          "detector": "ring_wcc",
+          "kind": "evidence",
+          "lr": 8.52,
+          "pattern": "undocumented:shared_element_ring",
+          "connected_cards": 11,
+          "affected_txns": 0,
+          "what": "Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members)"
+        }
+      ]
+    },
+    {
+      "case_id": "HHF-006",
+      "trigger_type": "analyst_request",
+      "verdict": "uncertain",
+      "fraud_probability": 0.35,
+      "pattern": "none",
+      "exposure_usd": 967.68,
+      "affected_txns": 3,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 3,
+      "final_actions": [
+        "MONITOR_CONNECTED_CARDS",
+        "VERIFY_WITH_CUSTOMER",
+        "CREATE_CASE",
+        "ESCALATE_TO_ANALYST"
+      ],
+      "card_mismatch": false,
+      "findings": [
+        {
+          "detector": "FanIn",
+          "kind": "evidence",
+          "lr": 3.0,
+          "pattern": "undocumented:recipient_fan_in",
+          "connected_cards": 14,
+          "affected_txns": 3,
+          "what": "Recipient burst on R_emaildomain=sc.rr.com: 15 distinct cards used it for the first time in 21d before 2017-01-28 10:59:42 (Jul-Dec baseline mean=0.78, max=5, Poisson p=8.55e-15); flagged episode on C01727-K2 pays this recipient ([305.41, 3"
+        }
+      ]
+    },
+    {
+      "case_id": "HHF-007",
+      "trigger_type": "customer_report",
+      "verdict": "fraud",
+      "fraud_probability": 0.91,
+      "pattern": "card_testing",
+      "exposure_usd": 246.38,
+      "affected_txns": 5,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 3,
+      "final_actions": [
+        "BLOCK_CARD",
+        "CREATE_CASE"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-008",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.01,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "ALLOW_TRANSACTION",
+        "CLOSE_NO_FRAUD"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-009",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.01,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "CLOSE_NO_FRAUD",
+        "CREATE_CASE"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-010",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.01,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "CLOSE_NO_FRAUD",
+        "CREATE_CASE"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-011",
+      "trigger_type": "risk_score",
+      "verdict": "uncertain",
+      "fraud_probability": 0.01,
+      "pattern": "account_takeover",
+      "exposure_usd": 881.55,
+      "affected_txns": 1,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 3,
+      "final_actions": [
+        "VERIFY_WITH_CUSTOMER",
+        "CREATE_CASE",
+        "ESCALATE_TO_ANALYST"
+      ],
+      "card_mismatch": true,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-012",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.01,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "ALLOW_TRANSACTION",
+        "CLOSE_NO_FRAUD"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-013",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.05,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "ALLOW_TRANSACTION",
+        "CLOSE_NO_FRAUD"
+      ],
+      "card_mismatch": false,
+      "findings": [
+        {
+          "detector": "FanIn",
+          "kind": "context",
+          "lr": 1.0,
+          "pattern": "undocumented:recipient_fan_in",
+          "connected_cards": 16,
+          "affected_txns": 0,
+          "what": "CONTEXT NOTE (not in flagged 72h episode): Card C06115-K1 has prior/other charges (txns=[3660311, 3660312], amounts=[181.16, 140.59]) to bursting recipient R_emaildomain=sc.rr.com (16 first-time cards in 21d: ['C00534-K2', 'C01357-K1', 'C01"
+        }
+      ]
+    },
+    {
+      "case_id": "HHF-014",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.01,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "CLOSE_NO_FRAUD",
+        "CREATE_CASE"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-015",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.01,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "ALLOW_TRANSACTION",
+        "CLOSE_NO_FRAUD"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-016",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.01,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "CLOSE_NO_FRAUD",
+        "CREATE_CASE"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-017",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.01,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "ALLOW_TRANSACTION",
+        "CLOSE_NO_FRAUD"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    },
+    {
+      "case_id": "HHF-018",
+      "trigger_type": "risk_score",
+      "verdict": "legitimate",
+      "fraud_probability": 0.01,
+      "pattern": "none",
+      "exposure_usd": 0.0,
+      "affected_txns": 0,
+      "connected_cards": 0,
+      "sar": false,
+      "similar_prior_cases": 2,
+      "final_actions": [
+        "ALLOW_TRANSACTION",
+        "CLOSE_NO_FRAUD"
+      ],
+      "card_mismatch": false,
+      "findings": []
+    }
+  ]
+}

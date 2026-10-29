@@ -1,131 +1,132 @@
 {
-  "case_id": "HHF-011",
   "case": {
-    "status": "escalated",
-    "verdict": "uncertain",
-    "fraud_probability": 0.01,
-    "pattern": "account_takeover",
-    "pattern_description": "",
     "affected_txn_ids": [
       "3640919"
     ],
-    "first_suspicious_txn_id": "3640919",
     "connected_card_ids": [],
     "connected_device_profiles": [],
-    "exposure_usd": 881.55,
     "evidence": [
       {
         "claim": "Flagged transaction 3640919 ($881.55, product W, in_person) scores 0.01 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.31.",
-        "source": "graph",
-        "ref": "query:get_transaction(txn_id=3640919)",
         "entity_ids": [
           "3640919"
-        ]
+        ],
+        "ref": "query:get_transaction(txn_id=3640919)",
+        "source": "graph"
       },
       {
         "claim": "Card baseline from 6863 earlier transactions: median $59.07, 95th percentile $311.99; the flagged amount is 14.9x the median.",
-        "source": "graph",
-        "ref": "query:card_history(card_id=C09241-K2)",
         "entity_ids": [
           "C09241-K2"
-        ]
+        ],
+        "ref": "query:card_history(card_id=C09241-K2)",
+        "source": "graph"
       },
       {
         "claim": "Billing region 494 is among the 37 regions in this card's history.",
-        "source": "graph",
-        "ref": "query:card_history(card_id=C09241-K2)",
         "entity_ids": [
           "C09241-K2"
-        ]
+        ],
+        "ref": "query:card_history(card_id=C09241-K2)",
+        "source": "graph"
       },
       {
         "claim": "Simulated analyst info: Escalated for analyst review: The case names card C09241-K1 but the bank records transaction 3640919 on C09241-K2, so the cardholder who would be asked is not established. One cardholder's confirmation cannot clear activity that spans other cards.",
-        "source": "external",
+        "entity_ids": [],
         "ref": "evidence_request:1",
-        "entity_ids": []
+        "source": "external"
       },
       {
         "claim": "Account takeover: mixed-channel activity inconsistent with the cardholder, often with device and match-flag anomalies, pointing to stolen credentials.",
-        "source": "document",
+        "entity_ids": [],
         "ref": "document:brief#known-fraud-patterns/account_takeover",
-        "entity_ids": []
+        "source": "document"
       },
       {
-        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
-        "source": "document",
-        "ref": "document:fraud-policy#\u00a73a",
-        "entity_ids": []
+        "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#§3a",
+        "source": "document"
       },
       {
         "claim": "Policy R8: Uncertain and exposed (over $500) or conflicting evidence: ESCALATE_TO_ANALYST.",
-        "source": "document",
+        "entity_ids": [],
         "ref": "document:fraud-policy#R8",
-        "entity_ids": []
+        "source": "document"
       }
     ],
+    "exposure_usd": 881.55,
+    "first_suspicious_txn_id": "3640919",
+    "fraud_probability": 0.01,
+    "graph_case_id": "ASSAY-HHF-011",
+    "pattern": "account_takeover",
+    "pattern_description": "",
     "similar_prior_cases": [
+      "CC-2263",
       "CC-4933",
-      "CC-5469",
-      "CC-2263"
+      "CC-5469"
     ],
+    "status": "escalated",
     "summary": "Account takeover on card C09241-K2: 1 transaction(s) from 2017-01-20 to 2017-01-20 totalling $881.55, probability 0.01. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: The case names card C09241-K1 but the bank records transaction 3640919 on C09241-K2, so the cardholder who would be asked is not established. One cardholder's confirmation cannot clear activity that spans other cards.",
-    "written_to_graph": true,
-    "graph_case_id": "ASSAY-HHF-011"
+    "verdict": "uncertain",
+    "written_to_graph": true
   },
+  "case_id": "HHF-011",
   "evidence_requests": [
     {
-      "type": "analyst_info",
-      "asked_after_step": 6,
-      "assumed_response": "Escalated for analyst review: The case names card C09241-K1 but the bank records transaction 3640919 on C09241-K2, so the cardholder who would be asked is not established. One cardholder's confirmation cannot clear activity that spans other cards."
+      "asked_after_step": 8,
+      "assumed_response": "Escalated for analyst review: The case names card C09241-K1 but the bank records transaction 3640919 on C09241-K2, so the cardholder who would be asked is not established. One cardholder's confirmation cannot clear activity that spans other cards.",
+      "question": "",
+      "type": "analyst_info"
     }
   ],
+  "latency_s": 0.0,
   "next_best_actions": {
-    "initial": [
-      {
-        "action": "VERIFY_WITH_CUSTOMER",
-        "route": "auto",
-        "reason": "\u00a75 and \u00a73b: probability 0.01 is between 0.15 and 0.85, so ask the cardholder before deciding."
-      },
-      {
-        "action": "CREATE_CASE",
-        "route": "auto",
-        "reason": "Policy \u00a73a: evidence was requested, so the investigation is recorded as an internal case and written to the graph."
-      },
-      {
-        "action": "ESCALATE_TO_ANALYST",
-        "route": "auto",
-        "reason": "R8: the verdict is uncertain and exposure $881.55 exceeds $500."
-      }
-    ],
     "final": [
       {
         "action": "VERIFY_WITH_CUSTOMER",
-        "route": "auto",
-        "reason": "\u00a75 and \u00a73b: probability 0.01 is between 0.15 and 0.85, so ask the cardholder before deciding."
+        "reason": "§5 and §3b: probability 0.01 is outside 0.15-0.85 but the case is not settled: The case names card C09241-K1 but the bank records transaction 3640919 on C09241-K2, so the cardholder who would be asked is not established, so ask the cardholder before deciding.",
+        "route": "auto"
       },
       {
         "action": "CREATE_CASE",
-        "route": "auto",
-        "reason": "Policy \u00a73a: evidence was requested, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "Policy §3a: evidence was requested, so the investigation is recorded as an internal case and written to the graph.",
+        "route": "auto"
       },
       {
         "action": "ESCALATE_TO_ANALYST",
-        "route": "auto",
-        "reason": "R8: the verdict is uncertain and exposure $881.55 exceeds $500."
+        "reason": "R8: the verdict is uncertain and exposure $881.55 exceeds $500.",
+        "route": "auto"
+      }
+    ],
+    "initial": [
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "reason": "§5 and §3b: probability 0.01 is outside 0.15-0.85 but the case is not settled: The case names card C09241-K1 but the bank records transaction 3640919 on C09241-K2, so the cardholder who would be asked is not established, so ask the cardholder before deciding.",
+        "route": "auto"
+      },
+      {
+        "action": "CREATE_CASE",
+        "reason": "Policy §3a: evidence was requested, so the investigation is recorded as an internal case and written to the graph.",
+        "route": "auto"
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "reason": "R8: the verdict is uncertain and exposure $881.55 exceeds $500.",
+        "route": "auto"
       }
     ],
     "what_changed": "The evidence request did not change the recommendation; probability 0.01 -> 0.01."
   },
   "sar": {
+    "activity_dates": [],
     "file": false,
-    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is uncertain at probability 0.01.",
     "narrative": "",
+    "reason": "Policy §3a: verdict is 'uncertain' with fraud probability 0.01 (< 0.70); fraud is neither confirmed nor strongly suspected.",
     "subjects": [],
-    "total_amount_usd": 0,
-    "activity_dates": []
+    "total_amount_usd": 0
   },
-  "stop_reason": "Policy \u00a76: probability 0.01 remains between 0.15 and 0.85, but the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
-  "tool_calls": 8,
+  "stop_reason": "Policy §6: probability 0.01 remains between 0.15 and 0.85, but the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
   "tokens": 0,
-  "latency_s": 30.4
+  "tool_calls": 10
 }

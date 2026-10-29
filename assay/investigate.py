@@ -296,6 +296,14 @@ class Investigator:
 
         ep = self._episode(f, card_win, scenario, ring)
         pattern = self._pattern(fid, scen_pattern) if band != "legit" else "none"
+        if p1 <= 0.15:
+            blocker = self.assumed_clear_allowed(findings)
+            open_why = blocker.rstrip(".") if blocker else (
+                f"{con} independent finding(s) point to a legitimate charge and clearing needs two")
+        elif p1 >= 0.85:
+            open_why = f"{pro} independent finding(s) point to fraud and acting needs two"
+        else:
+            open_why = ""
 
         def signals(prob, verdict, reply, exposure, pat) -> Signals:
             fraud = verdict is Verdict.FRAUD
@@ -312,6 +320,7 @@ class Investigator:
                 connected_card_ids=ep.connected_cards if fraud else [],
                 matches_recurring_pattern=recurring_hit,
                 coordinated_abuse=(pat == "undocumented"),
+                uncertain_reason=open_why,
             )
 
         exposure_if_fraud = round(float(ep.txns.TransactionAmt.abs().sum()), 2)

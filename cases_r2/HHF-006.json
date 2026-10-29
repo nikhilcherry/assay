@@ -1,148 +1,141 @@
 {
-  "case_id": "HHF-006",
   "case": {
-    "status": "escalated",
-    "verdict": "uncertain",
-    "fraud_probability": 0.37,
-    "pattern": "none",
-    "pattern_description": "",
     "affected_txn_ids": [
       "3660261",
       "3660262",
       "3660263"
     ],
-    "first_suspicious_txn_id": "3660261",
     "connected_card_ids": [],
     "connected_device_profiles": [],
-    "exposure_usd": 967.68,
     "evidence": [
       {
         "claim": "Flagged transaction 3660263 ($295.92, product C, online) scores 0.15 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.15.",
-        "source": "graph",
-        "ref": "query:get_transaction(txn_id=3660263)",
         "entity_ids": [
           "3660263"
-        ]
+        ],
+        "ref": "query:get_transaction(txn_id=3660263)",
+        "source": "graph"
       },
       {
         "claim": "Card baseline from 121 earlier transactions: median $107.86, 95th percentile $553.99; the flagged amount is 2.7x the median.",
-        "source": "graph",
-        "ref": "query:card_history(card_id=C01727-K2)",
         "entity_ids": [
           "C01727-K2"
-        ]
-      },
-      {
-        "claim": "Case memory: this card is named in 1 earlier investigation(s) by this agent (ASSAY-HHF-002), 1 of them concluded as fraud (undocumented).",
-        "source": "graph",
-        "ref": "query:prior_fraud_cases(card_id=C01727-K2)",
-        "entity_ids": [
-          "ASSAY-HHF-002"
-        ]
+        ],
+        "ref": "query:card_history(card_id=C01727-K2)",
+        "source": "graph"
       },
       {
         "claim": "Recipient burst on R_emaildomain=sc.rr.com: 15 distinct cards used it for the first time in 21d before 2017-01-28 10:59:42 (Jul-Dec baseline mean=0.78, max=5, Poisson p=8.55e-15); flagged episode on C01727-K2 pays this recipient ([305.41, 366.35, 295.92]); LR=3.00 [ASSUMPTION: fallback LR=3.0 used because Jul-Dec history has 0 recipient bursts]",
-        "source": "graph",
-        "ref": "query:rerun_recipient_fan_in_burst(baseline_max=5, baseline_mean=0.7778, card_id=C01727-K2, flagged_txn_id=3660263, k_now=15, kind=evidence, linking_value=R_emaildomain=sc.rr.com, lr_assumption=True, opened_at=2017-01-28 10:59:42, p_value=8.5487e-15, window_days=21)",
         "entity_ids": [
           "3660261",
           "3660262",
           "3660263"
-        ]
+        ],
+        "ref": "query:rerun_recipient_fan_in_burst(baseline_max=5, baseline_mean=0.7778, card_id=C01727-K2, flagged_txn_id=3660263, k_now=15, kind=evidence, linking_value=R_emaildomain=sc.rr.com, lr_assumption=True, opened_at=2017-01-28 10:59:42, p_value=8.5487e-15, window_days=21)",
+        "source": "graph"
       },
       {
         "claim": "Simulated analyst info: Escalated for analyst review: FanIn tie this card to 14 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards.",
-        "source": "external",
+        "entity_ids": [],
         "ref": "evidence_request:1",
-        "entity_ids": []
+        "source": "external"
       },
       {
         "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
-        "source": "document",
+        "entity_ids": [],
         "ref": "document:brief#known-fraud-patterns/undocumented",
-        "entity_ids": []
+        "source": "document"
       },
       {
-        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
-        "source": "document",
-        "ref": "document:fraud-policy#\u00a73a",
-        "entity_ids": []
+        "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#§3a",
+        "source": "document"
       },
       {
         "claim": "Policy R8: Uncertain and exposed (over $500) or conflicting evidence: ESCALATE_TO_ANALYST.",
-        "source": "document",
+        "entity_ids": [],
         "ref": "document:fraud-policy#R8",
-        "entity_ids": []
+        "source": "document"
       }
     ],
+    "exposure_usd": 967.68,
+    "first_suspicious_txn_id": "3660261",
+    "fraud_probability": 0.35,
+    "graph_case_id": "ASSAY-HHF-006",
+    "pattern": "none",
+    "pattern_description": "",
     "similar_prior_cases": [
-      "CC-5579",
+      "CC-2649",
       "CC-2985",
-      "CC-2649"
+      "CC-5579"
     ],
-    "summary": "Unresolved activity on card C01727-K2: 3 transaction(s) from 2017-01-17 to 2017-01-28 totalling $967.68, probability 0.37. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: FanIn tie this card to 14 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards.",
-    "written_to_graph": true,
-    "graph_case_id": "ASSAY-HHF-006"
+    "status": "escalated",
+    "summary": "Unresolved activity on card C01727-K2: 3 transaction(s) from 2017-01-17 to 2017-01-28 totalling $967.68, probability 0.35. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: FanIn tie this card to 14 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards.",
+    "verdict": "uncertain",
+    "written_to_graph": true
   },
+  "case_id": "HHF-006",
   "evidence_requests": [
     {
-      "type": "analyst_info",
-      "asked_after_step": 7,
-      "assumed_response": "Escalated for analyst review: FanIn tie this card to 14 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards."
+      "asked_after_step": 9,
+      "assumed_response": "Escalated for analyst review: FanIn tie this card to 14 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards.",
+      "question": "",
+      "type": "analyst_info"
     }
   ],
+  "latency_s": 0.0,
   "next_best_actions": {
-    "initial": [
-      {
-        "action": "VERIFY_WITH_CUSTOMER",
-        "route": "auto",
-        "reason": "\u00a75 and \u00a73b: probability 0.37 is between 0.15 and 0.85, so ask the cardholder before deciding."
-      },
-      {
-        "action": "CREATE_CASE",
-        "route": "auto",
-        "reason": "Policy \u00a73a: fraud probability 0.37 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
-      },
-      {
-        "action": "ESCALATE_TO_ANALYST",
-        "route": "auto",
-        "reason": "R8: the verdict is uncertain and exposure $967.68 exceeds $500."
-      }
-    ],
     "final": [
       {
         "action": "MONITOR_CONNECTED_CARDS",
-        "route": "auto",
-        "reason": "Linked by FanIn to 14 card(s); monitoring costs the customers nothing while an analyst decides."
+        "reason": "Linked by FanIn to 14 card(s); monitoring costs the customers nothing while an analyst decides.",
+        "route": "auto"
       },
       {
         "action": "VERIFY_WITH_CUSTOMER",
-        "route": "auto",
-        "reason": "\u00a75 and \u00a73b: probability 0.37 is between 0.15 and 0.85, so ask the cardholder before deciding."
+        "reason": "§5 and §3b: probability 0.35 is between 0.15 and 0.85, so ask the cardholder before deciding.",
+        "route": "auto"
       },
       {
         "action": "CREATE_CASE",
-        "route": "auto",
-        "reason": "Policy \u00a73a: fraud probability 0.37 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph."
+        "reason": "Policy §3a: fraud probability 0.35 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph.",
+        "route": "auto"
       },
       {
         "action": "ESCALATE_TO_ANALYST",
-        "route": "auto",
-        "reason": "R8: the verdict is uncertain and exposure $967.68 exceeds $500."
+        "reason": "R8: the verdict is uncertain and exposure $967.68 exceeds $500.",
+        "route": "auto"
       }
     ],
-    "what_changed": "The evidence request did not change the recommendation; probability 0.37 -> 0.37."
+    "initial": [
+      {
+        "action": "VERIFY_WITH_CUSTOMER",
+        "reason": "§5 and §3b: probability 0.35 is between 0.15 and 0.85, so ask the cardholder before deciding.",
+        "route": "auto"
+      },
+      {
+        "action": "CREATE_CASE",
+        "reason": "Policy §3a: fraud probability 0.35 is at or above 0.30, so the investigation is recorded as an internal case and written to the graph.",
+        "route": "auto"
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "reason": "R8: the verdict is uncertain and exposure $967.68 exceeds $500.",
+        "route": "auto"
+      }
+    ],
+    "what_changed": "The evidence request did not change the recommendation; probability 0.35 -> 0.35."
   },
   "sar": {
+    "activity_dates": [],
     "file": false,
-    "reason": "Policy \u00a73a: a report requires fraud confirmed or strongly suspected. Verdict is uncertain at probability 0.37.",
     "narrative": "",
+    "reason": "Policy §3a: verdict is 'uncertain' with fraud probability 0.35 (< 0.70); fraud is neither confirmed nor strongly suspected.",
     "subjects": [],
-    "total_amount_usd": 0,
-    "activity_dates": []
+    "total_amount_usd": 0
   },
-  "stop_reason": "Policy \u00a76: probability 0.37 remains between 0.15 and 0.85, but the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
-  "tool_calls": 9,
+  "stop_reason": "Policy §6: probability 0.35 remains between 0.15 and 0.85, but the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
   "tokens": 0,
-  "latency_s": 0.61
+  "tool_calls": 11
 }

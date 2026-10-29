@@ -11,6 +11,33 @@
 
 Every call returns `(txn_ids, why)` where `why` is an `assay.r2.attest.Attestation` with query `assay.r2.dispute_episode.episode_for_dispute`.
 
+## Re-measured 2026-10-29 on the final-round history (supersedes the tables below)
+
+`backtest_jul_oct_customer_reports()` on `closed_cases_history.csv` (5,585 cases). In this history every
+Jul–Oct confirmed-fraud case is a customer report (**4,631**), and every cleared case is a model alert.
+
+| cohort | method | n | exact match | mean Jaccard | mean exposure error |
+|---|---|---:|---:|---:|---:|
+| all Jul–Oct reports | `N7_episode_for_dispute` (1h cap, shipped) | 4,631 | **0.6266** | **0.7620** | **$241.33** |
+| all Jul–Oct reports | flagged transaction only | 4,631 | 0.5498 | 0.6985 | $280.63 |
+| all Jul–Oct reports | `N7_episode_for_dispute` without the cap | 4,631 | 0.4930 | 0.6459 | $935.57 |
+| all Jul–Oct reports | `R1_episode_24h_risk30` | 4,631 | 0.4474 | 0.6472 | $477.66 |
+| multi-txn reports | `N7_episode_for_dispute` (1h cap) | 2,085 | 0.2163 | 0.4961 | $529.09 |
+| multi-txn reports | `R1_episode_24h_risk30` | 2,085 | 0.1899 | 0.4893 | $728.24 |
+
+- **The uncapped builder lost to "flagged transaction only".** Its multi-transaction runs that spanned a
+  week or more were never an exact match (Jaccard 0.176), so episodes now keep only charges within
+  `EPISODE_CAP_HOURS = 1` of the disputed one. The cap was picked on Jul–Aug (best 0.5–1h) and holds
+  on Sep–Oct (0.6200 at 1h). It gives up the rare true multi-day run (944 multi-day cases score 0
+  either way).
+- Exempting charges of the same amount from the cap was tested and rejected (0.6204, no exposure gain).
+- **Micro-drip extension** (`MICRO_DRIP`): a disputed sub-$6.50 online C charge joins the card's other
+  such charges from the past 30 days when the card had none before. It costs nothing on history
+  (0.6266 with or without it) and scopes HHF-004 to its six drip charges (3660255–3660260, $23.99; was
+  $2.90) and HHF-005 to six (3660245–3660250, $23.17).
+- The 0.8061 / 3,522-case tables below came from an earlier cohort definition and do not reproduce on
+  this history.
+
 ## Measured Backtest Results (Jul–Oct Customer-Report Closed Cases)
 
 In `closed_cases_history.csv`, there are **3,522** confirmed-fraud customer-report cases in Jul–Oct 2016 (**999** of which have `n_txns > 1`) and **159** cleared (legitimate recurring dispute) customer-report cases.

@@ -39,20 +39,23 @@ No post-investigation fields from `closed_cases` (`outcome`, `actions_taken`, `e
   - `similar_cases_fused(VERTEX<Card> c, LIST<FLOAT> qv, INT k, INT hops, DATETIME as_of)`: traverses 2 hops from `Card` (`t <= as_of`) through `DeviceProfile`, `BillingRegion`, and `EmailDomain` to `ClosedCase` (`closed_at <= as_of`), runs `vectorSearch({ClosedCase.behaviour}, qv, k, filter=CandidateSet)`, and expands 1–2 hops from the hits to shared cards and devices.
 - **Fail-closed:** When `ASSAY_TG=1`, `LocalVectorIndex` calls TigerGraph directly and raises `TigerGraphUnavailableError` if TigerGraph is unreachable (never falling back silently).
 
-## 3. Held-Out As-Of Ablation on All Nov–Dec 2016 Closed Cases
-Evaluated on **all 1,547** Nov–Dec closed cases (`opened_at` in `[2016-11-01, 2017-01-01)`), comprising **1,297** `confirmed_fraud` (83.84% majority baseline) and **250** `cleared` cases, with the index restricted to cases with `closed_at <= opened_at` (`filter_trace`: `total_closed_cases=5585 -> opened_ge_2016_11_01=1567 -> opened_in_nov_dec_2016=1547 -> evaluated_rows=1547`, with at least `3,962` prior closed cases available as-of every eval case):
+## 3. Held-Out As-Of Ablation on October–December 2016 Closed Cases
+Re-measured 2026-10-29 with `run_ablation(k=5)`. November–December hold only 45 closed cases, so the
+window is October–December: **1,392** cases, **1,238** `confirmed_fraud` (88.94% majority baseline) and
+**154** `cleared`. Each case's index holds only cases closed before it opened (at least 4,052 prior
+cases available). An earlier version of this section reported "1,547 Nov–Dec cases"; that count and its
+figures were wrong and are withdrawn.
 
-| Method | Accuracy | Balanced Acc | Brier Score | Cleared Cases Acted Against ($p \ge 0.70$) |
-|---|---:|---:|---:|---:|
-| **Majority Baseline (all fraud)** | 83.84% | 50.00% | — | 250 / 250 |
-| **RiskScore Baseline (`tx_all.risk_score`)** | 70.72% | 75.50% | 0.1656 | — |
-| **(i) Vector-only (`similar_cases_vec`)** | 84.36% | 59.32% | 0.1228 | 173 / 250 |
-| **(ii) Traversal-only (2-hop entity order)** | 82.87% | 51.09% | 0.1380 | 213 / 250 |
-| **(iii) Fused (`similar_cases_fused`)** | **84.68%** | **60.05%** | **0.1190** | **165 / 250** |
+| Method | Accuracy | Balanced Acc | Brier | Cleared cases acted against (p >= 0.70) |
+|---|---|---|---|---|
+| Bank `risk_score` (max in 24h episode) | 0.5589 | 0.3171 | 0.3033 | — |
+| Vector-only k-NN (k=5) | 0.8951 | 0.6511 | 0.0863 | 75 / 154 |
+| Traversal-only 2-hop | 0.8757 | 0.5179 | 0.1101 | 125 / 154 |
+| Fused 2-hop + vector | 0.8843 | 0.6336 | 0.0896 | 78 / 154 |
 
-### Verdict Flips & Precedent Shift
-- **Precedent shift:** Fused 2-hop traversal + vector search changes the top-5 precedent set on **1,538 / 1,547 (99.42%)** held-out cases compared to pure vector search.
-- **Flips vs. RiskScore Baseline:**
-  - **Vector-only** flips the baseline verdict on **441 / 1,547** cases and is **right on 326 / 441 (73.92%)** of those flips.
-  - **Fused (2-hop + vector)** flips the baseline verdict on **434 / 1,547** cases and is **right on 325 / 434 (74.88%)** of those flips.
-- **Flips between Fused and Vector-only:** Fused and Vector-only disagree on **109 / 1,547** cases; Fused is right on **57 / 109 (52.29%)** while reducing cleared cases acted against from 173 down to **165**.
+- Vector precedent beats the bank score on calibration (Brier 0.0863 vs 0.3033), but its accuracy is
+  barely above always saying fraud (0.8951 vs 0.8894).
+- **Measured negative: graph traversal hurts.** Fused and vector-only disagree on 59 cases, and fused is
+  right on 22 of them (37.29%). Traversal-only acts against 125 cleared cases vs 75 for vector-only.
+- Neither is on the decision path: precedent never enters the ledger, and the answer's
+  `similar_prior_cases` comes from the rule-based `closed_cases_like` lookup.

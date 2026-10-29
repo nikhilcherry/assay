@@ -1,17 +1,10 @@
 {
-  "case_id": "HHF-003",
   "case": {
-    "status": "closed_fraud",
-    "verdict": "fraud",
-    "fraud_probability": 0.99,
-    "pattern": "undocumented",
-    "pattern_description": "Device-ring fraud: Card C11663-K1 woke up after 21.8d card silence with burst of 2 txns (max $357.82, total $539.55) in 48h., used on 11 unrelated cards within a month for a few purchases each, every one scoring low on the bank's model. No single card shows a credential or channel change, so it is not account takeover, and the link that makes it fraud is the shared handset across cardholders. Found by traversing from the flagged transaction's device profile to every other card that used it.",
     "affected_txn_ids": [
       "3660147",
       "3660148",
       "3660153"
     ],
-    "first_suspicious_txn_id": "3660147",
     "connected_card_ids": [
       "C00450-K1",
       "C01727-K2",
@@ -25,45 +18,42 @@
       "C11309-K1"
     ],
     "connected_device_profiles": [],
-    "exposure_usd": 2339.55,
     "evidence": [
       {
         "claim": "Flagged transaction 3660153 ($1,800.00, product C, online) scores 0.00 on the calibrated transaction model trained only on the bank's closed cases (out-of-time AUC 0.964 vs 0.866 for the bank's risk score). The bank's own risk score was 0.09.",
-        "source": "graph",
-        "ref": "query:get_transaction(txn_id=3660153)",
         "entity_ids": [
           "3660153"
-        ]
+        ],
+        "ref": "query:get_transaction(txn_id=3660153)",
+        "source": "graph"
       },
       {
         "claim": "Card baseline from 57 earlier transactions: median $91.98, 95th percentile $1,009.54; the flagged amount is 19.6x the median.",
-        "source": "graph",
-        "ref": "query:card_history(card_id=C11663-K1)",
         "entity_ids": [
           "C11663-K1"
-        ]
+        ],
+        "ref": "query:card_history(card_id=C11663-K1)",
+        "source": "graph"
       },
       {
         "claim": "Cardholder C11663 reported the $1,800.00 charge as not theirs (case pack trigger, 2017-01-31 20:31:28). Measured on October: all 1,203 disputes the bank investigated were fraud, 15% of them scored under 0.05, so a low score does not clear a denial (0.93). If this is a planted dispute on a legitimate transaction, a score this size is 0.07x as likely on disputed fraud as on a legitimate transaction (0.07). Weighted equally: 0.76.",
-        "source": "customer",
-        "ref": "case_pack:HHF-003",
         "entity_ids": [
           "3660153"
-        ]
+        ],
+        "ref": "case_pack:HHF-003",
+        "source": "customer"
       },
       {
         "claim": "Card C11663-K1 woke up after 21.8d card silence with burst of 2 txns (max $357.82, total $539.55) in 48h.",
-        "source": "graph",
-        "ref": "query:dormant_wake(N=14, as_of=2017-01-31 20:31:28, card_id=C11663-K1, k=2, m=5.0)",
         "entity_ids": [
           "3660147",
           "3660148"
-        ]
+        ],
+        "ref": "query:dormant_wake(N=14, as_of=2017-01-31 20:31:28, card_id=C11663-K1, k=2, m=5.0)",
+        "source": "graph"
       },
       {
         "claim": "Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality=297)).",
-        "source": "graph",
-        "ref": "query:cpc_loss_shape_cohort(ProductCD=C, card_id=C11663-K1, channel=online, cohort_size_bucket=6+, flagged_txn_id=3660153, lookback_days=60, max_amt=2200.0, min_amt=250.0)",
         "entity_ids": [
           "3660099",
           "3660100",
@@ -91,107 +81,120 @@
           "3660262",
           "3660286",
           "3660287"
-        ]
+        ],
+        "ref": "query:cpc_loss_shape_cohort(ProductCD=C, card_id=C11663-K1, channel=online, cohort_size_bucket=6+, flagged_txn_id=3660153, lookback_days=60, max_amt=2200.0, min_amt=250.0)",
+        "source": "graph"
       },
       {
         "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
-        "source": "document",
+        "entity_ids": [],
         "ref": "document:brief#known-fraud-patterns/undocumented",
-        "entity_ids": []
+        "source": "document"
       },
       {
         "claim": "Policy R2: Customer denies the transaction: BLOCK_CARD and CREATE_CASE; FILE_REPORT if exposure exceeds $1,000 or the case connects to a shared device profile or another card's fraud.",
-        "source": "document",
+        "entity_ids": [],
         "ref": "document:fraud-policy#R2",
-        "entity_ids": []
+        "source": "document"
       },
       {
         "claim": "Policy R6: Shared origin: name the shared element, CREATE_CASE, FILE_REPORT, and MONITOR_CONNECTED_CARDS for every card that shares it.",
-        "source": "document",
+        "entity_ids": [],
         "ref": "document:fraud-policy#R6",
-        "entity_ids": []
+        "source": "document"
       },
       {
-        "claim": "Policy \u00a73a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
-        "source": "document",
-        "ref": "document:fraud-policy#\u00a73a",
-        "entity_ids": []
+        "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#§3a",
+        "source": "document"
       }
     ],
+    "exposure_usd": 2339.55,
+    "first_suspicious_txn_id": "3660147",
+    "fraud_probability": 0.99,
+    "graph_case_id": "ASSAY-HHF-003",
+    "pattern": "undocumented",
+    "pattern_description": "Device-ring fraud: Card C11663-K1 woke up after 21.8d card silence with burst of 2 txns (max $357.82, total $539.55) in 48h., used on 11 unrelated cards within a month for a few purchases each, every one scoring low on the bank's model. No single card shows a credential or channel change, so it is not account takeover, and the link that makes it fraud is the shared handset across cardholders. Found by traversing from the flagged transaction's device profile to every other card that used it.",
     "similar_prior_cases": [
-      "CC-4124",
+      "CC-3748",
       "CC-3907",
-      "CC-3748"
+      "CC-4124"
     ],
+    "status": "closed_fraud",
     "summary": "Undocumented on card C11663-K1: 3 transaction(s) from 2017-01-22 to 2017-01-31 totalling $2,339.55, probability 0.99. Linked to 10 other card(s) through Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality.",
-    "written_to_graph": true,
-    "graph_case_id": "ASSAY-HHF-003"
+    "verdict": "fraud",
+    "written_to_graph": true
   },
+  "case_id": "HHF-003",
   "evidence_requests": [],
+  "latency_s": 0.0,
   "next_best_actions": {
-    "initial": [
-      {
-        "action": "BLOCK_CARD",
-        "route": "L1",
-        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
-      },
-      {
-        "action": "CREATE_CASE",
-        "route": "auto",
-        "reason": "R2: a denial requires an internal case with the evidence attached."
-      },
-      {
-        "action": "MONITOR_CONNECTED_CARDS",
-        "route": "auto",
-        "reason": "R6: every card sharing Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality goes under monitoring (10 card(s))."
-      },
-      {
-        "action": "FILE_REPORT",
-        "route": "L2",
-        "reason": "Policy \u00a73a: fraud is suspected and exposure $2,339.55 exceeds $1,000; activity connects to Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality; the pattern is coordinated or undocumented (R9)."
-      },
-      {
-        "action": "ESCALATE_TO_ANALYST",
-        "route": "auto",
-        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
-      }
-    ],
     "final": [
       {
         "action": "BLOCK_CARD",
-        "route": "L1",
-        "reason": "R2: the cardholder denies the transaction, so the card is compromised."
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised.",
+        "route": "L1"
       },
       {
         "action": "CREATE_CASE",
-        "route": "auto",
-        "reason": "R2: a denial requires an internal case with the evidence attached."
+        "reason": "R2: a denial requires an internal case with the evidence attached.",
+        "route": "auto"
       },
       {
         "action": "MONITOR_CONNECTED_CARDS",
-        "route": "auto",
-        "reason": "R6: every card sharing Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality goes under monitoring (10 card(s))."
+        "reason": "R6: every card sharing Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality goes under monitoring (10 card(s)).",
+        "route": "auto"
       },
       {
         "action": "FILE_REPORT",
-        "route": "L2",
-        "reason": "Policy \u00a73a: fraud is suspected and exposure $2,339.55 exceeds $1,000; activity connects to Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality; the pattern is coordinated or undocumented (R9)."
+        "reason": "Policy §3a: fraud is suspected and exposure $2,339.55 exceeds $1,000; activity connects to Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality; the pattern is coordinated or undocumented (R9).",
+        "route": "L2"
       },
       {
         "action": "ESCALATE_TO_ANALYST",
-        "route": "auto",
-        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category."
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category.",
+        "route": "auto"
+      }
+    ],
+    "initial": [
+      {
+        "action": "BLOCK_CARD",
+        "reason": "R2: the cardholder denies the transaction, so the card is compromised.",
+        "route": "L1"
+      },
+      {
+        "action": "CREATE_CASE",
+        "reason": "R2: a denial requires an internal case with the evidence attached.",
+        "route": "auto"
+      },
+      {
+        "action": "MONITOR_CONNECTED_CARDS",
+        "reason": "R6: every card sharing Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality goes under monitoring (10 card(s)).",
+        "route": "auto"
+      },
+      {
+        "action": "FILE_REPORT",
+        "reason": "Policy §3a: fraud is suspected and exposure $2,339.55 exceeds $1,000; activity connects to Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality; the pattern is coordinated or undocumented (R9).",
+        "route": "L2"
+      },
+      {
+        "action": "ESCALATE_TO_ANALYST",
+        "reason": "R9: a human analyst reviews the pattern description rather than forcing it into a known category.",
+        "route": "auto"
       }
     ],
     "what_changed": "nothing"
   },
   "sar": {
+    "activity_dates": [
+      "2017-01-22",
+      "2017-01-31"
+    ],
     "file": true,
-    "reason": "Policy \u00a73a: fraud is suspected and exposure $2,339.55 exceeds $1,000; activity connects to Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality; the pattern is coordinated or undocumented (R9).",
-    "narrative": "Between 2017-01-22 and 2017-01-31, card C11663-K1 held by customer C11663 was used for 3 transaction(s) totalling $2,339.55 that the bank has determined were not authorised by the cardholder (transaction IDs 3660147, 3660148, 3660153). The activity was online, billed to region code(s) 315, 327. The alert was raised on 2017-01-31 20:31:28 by customer report on transaction 3660153 ($1,800.00). The same device profile was used on 10 other cards in the same period (C00450-K1, C01727-K2, C03080-K2, C04668-K1, C05770-K1, C06220-K1, C06962-K2, C07997-K1, C08943-K2, C11309-K1), each time marked as a new device behind an anonymous proxy, indicating a single actor operating across multiple unrelated cardholders. The bank's closed cases from August and September record confirmed fraud from this same device profile on other cardholders, which analysts could not match to a documented typology. The cardholder disputed the activity. The card has been blocked pending reissue and the connected cards placed under monitoring; this report is filed because fraud is suspected and exposure $2,339.55 exceeds $1,000; activity connects to Coordinated loss-shape cohort across 11 cards (bucket '6+', measured LR=357.29, 95% CI low=23.49: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_addr1:H_337 (lift=9.23x, p=4.91e-05, cardinality; the pattern is coordinated or undocumented (R9).",
+    "narrative": "Between 2017-01-22 (2017-01-22 12:55:30 UTC) and 2017-01-31 (2017-01-31 17:31:28 UTC), card C11663-K1 held by customer C11663 recorded 3 unauthorized transaction(s) totaling $2,339.55 USD (assessed fraud probability 0.99) [T:3660147,3660148,3660153 | C:C11663-K1]. The unauthorized sequence began with transaction 3660147 at 2017-01-22 12:55:30 UTC for $181.73 USD and concluded with transaction 3660153 at 2017-01-31 17:31:28 UTC for $1,800.00 USD, with individual transaction amounts ranging from $181.73 USD to $1,800.00 USD [T:3660147,3660148,3660153 | C:C11663-K1]. The activity occurred via online channel(s) under product code(s) C, billed to region code(s) 315, 327, and originated from device profile(s): no recorded device fingerprint (in-person or unrecorded) [T:3660147,3660148,3660153 | C:C11663-K1]. The investigation examined flagged transaction 3660153 on 2017-01-31 17:31:28 UTC for $1,800.00 USD, which carried an initial bank model risk score of 0.09 [T:3660153 | C:C11663-K1]. Prior to 2017-01-22 12:55:30 UTC, card C11663-K1 had 49 historical transaction(s) with a median amount of $91.92 USD and a 95th-percentile amount of $167.01 USD [T:3660147,3660148,3660153 | C:C11663-K1]. Graph traversal linked the episode on card C11663-K1 to 10 connected card(s) (C00450-K1, C01727-K2, C03080-K2, C04668-K1, C05770-K1) sharing origin attributes (shared cluster), indicating coordinated multi-card activity under pattern 'undocumented' (fraud probability 0.99) [T:3660147,3660148,3660153,3000306,3000893,3001078,3001123,3001228,3001274 | C:C11663-K1,C00450-K1,C01727-K2,C03080-K2 | CC:CC-4124,CC-3907,CC-3748]. Historical case retrieval linked this episode to 3 closed precedent case(s) (CC-4124, CC-3907, CC-3748) in the bank's confirmed case repository [T:3660147,3660148,3660153 | C:C11663-K1 | CC:CC-4124,CC-3907,CC-3748]. In accordance with Policy §3a: fraud is confirmed or strongly suspected (probability 0.99) and exposure $2,339.55 exceeds $1,000.00; activity connects to 10 other card(s) (C00450-K1, C01727-K2, C03080-K2); the pattern is coordinated or undocumented (R9), the bank recorded actions BLOCK_CARD, CREATE_CASE, MONITOR_CONNECTED_CARDS, FILE_REPORT, ESCALATE_TO_ANALYST for total suspicious exposure of $2,339.55 USD across 3 transaction(s) [T:3660147,3660148,3660153 | C:C11663-K1].",
+    "reason": "Policy §3a: fraud is confirmed or strongly suspected (probability 0.99) and exposure $2,339.55 exceeds $1,000.00; activity connects to 10 other card(s) (C00450-K1, C01727-K2, C03080-K2); the pattern is coordinated or undocumented (R9).",
     "subjects": [
-      "C11663",
-      "C11663-K1",
       "C00450-K1",
       "C01727-K2",
       "C03080-K2",
@@ -201,16 +204,13 @@
       "C06962-K2",
       "C07997-K1",
       "C08943-K2",
-      "C11309-K1"
+      "C11309-K1",
+      "C11663",
+      "C11663-K1"
     ],
-    "total_amount_usd": 2339.55,
-    "activity_dates": [
-      "2017-01-22",
-      "2017-01-31"
-    ]
+    "total_amount_usd": 2339.55
   },
-  "stop_reason": "Policy \u00a76: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
-  "tool_calls": 10,
+  "stop_reason": "Policy §6: the customer denies the transaction, which settles the question. No further evidence would change the decision.",
   "tokens": 0,
-  "latency_s": 1.32
+  "tool_calls": 12
 }

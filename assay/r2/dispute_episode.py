@@ -68,6 +68,13 @@ class CardDisputeIndex:
 _DISPUTE_INDEX_CACHE: dict[int, CardDisputeIndex] = {}
 
 
+EPISODE_CAP_HOURS = 1.0
+MICRO_DRIP = True
+MICRO_DRIP_MAX_USD = 6.50
+MICRO_DRIP_DAYS = 30
+MICRO_DRIP_MIN = 4
+
+
 def _to_epoch_sec(ts_series: pd.Series) -> np.ndarray:
     dt = pd.to_datetime(ts_series)
     return dt.astype("datetime64[s]").astype("int64").to_numpy(dtype=np.float64)
@@ -467,6 +474,26 @@ def episode_for_dispute(
         mode_desc = (
             f"24h window fallback (shape appeared {n_prior_shape}x in {n_prior_total} prior txns before run)"
         )
+
+    # Keep the episode to charges within EPISODE_CAP_HOURS of the disputed one. Measured on the 4,631
+    # Jul-Oct reports (docs/r2/N7_dispute_episode.md): uncapped runs reach back weeks and are never an
+    # exact match past 7 days; a 1h cap takes exact match 0.4930 -> 0.6266 and mean exposure error
+    # $935.57 -> $241.32 (cap picked on Jul-Aug, holds on Sep-Oct: 0.6200).
+    sel_positions = [p for p in sel_positions if abs(float(c_t[p]) - flag_t) <= EPISODE_CAP_HOURS * 3600.0]
+    if flag_pos not in sel_positions:
+        sel_positions = sorted(sel_positions + [flag_pos])
+    mode_desc += f", capped to {EPISODE_CAP_HOURS:g}h of the disputed charge"
+
+    # Slow micro-charge drip (docs/r2/B6_micro_fanin.md's shape): a disputed sub-$6.50 online C charge
+    # belongs with the card's other sub-$6.50 C charges of the past 30 days when the card had none
+    # before them. The drip moves between billing regions and devices, which the shape rules split.
+    if MICRO_DRIP and f_prod == "C" and f_chan == "online" and abs(f_amt) < MICRO_DRIP_MAX_USD:
+        micro = (c_prod == "C") & (c_chan == "online") & (np.abs(c_amt) < MICRO_DRIP_MAX_USD)
+        win = micro & (c_t >= flag_t - MICRO_DRIP_DAYS * 86400.0) & (c_t <= flag_t)
+        before = micro & (c_t < flag_t - MICRO_DRIP_DAYS * 86400.0)
+        if int(np.sum(win)) >= MICRO_DRIP_MIN and not before.any():
+            sel_positions = sorted(set(sel_positions) | set(np.nonzero(win)[0].tolist()))
+            mode_desc += f"; plus {int(np.sum(win))}-charge micro drip (none before the 30-day window)"
 
     txn_ids = [int(c_txns[p]) for p in sel_positions]
     total_usd = float(np.round(np.sum(np.abs(c_amt[sel_positions])), 2))

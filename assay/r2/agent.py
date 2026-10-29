@@ -68,7 +68,7 @@ from assay.r2.harness import (
 )
 from assay.r2.investigate_r2 import R2Investigator, measured_exam_dispute_weight
 from assay.r2.sar import draft_sar, sar_required
-from assay.r2.store_r2 import R2LocalStore, r2_pattern_model
+from assay.r2.store_r2 import R2LocalStore, case_writer, r2_pattern_model
 from assay.r2.untrusted import TriggerFacts, attest_trigger_facts, cross_check, parse_trigger
 from assay.validate import validate
 
@@ -333,7 +333,7 @@ def get_shared_runtime() -> tuple[R2LocalStore, R2Investigator]:
     process-global `disputes.W_OVERRIDE` at startup."""
     store = R2LocalStore()
     model = r2_pattern_model()
-    inv = R2Investigator(store, model, writer=store.write_case)
+    inv = R2Investigator(store, model, writer=case_writer(store))
     disputes.W_OVERRIDE = _STARTUP_W_OVERRIDE
     inv.dispute_weight_basis = _STARTUP_DISPUTE_BASIS
     return store, inv
@@ -784,9 +784,7 @@ def run_agent_case(
     trigger_type = str(raw_row.get("trigger_type", "") or "")
     trigger_text = str(raw_row.get("trigger_text", "") or "")
 
-    row_for_validation = dict(raw_row)
-    row_for_validation.pop("trigger_text", None)
-    valid, val_err = validate_case_row(row_for_validation)
+    valid, val_err = validate_case_row(dict(raw_row))
     if not valid:
         with _case_execution_lock(out_path, cid_candidate):
             audit = AuditLog(audit_path)
@@ -848,7 +846,7 @@ def run_agent_case(
             prev_store = inv.s
             prev_writer = inv.writer
             inv.s = adapter
-            inv.writer = adapter.write_case
+            inv.writer = case_writer(adapter)
             inv._multi = []
             inv._card_mismatch = None
             inv._case = None
