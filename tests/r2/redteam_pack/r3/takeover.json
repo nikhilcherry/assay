@@ -1,0 +1,404 @@
+[
+ {
+  "scenario_id": "takeover-r3-1",
+  "idea": "Exploit the 1-hour episode cap on home devices by draining a compromised account via 90-minute spaced purchases on the victim's hijacked home session before a final high-risk cashout triggers the alert, guaranteeing severe exposure undercounting.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 9.0,
+    "amount": 320.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 7.5,
+    "amount": 385.5,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.16
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 6.0,
+    "amount": 410.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 4.5,
+    "amount": 460.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.21
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 3.0,
+    "amount": 495.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.24
+   },
+   {
+    "id": "e6",
+    "card": "A",
+    "hours_before_open": 1.5,
+    "amount": 520.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.28
+   },
+   {
+    "id": "e7",
+    "card": "A",
+    "hours_before_open": 0.0,
+    "amount": 980.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | Firefox 50.0 | 1366x768",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": 442,
+    "risk_score": 0.91
+   }
+  ],
+  "case": {
+   "flagged": "e7",
+   "day": 19,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called to report unauthorized online activity starting earlier today; states they did not authorize the $980.00 charge or any of the preceding online transactions today."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6",
+    "e7"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay's episode builder (B34_episode.md) enforces a 1-hour cap unless the transactions are on a new device (48h cap). By using the hijacked home session for e1-e6 spaced 90 minutes apart and only switching to a new device for the final e7 cashout, Assay will catch e7 as fraud but drop e1-e6 from the episode, counting only 1 of 7 fraud transactions."
+  }
+ },
+ {
+  "scenario_id": "takeover-r3-2",
+  "idea": "Full session-cookie account takeover where the attacker keeps the customer's exact home device, home region, and purchasing email, while shifting only the recipient email to a top common domain to exfiltrate digital goods without triggering any measured detector.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 3.2,
+    "amount": 135.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 1.8,
+    "amount": 185.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.18
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.4,
+    "amount": 215.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.25
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.0,
+    "amount": 245.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.34
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 14,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated risk alert: multiple online Product R transactions with recipient email delivery in a 4-hour window."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Every transaction mimics the customer's home device, home billing region, and home P_email, while sending digital goods (R) to gmail.com (too common for recipient fan-in). Because no CPC, dormant, ring, or campaign detector fires, Assay's prior stays low and its simulated customer verification follows its own low probability ('customer confirms'), causing it to miss the ATO completely."
+  }
+ },
+ {
+  "scenario_id": "takeover-r3-3",
+  "idea": "Slow-drip multi-account takeover across two heavy issuer-bucket cards using their respective home profiles and a shared mid-tier recipient domain over 50 hours, staying under ring, burst_hub, and fan-in thresholds so Assay's low-probability simulation clears the fraud.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "heavy"
+   },
+   {
+    "label": "B",
+    "profile": "heavy"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 52.0,
+    "amount": 89.99,
+    "product": "H",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e2",
+    "card": "B",
+    "hours_before_open": 38.0,
+    "amount": 92.5,
+    "product": "H",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 24.0,
+    "amount": 115.0,
+    "product": "H",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e4",
+    "card": "B",
+    "hours_before_open": 12.0,
+    "amount": 118.0,
+    "product": "H",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.22
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 0.0,
+    "amount": 145.0,
+    "product": "H",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.29
+   }
+  ],
+  "case": {
+   "flagged": "e5",
+   "day": 23,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Analyst review requested: unusual online gift/home goods fulfillment to external recipient domain cox.net on active card."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Targets heavy cards (300+ past txns) where individual anomalies blend into background volume. Only 2 cards share cox.net (far below the 15-card recipient fan-in detector or burst_hub detector), and amounts match median Product H quantiles on home devices. Assay's LightGBM scorer and detectors see normal heavy-card traffic and judge it legitimate."
+  }
+ },
+ {
+  "scenario_id": "takeover-r3-4",
+  "idea": "Extend an account takeover across 65 hours on a single compromised new device so that the earliest high-value fraudulent purchases fall outside Assay's 48-hour new-device episode window and get excluded from exposure.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 64.0,
+    "amount": 480.0,
+    "product": "W",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_2 | Safari 10.0.2 | 2560x1440",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.22
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 56.0,
+    "amount": 510.0,
+    "product": "W",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_2 | Safari 10.0.2 | 2560x1440",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.25
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 50.0,
+    "amount": 540.0,
+    "product": "W",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_2 | Safari 10.0.2 | 2560x1440",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.27
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 18.0,
+    "amount": 310.0,
+    "product": "R",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_2 | Safari 10.0.2 | 2560x1440",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": 315,
+    "risk_score": 0.68
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 0.0,
+    "amount": 690.0,
+    "product": "R",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_2 | Safari 10.0.2 | 2560x1440",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": 315,
+    "risk_score": 0.93
+   }
+  ],
+  "case": {
+   "flagged": "e5",
+   "day": 27,
+   "trigger_type": "customer_report",
+   "trigger_text": "Customer reported account takeover after noticing unrecognized charges from a Mac device over the past three days."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay's episode builder (B34_episode.md) caps new-device episodes at 48 hours. Even though e1, e2, and e3 share the exact same attacker device ('MacOS | Mac OS X 10_12_2 | Safari 10.0.2 | 2560x1440') as the flagged e5, they occurred 50 to 64 hours before the case opened. Assay will flag e4 and e5 as fraud but exclude e1-e3 ($1,530 of exposure), undercounting 60% of the fraudulent transactions."
+  }
+ }
+]

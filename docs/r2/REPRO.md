@@ -1,6 +1,6 @@
 # Reproducing the Final-Round Run from a Clean Clone
 
-Data is not tracked in git. Python 3.12+ is required (`python3 -m venv .venv`); Docker is only needed for the containerized run or the optional TigerGraph Community Edition 4.2.5 graph path.
+Data is not tracked in git. Python 3.12+ is required (`python3 -m venv .venv`); Docker is only needed for the containerized run or the TigerGraph Community Edition 4.2.5 graph path. A clean clone runs in local mode (no `ASSAY_TG`) and decides identically to the graph mode that produced `cases_r2/` (`docs/r2/C6_tg_cohorts.md`).
 
 ## 1. From-Zero Setup and Execution
 
@@ -56,6 +56,8 @@ PYTHONPATH=. .venv/bin/python -m assay.r2.agent HHF-007 --out cases_r2
 ```
 
 It prints a one-line summary (`HHF-007 status=COMPLETE ...`) and writes `cases_r2/HHF-007.json`.
+Exit codes: 0 answer written, 2 invalid input, 3 a tool, the graph or a startup data file failed
+(`FAIL CLOSED`, no answer file). With `ASSAY_TG=1` any graph error or malformed graph reply is also exit 3.
 
 ## 3. Docker (Code-Only Image, Read-Only Data Mount)
 
@@ -69,12 +71,33 @@ docker run --rm \
   assay case CASE=HHF-007
 ```
 
-## 4. TigerGraph CE 4.2.5 Path (Optional)
+## 4. TigerGraph CE 4.2.5 Path (how `cases_r2/` is produced)
 
 ```bash
 make tg-up      # Starts container `assay-tg` (tigergraph/community:4.2.5) on port 14240
                 # with $PWD/data mounted read-only at /home/tigergraph/data:ro
 make tg-load    # Runs assay.tg prepare && assay.tg setup && assay.r2.tg_load prepare && assay.r2.tg_load load
+
+# Install the final-round queries (ring, cohorts, vectors, case write-back); idempotent
+PYTHONPATH=. .venv/bin/python -c "from assay.r2 import tg_r2, tg_cohorts; tg_r2.install(); tg_cohorts.install()"
+
+# Run every case with TigerGraph deciding the ring and both cohorts
+ASSAY_TG=1 make all
+ASSAY_TG=1 .venv/bin/python -m assay.r2.console --port 8742   # the demo console
+```
+
+Under `ASSAY_TG=1` the graph decides `r2_ring_wcc`, `r2_micro_drip_cohort`, and `r2_recipient_fanin`;
+`similar_cases_vec` is queried but abstains (`docs/r2/C5_vector_vote.md`). Each case is written back as a `FraudCase`. If the graph is down or answers
+wrongly, or the write-back fails ("case NOT saved to the TigerGraph graph"), the run exits 3 and writes
+no answer.
+
+### Checks that regenerate the generated docs
+
+```bash
+PYTHONPATH=. .venv/bin/python -m pytest -q tests/r2/test_drills.py   # live drills: 84 checks (docs/r2/B30_drills.md)
+PYTHONPATH=. .venv/bin/python -m assay.r2.verify_claims               # 174 claims re-run, 0 mismatches (VERIFY_CLAIMS.md)
+PYTHONPATH=. .venv/bin/python -m assay.r2.factsheet                   # FACTS.md: 6 fraud, 3 uncertain, 9 legitimate
+PYTHONPATH=. .venv/bin/python -m assay.r2.ablation                    # ABLATION.md
 ```
 
 ## 5. Test Suite: Offline vs Data-Dependent Tests

@@ -15,7 +15,7 @@ Verdicts: 6 fraud, 3 uncertain, 9 legitimate. Enabled detectors: dormant_wake, F
 | campaign | none |
 | cpc | HHF-001, HHF-002, HHF-003 |
 | micro_drip_cohort | HHF-004, HHF-005 |
-| vector_precedent | HHF-013, HHF-014, HHF-015 |
+| vector_precedent | none |
 
 Case-pack card differs from the bank's record (DQ-07, never cleared): HHF-011.
 
@@ -35,9 +35,9 @@ Case-pack card differs from the bank's record (DQ-07, never cleared): HHF-011.
 | HHF-010 | legitimate | 0.01 | none | $0.00 | 0 | False | none |
 | HHF-011 | uncertain | 0.01 | none | $881.55 | 0 | False | none |
 | HHF-012 | legitimate | 0.01 | none | $0.00 | 0 | False | none |
-| HHF-013 | legitimate | 0.01 | none | $0.00 | 0 | False | FanIn 1 (context); vector_precedent 4.0931 |
-| HHF-014 | legitimate | 0.01 | none | $0.00 | 0 | False | vector_precedent 4.0931 |
-| HHF-015 | legitimate | 0.01 | none | $0.00 | 0 | False | vector_precedent 4.0931 |
+| HHF-013 | legitimate | 0.05 | none | $0.00 | 0 | False | FanIn 1 (context) |
+| HHF-014 | legitimate | 0.01 | none | $0.00 | 0 | False | none |
+| HHF-015 | legitimate | 0.01 | none | $0.00 | 0 | False | none |
 | HHF-016 | legitimate | 0.01 | none | $0.00 | 0 | False | none |
 | HHF-017 | legitimate | 0.01 | none | $0.00 | 0 | False | none |
 | HHF-018 | legitimate | 0.01 | none | $0.00 | 0 | False | none |

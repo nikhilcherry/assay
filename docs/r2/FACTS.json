@@ -27,11 +27,6 @@
     ],
     "ring_wcc": [
       "HHF-005"
-    ],
-    "vector_precedent": [
-      "HHF-013",
-      "HHF-014",
-      "HHF-015"
     ]
   },
   "verdicts": {
@@ -293,8 +288,8 @@
       "sar": false,
       "similar_prior_cases": 2,
       "final_actions": [
-        "CLOSE_NO_FRAUD",
-        "CREATE_CASE"
+        "CREATE_CASE",
+        "CLOSE_NO_FRAUD"
       ],
       "card_mismatch": false,
       "findings": []
@@ -311,8 +306,8 @@
       "sar": false,
       "similar_prior_cases": 2,
       "final_actions": [
-        "CLOSE_NO_FRAUD",
-        "CREATE_CASE"
+        "CREATE_CASE",
+        "CLOSE_NO_FRAUD"
       ],
       "card_mismatch": false,
       "findings": []
@@ -358,7 +353,7 @@
       "case_id": "HHF-013",
       "trigger_type": "risk_score",
       "verdict": "legitimate",
-      "fraud_probability": 0.01,
+      "fraud_probability": 0.05,
       "pattern": "none",
       "exposure_usd": 0.0,
       "affected_txns": 0,
@@ -366,8 +361,8 @@
       "sar": false,
       "similar_prior_cases": 2,
       "final_actions": [
-        "CLOSE_NO_FRAUD",
-        "CREATE_CASE"
+        "ALLOW_TRANSACTION",
+        "CLOSE_NO_FRAUD"
       ],
       "card_mismatch": false,
       "findings": [
@@ -379,15 +374,6 @@
           "connected_cards": 12,
           "affected_txns": 0,
           "what": "CONTEXT NOTE (flagged txn 3626720 does not pay recipient): Card C06115-K1 has other online ProductCD=='C' charges >= $100 (txns=[3660311, 3660312], amounts=[181.16, 140.59]) to bursting recipient R_emaildomain=sc.rr.com (12 first-time cards"
-        },
-        {
-          "detector": "vector_precedent",
-          "kind": "evidence",
-          "lr": 4.0931,
-          "pattern": "none",
-          "connected_cards": 0,
-          "affected_txns": 0,
-          "what": "Vector precedent search (local:similar_cases_vec, variant=pure, k=20, theta=0.9091) on card C06115-K1 as-of 2017-01-26 20:40:00 retrieved 20/20 confirmed-fraud neighbours (Laplace score 0.9545 >= 0.9091): CC-4522:confirmed_fraud(d=0.0164), "
         }
       ]
     },
@@ -403,21 +389,11 @@
       "sar": false,
       "similar_prior_cases": 2,
       "final_actions": [
-        "CLOSE_NO_FRAUD",
-        "CREATE_CASE"
+        "CREATE_CASE",
+        "CLOSE_NO_FRAUD"
       ],
       "card_mismatch": false,
-      "findings": [
-        {
-          "detector": "vector_precedent",
-          "kind": "evidence",
-          "lr": 4.0931,
-          "pattern": "none",
-          "connected_cards": 0,
-          "affected_txns": 0,
-          "what": "Vector precedent search (local:similar_cases_vec, variant=pure, k=20, theta=0.9091) on card C00750-K2 as-of 2017-01-01 05:00:25 retrieved 20/20 confirmed-fraud neighbours (Laplace score 0.9545 >= 0.9091): CC-4895:confirmed_fraud(d=0.1485), "
-        }
-      ]
+      "findings": []
     },
     {
       "case_id": "HHF-015",
@@ -435,17 +411,7 @@
         "CLOSE_NO_FRAUD"
       ],
       "card_mismatch": false,
-      "findings": [
-        {
-          "detector": "vector_precedent",
-          "kind": "evidence",
-          "lr": 4.0931,
-          "pattern": "none",
-          "connected_cards": 0,
-          "affected_txns": 0,
-          "what": "Vector precedent search (local:similar_cases_vec, variant=pure, k=20, theta=0.9091) on card C00543-K1 as-of 2017-01-22 12:21:48 retrieved 20/20 confirmed-fraud neighbours (Laplace score 0.9545 >= 0.9091): CC-1894:confirmed_fraud(d=0.0347), "
-        }
-      ]
+      "findings": []
     },
     {
       "case_id": "HHF-016",
@@ -459,8 +425,8 @@
       "sar": false,
       "similar_prior_cases": 2,
       "final_actions": [
-        "CLOSE_NO_FRAUD",
-        "CREATE_CASE"
+        "CREATE_CASE",
+        "CLOSE_NO_FRAUD"
       ],
       "card_mismatch": false,
       "findings": []

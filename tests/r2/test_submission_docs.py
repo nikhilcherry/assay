@@ -74,7 +74,8 @@ def test_resilience_required_declarations() -> None:
     # Egress & Gemini build-time disclosure
     assert "tokens = 0" in res_lower
     assert "gemini" in res_lower
-    assert "saw only code and schema, never customer rows" in res_lower
+    # build-time egress must be declared, including that the model saw dataset rows
+    assert "build time" in res_lower and "pseudonymous" in res_lower and "never called when an alert" in res_lower
 
     # Fail-closed, audit, approvals, idempotency
     assert "fail-closed" in res_lower or "fail closed" in res_lower

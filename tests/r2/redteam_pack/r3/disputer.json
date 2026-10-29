@@ -1,0 +1,306 @@
+[
+ {
+  "scenario_id": "disputer-r3-1",
+  "idea": "Friendly-fraud customer wakes up a dormant card on a new phone and disputes the large purchase; Assay lacks innocence signals (home_region/tenure disabled) and triggers the dormant wakeup detector (LR 5.65) plus customer_report prior, falsely blocking and reporting a legitimate cardholder.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 4.5,
+    "amount": 19.99,
+    "product": "C",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 1334x750",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.35
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 3.8,
+    "amount": 1485.0,
+    "product": "W",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 1334x750",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.68
+   }
+  ],
+  "case": {
+   "flagged": "e2",
+   "day": 14,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called to dispute $1,485.00 online charge (e2) and $19.99 charge (e1). States card has been locked in a home safe for months and was never used."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "This is first-party friendly fraud (the customer actually made the purchases from their home billing region and email, then lied to get $1,500 back). Because Assay switched off home_region and long_tenure_clean innocence signals, and treats dormant wakeup (LR 5.65) + new device + customer_report as confirmed third-party fraud, it will output BLOCK_CARD and FILE_REPORT on a legitimate transaction."
+  }
+ },
+ {
+  "scenario_id": "disputer-r3-2",
+  "idea": "Genuine account takeover where the thief spoofs the cardholder's home device profile or uses in-person/no-device channels and drains the card over 96 hours before the victim notices and disputes; Assay's episode builder caps at 1h (and 48h only for a *new* device), severely undercounting the fraud exposure.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 92.0,
+    "amount": 490.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "anonymous.com",
+    "addr1": 442,
+    "risk_score": 0.42
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 68.0,
+    "amount": 520.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "anonymous.com",
+    "addr1": 442,
+    "risk_score": 0.48
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 36.0,
+    "amount": 610.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "anonymous.com",
+    "addr1": 442,
+    "risk_score": 0.51
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 14.0,
+    "amount": 450.0,
+    "product": "R",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "anonymous.com",
+    "addr1": 442,
+    "risk_score": 0.55
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 1.5,
+    "amount": 890.0,
+    "product": "W",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "anonymous.com",
+    "addr1": 442,
+    "risk_score": 0.76
+   }
+  ],
+  "case": {
+   "flagged": "e5",
+   "day": 21,
+   "trigger_type": "customer_report",
+   "trigger_text": "Customer reports account takeover via compromised desktop session; disputes e5 ($890.00) and all four preceding out-of-region charges (e1-e4) over the past 4 days totaling $2,960.00."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay's episode builder (`B34_episode.md`) uses a strict 1-hour window cap, extending to 48 hours only when transactions occur on a *new* device. Because the attacker compromised the customer's existing session (`device: home`) and spaced the 5 charges more than 1 hour apart (and up to 92h before open), Assay will only count e5 ($890) instead of all 5 transactions ($2,960), missing 80% of the transactions and failing to cross the $2,500 L2 routing threshold."
+  }
+ },
+ {
+  "scenario_id": "disputer-r3-3",
+  "idea": "Genuine fraud victim whose card is billed $49.99 three times over 60 hours by a crooked merchant mimicking a recurring subscription, triggering a customer dispute that looks like Policy R7 (disputed recurring charge) while actually being third-party CNP fraud.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 55.0,
+    "amount": 49.99,
+    "product": "S",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 29.0,
+    "amount": 49.99,
+    "product": "S",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.11
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 2.0,
+    "amount": 49.99,
+    "product": "S",
+    "channel": "online",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "home",
+    "risk_score": 0.12
+   }
+  ],
+  "case": {
+   "flagged": "e3",
+   "day": 18,
+   "trigger_type": "customer_report",
+   "trigger_text": "Customer disputes $49.99 recurring-style subscription charge (e3) and two identical $49.99 charges over the past three days (e1, e2). Customer states they never signed up for this service."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_fraud",
+   "affected": [
+    "e1",
+    "e2",
+    "e3"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "If Assay checks for Policy R7 (Disputed but legitimate recurring pattern: same product/amount/email/home region with low risk_score), it will misclassify this genuine 3-day cramming fraud as a legitimate recurring dispute and refuse to block the card. Conversely, if Assay calls it fraud, its 1h episode cap (with `device: none`) will only count e3 ($49.99) and miss e1 and e2 (67% undercounted)."
+  }
+ },
+ {
+  "scenario_id": "disputer-r3-4",
+  "idea": "Shared family tablet used by 4 legitimate cardholders who all buy from the same promotional merchant on the same afternoon, after which one buyer experiences buyer's remorse and files a friendly-fraud dispute; Assay's burst_hub / CPC / ring detectors fire on the shared device and billing region, falsely accusing a legitimate family of organized ring fraud.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "thin"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "B",
+    "hours_before_open": 6.0,
+    "amount": 135.0,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-T813 Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2048x1536",
+    "p_email": "comcast.net",
+    "r_email": "yahoo.com",
+    "addr1": 299,
+    "risk_score": 0.38
+   },
+   {
+    "id": "e2",
+    "card": "C",
+    "hours_before_open": 5.2,
+    "amount": 135.0,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-T813 Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2048x1536",
+    "p_email": "comcast.net",
+    "r_email": "yahoo.com",
+    "addr1": 299,
+    "risk_score": 0.41
+   },
+   {
+    "id": "e3",
+    "card": "D",
+    "hours_before_open": 4.5,
+    "amount": 135.0,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-T813 Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2048x1536",
+    "p_email": "comcast.net",
+    "r_email": "yahoo.com",
+    "addr1": 299,
+    "risk_score": 0.39
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 3.0,
+    "amount": 320.0,
+    "product": "H",
+    "channel": "online",
+    "device": "SM-T813 Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2048x1536",
+    "p_email": "comcast.net",
+    "r_email": "yahoo.com",
+    "addr1": 299,
+    "risk_score": 0.54
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 26,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder A disputes $320.00 online purchase (e4), claiming they did not authorize the transaction after family members used the household tablet for group ticket purchases."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Four cards sharing a new device profile, recipient email, product, and region within a 3-hour window plus a `customer_report` trigger will fire Assay's CPC / charge-shape / ring detectors (LR 8.52 to 68.66), causing Assay to declare high-probability organized fraud (`BLOCK_CARD`, `FILE_REPORT`, `MONITOR_CONNECTED_CARDS`) on what is actually a legitimate household purchase followed by friendly-fraud buyer's remorse."
+  }
+ }
+]

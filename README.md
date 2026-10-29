@@ -27,7 +27,7 @@ When assay says 0.30, about three in ten of those transactions were fraud. The r
 
 ```bash
 docker --context default start assay-tg     # TigerGraph 4.2 CE, then: gadmin start all
-ASSAY_TG=1 python -m assay.r2.agent HHF-007 --out cases_r2   # one case: exit 0 answer, 2 invalid input, 3 tool failed
+ASSAY_TG=1 python -m assay.r2.agent HHF-007 --out cases_r2   # one case: exit 0 answer, 2 invalid input, 3 a tool, the graph or a startup data file failed (no answer written)
 make grade                                  # official grader, with --transactions
 ASSAY_TG=1 python -m assay.r2.console --port 8742            # the demo console
 ```
@@ -35,9 +35,10 @@ ASSAY_TG=1 python -m assay.r2.console --port 8742            # the demo console
 | what | result | check it |
 |---|---|---|
 | Official grader (hard + policy, with ID and arithmetic checks) | **18/18 clean** | `make grade` |
-| Verdicts | 6 fraud, 2 uncertain, 10 legitimate | `docs/r2/FACTS.md` |
-| Live resilience drills | **75/75** checks on HHF-003, 007, 012 | `pytest tests/r2/test_drills.py` |
-| TigerGraph on the decision path | rings from `r2_ring_wcc`, cases upserted as `FraudCase`; 18/18 ring decisions match the local code | `tg_r2.parity()` |
+| Verdicts | 6 fraud, 3 uncertain, 9 legitimate (the brief says nine are legitimate) | `docs/r2/FACTS.md` |
+| Live resilience drills | **84/84** checks on HHF-003, 007, 012, including startup data failure (exit 3) and a TigerGraph write-back failure ("case NOT saved") | `pytest tests/r2/test_drills.py`, `docs/r2/B30_drills.md` |
+| TigerGraph on the decision path (`ASSAY_TG=1`, how `cases_r2/` is produced) | the graph decides the ring (`r2_ring_wcc`), the micro-drip cohort (`r2_micro_drip_cohort`), and recipient fan-in (`r2_recipient_fanin`); cases are upserted as `FraudCase`. TigerVector precedent (`similar_cases_vec`) is queried on every case but abstains: no setting passes both false-alarm limits, and 84% of closed cases are fraud, so "20/20 neighbours fraud" is mostly base rate (`docs/r2/C5_vector_vote.md`). Any graph error, or a malformed reply, fails closed (exit 3, no answer). Local mode is the default on a clean clone and decides identically | `tg_r2.parity()`, `docs/r2/C6_tg_cohorts.md` |
+| Every cited claim re-run | **174** claims re-executed, **0** mismatches | `python -m assay.r2.verify_claims`, `docs/r2/VERIFY_CLAIMS.md`, console button "Re-run every claim" (`GET /verify/{case_id}`) |
 | Dispute episodes on 4,631 Jul–Oct reports | 0.6372 exact match (flagged-only 0.5498) | `docs/r2/N7_dispute_episode.md` |
 | Red team: 10 Argon attackers, 80 blind scenarios | findings fixed; no prompt injection changed a verdict | `docs/r2/REDTEAM.md` |
 | LLM tokens on the decision path | **0** | every answer's `tokens` |
@@ -46,6 +47,8 @@ Every answer in `cases_r2/` is the output of the single-case command above, run 
 (`make all`), so the console, the command and the files agree. The idea we want judged is in
 [`docs/r2/INNOVATION.md`](docs/r2/INNOVATION.md), the boundary in [`docs/r2/RESILIENCE.md`](docs/r2/RESILIENCE.md),
 and a per-case trace sheet in [`docs/r2/DEMO_CASES.md`](docs/r2/DEMO_CASES.md).
+
+Two guards send a case to a person instead of guessing. HHF-008: the alert says "online" and the bank records the charge in person (record conflict). HHF-011: the case names card K1 but the bank recorded the charge on K2 (card mismatch). Both stay `uncertain` with pattern `none`. HHF-006 is also `uncertain` and names its 11 linked cards. HHF-004 is fraud with a report and 16 linked cards.
 
 ## The case it was built to find
 

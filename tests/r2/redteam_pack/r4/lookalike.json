@@ -1,0 +1,495 @@
+[
+ {
+  "scenario_id": "lookalike-r4-1",
+  "idea": "A dormant card wakes up for a legitimate holiday trip with a new phone, an out-of-region billing code, and a high bank risk score, stacking B5_dormant + January score + vector_precedent to push a legitimate customer over the 0.70 block/report threshold.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 3.5,
+    "amount": 28.5,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 1334x750",
+    "p_email": "icloud.com",
+    "r_email": "icloud.com",
+    "addr1": "384",
+    "risk_score": 0.42
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 0.2,
+    "amount": 1185.0,
+    "product": "R",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 1334x750",
+    "p_email": "icloud.com",
+    "r_email": "icloud.com",
+    "addr1": "384",
+    "risk_score": 0.89
+   }
+  ],
+  "case": {
+   "flagged": "e2",
+   "day": 14,
+   "trigger_type": "risk_score",
+   "trigger_text": "High risk score (0.89) on online reservation purchase of $1,185.00 following extended card inactivity (dormant 45+ days) from unrecognised iOS device in region 384."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "B5_dormant fires with LR 5.65 on the waking dormant card, while the high online Product R purchase in a new region with a 0.89 risk_score matches the 24-dim vector profile of confirmed fraud (triggering similar_cases_vec LR 2.90). Combined, two independent measured detectors push fraud probability above 0.70/0.85 and exposure > $1,000, tricking Assay into recommending BLOCK_CARD and FILE_REPORT on an innocent traveller using their backup card."
+  }
+ },
+ {
+  "scenario_id": "lookalike-r4-2",
+  "idea": "An office manager buys three small digital gift cards for employees and then a laptop on the company card in under an hour, mimicking the exact R5 card-testing signature (3 small online auths + 1 purchase > $100) to force an automatic BLOCK_CARD.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 0.75,
+    "amount": 10.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 0.6,
+    "amount": 10.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "yahoo.com",
+    "addr1": "home",
+    "risk_score": 0.28
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.45,
+    "amount": 15.0,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "hotmail.com",
+    "addr1": "home",
+    "risk_score": 0.39
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.1,
+    "amount": 649.99,
+    "product": "S",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "home",
+    "addr1": "home",
+    "risk_score": 0.74
+   }
+  ],
+  "case": {
+   "flagged": "e4",
+   "day": 18,
+   "trigger_type": "risk_score",
+   "trigger_text": "Velocity alert: 3 small online Product C authorizations ($10.00, $10.00, $15.00) within 45 minutes followed by a $649.99 online purchase. Risk score 0.74."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Because Assay switched off 'innocence' signals (B29_innocence.md), the home device, home P_email, and home billing region do not reduce the score. Meanwhile, the sequence of 3 small online charges followed by a cleared >$100 purchase within an hour matches the Round 1 pattern classifier and Policy Rule R5 (Card testing), causing Assay to recommend BLOCK_CARD on a legitimate customer buying New Year employee gift cards."
+  }
+ },
+ {
+  "scenario_id": "lookalike-r4-3",
+  "idea": "Twelve legitimate customers in a neighbourhood HOA pay their annual $24.50 dues online to the treasurer's email (cox.net) and one customer forgets and disputes it, triggering both micro_drip_cohort and recipient fan-in plus dispute weight to file a false SAR and monitor 11 innocent neighbours.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "regular"
+   },
+   {
+    "label": "F",
+    "profile": "regular"
+   },
+   {
+    "label": "G",
+    "profile": "regular"
+   },
+   {
+    "label": "H",
+    "profile": "regular"
+   },
+   {
+    "label": "I",
+    "profile": "regular"
+   },
+   {
+    "label": "J",
+    "profile": "regular"
+   },
+   {
+    "label": "K",
+    "profile": "regular"
+   },
+   {
+    "label": "L",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "B",
+    "hours_before_open": 120.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.14
+   },
+   {
+    "id": "e2",
+    "card": "C",
+    "hours_before_open": 110.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.16
+   },
+   {
+    "id": "e3",
+    "card": "D",
+    "hours_before_open": 95.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e4",
+    "card": "E",
+    "hours_before_open": 80.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.18
+   },
+   {
+    "id": "e5",
+    "card": "F",
+    "hours_before_open": 72.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.15
+   },
+   {
+    "id": "e6",
+    "card": "G",
+    "hours_before_open": 60.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.21
+   },
+   {
+    "id": "e7",
+    "card": "H",
+    "hours_before_open": 48.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e8",
+    "card": "I",
+    "hours_before_open": 36.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.17
+   },
+   {
+    "id": "e9",
+    "card": "J",
+    "hours_before_open": 24.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.22
+   },
+   {
+    "id": "e10",
+    "card": "K",
+    "hours_before_open": 18.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.2
+   },
+   {
+    "id": "e11",
+    "card": "L",
+    "hours_before_open": 12.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.25
+   },
+   {
+    "id": "e12",
+    "card": "A",
+    "hours_before_open": 4.0,
+    "amount": 24.5,
+    "product": "C",
+    "channel": "online",
+    "device": "home",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.34
+   }
+  ],
+  "case": {
+   "flagged": "e12",
+   "day": 21,
+   "trigger_type": "customer_report",
+   "trigger_text": "Customer contacted support questioning an unfamiliar $24.50 online charge to recipient domain cox.net; customer states their spouse may have paid the annual community fee or the card may be compromised."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Look at HHF-004 and HHF-006 in Assay's ablation notes: 'Without the measured dispute weight, HHF-004 drops from fraud to uncertain' and 'Without micro_drip_cohort, HHF-004 loses its 16 linked cards and its report. A $23.99 loss that connects to other cards needs a report under 3a.' Here, a customer inquiry/report on a $24.50 charge combined with 12 cards paying the same recipient amount triggers both the dispute weight and the cohort/fan-in link, tricking Assay into judging a legitimate HOA fee as confirmed fraud, blocking Card A, and filing a regulatory SAR."
+  }
+ },
+ {
+  "scenario_id": "lookalike-r4-4",
+  "idea": "An extended family of 7 cardholders sharing a single home desktop computer and billing region during a January clearance sale forms a tight 7-card component (under the 15-card ring cap) where one member makes a high-scored luxury purchase, triggering ring_wcc and CPC/shared-origin false positives.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   },
+   {
+    "label": "B",
+    "profile": "regular"
+   },
+   {
+    "label": "C",
+    "profile": "regular"
+   },
+   {
+    "label": "D",
+    "profile": "regular"
+   },
+   {
+    "label": "E",
+    "profile": "thin"
+   },
+   {
+    "label": "F",
+    "profile": "thin"
+   },
+   {
+    "label": "G",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "B",
+    "hours_before_open": 16.0,
+    "amount": 89.99,
+    "product": "W",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "comcast.net",
+    "r_email": "comcast.net",
+    "addr1": "299",
+    "risk_score": 0.45
+   },
+   {
+    "id": "e2",
+    "card": "C",
+    "hours_before_open": 14.0,
+    "amount": 112.5,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "comcast.net",
+    "r_email": "comcast.net",
+    "addr1": "299",
+    "risk_score": 0.48
+   },
+   {
+    "id": "e3",
+    "card": "D",
+    "hours_before_open": 11.0,
+    "amount": 64.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "comcast.net",
+    "r_email": "comcast.net",
+    "addr1": "299",
+    "risk_score": 0.51
+   },
+   {
+    "id": "e4",
+    "card": "E",
+    "hours_before_open": 8.0,
+    "amount": 145.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "comcast.net",
+    "r_email": "comcast.net",
+    "addr1": "299",
+    "risk_score": 0.55
+   },
+   {
+    "id": "e5",
+    "card": "F",
+    "hours_before_open": 5.0,
+    "amount": 199.99,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "comcast.net",
+    "r_email": "comcast.net",
+    "addr1": "299",
+    "risk_score": 0.62
+   },
+   {
+    "id": "e6",
+    "card": "G",
+    "hours_before_open": 2.5,
+    "amount": 310.0,
+    "product": "S",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "comcast.net",
+    "r_email": "comcast.net",
+    "addr1": "299",
+    "risk_score": 0.71
+   },
+   {
+    "id": "e7",
+    "card": "A",
+    "hours_before_open": 0.5,
+    "amount": 1420.0,
+    "product": "W",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "comcast.net",
+    "r_email": "comcast.net",
+    "addr1": "299",
+    "risk_score": 0.86
+   }
+  ],
+  "case": {
+   "flagged": "e7",
+   "day": 25,
+   "trigger_type": "risk_score",
+   "trigger_text": "High risk score (0.86) on $1,420.00 purchase; device profile Windows | Windows 10 | chrome 63.0 | 1920x1080 and email domain comcast.net observed across 7 distinct cards within 16 hours."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "The 7 family cards sharing a single desktop device, email domain, and region stay well underneath Assay's 15-card ring cap (B15_rings.md), while exhibiting high risk scores across multiple cards in a short window. If any card in the component overlaps with historical fraud or triggers burst_hub / cpc / ring_wcc alongside vector_precedent on the $1,420 purchase, Assay treats the household computer as a shared fraud origin under Rule R6 and blocks/reports an innocent family."
+  }
+ }
+]

@@ -1,0 +1,526 @@
+[
+ {
+  "scenario_id": "sleeper-r4-1",
+  "idea": "Defeat the dormant-card wake-up detector (silence then a 48h burst) by planting a single low-value pre-warm transaction 120 hours before the cashout, resetting the card's silence timer.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 120.0,
+    "amount": 14.5,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 52.0,
+    "amount": 485.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.09
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.5,
+    "amount": 920.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.14
+   }
+  ],
+  "case": {
+   "flagged": "e3",
+   "day": 19,
+   "trigger_type": "risk_score",
+   "trigger_text": "Automated alert: high value in-person transaction $920.00 on card."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "undocumented",
+   "affected": [
+    "e1",
+    "e2",
+    "e3"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "e1 breaks the 30-day dormancy window 5 days before e3, and e2 is spaced 51.5 hours before e3 so there is no 48-hour burst; without the dormant wake-up vote (LR 5.65) or a ring/device signal, Assay's probability stays low and clears or under-counts e1/e2."
+  }
+ },
+ {
+  "scenario_id": "sleeper-r4-2",
+  "idea": "Exploit Assay's disabled new-device detector (C4_new_device) and avoid the dormant detector by buying a thin card and spacing online cashouts >55 hours apart from a brand-new device and anonymous email.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "thin"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 130.0,
+    "amount": 185.0,
+    "product": "R",
+    "channel": "online",
+    "device": "LG-H831 Build/MRA58K | Android 6.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "anonymous.com",
+    "addr1": 315,
+    "risk_score": 0.11
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 65.0,
+    "amount": 295.0,
+    "product": "R",
+    "channel": "online",
+    "device": "LG-H831 Build/MRA58K | Android 6.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "anonymous.com",
+    "addr1": 315,
+    "risk_score": 0.14
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.2,
+    "amount": 490.0,
+    "product": "R",
+    "channel": "online",
+    "device": "LG-H831 Build/MRA58K | Android 6.0 | chrome 63.0 for android | 1920x1080",
+    "p_email": "anonymous.com",
+    "r_email": "anonymous.com",
+    "addr1": 315,
+    "risk_score": 0.18
+   }
+  ],
+  "case": {
+   "flagged": "e3",
+   "day": 23,
+   "trigger_type": "risk_score",
+   "trigger_text": "Risk score alert: online Product R purchase of $490.00 from unrecognized device."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "card_not_present_new_device",
+   "affected": [
+    "e1",
+    "e2",
+    "e3"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Thin cards (<20 past txns) do not qualify for the dormant wake-up detector, the transactions are spaced >60h apart so no burst detector fires, and Assay explicitly switched off new_device_burst / device_churn (C4_new_device)."
+  }
+ },
+ {
+  "scenario_id": "sleeper-r4-3",
+  "idea": "Bypass the ring detector via the >15 card element cap (B15_rings) while waking 2 dormant cards slowly (>48h spacing) on a 16-card shared device and region.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   },
+   {
+    "label": "B",
+    "profile": "dormant"
+   },
+   {
+    "label": "C1",
+    "profile": "regular"
+   },
+   {
+    "label": "C2",
+    "profile": "regular"
+   },
+   {
+    "label": "C3",
+    "profile": "regular"
+   },
+   {
+    "label": "C4",
+    "profile": "regular"
+   },
+   {
+    "label": "C5",
+    "profile": "regular"
+   },
+   {
+    "label": "C6",
+    "profile": "regular"
+   },
+   {
+    "label": "C7",
+    "profile": "regular"
+   },
+   {
+    "label": "C8",
+    "profile": "regular"
+   },
+   {
+    "label": "C9",
+    "profile": "regular"
+   },
+   {
+    "label": "C10",
+    "profile": "regular"
+   },
+   {
+    "label": "C11",
+    "profile": "regular"
+   },
+   {
+    "label": "C12",
+    "profile": "regular"
+   },
+   {
+    "label": "C13",
+    "profile": "regular"
+   },
+   {
+    "label": "C14",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "C1",
+    "hours_before_open": 200.0,
+    "amount": 55.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e2",
+    "card": "C2",
+    "hours_before_open": 195.0,
+    "amount": 62.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e3",
+    "card": "C3",
+    "hours_before_open": 190.0,
+    "amount": 48.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e4",
+    "card": "C4",
+    "hours_before_open": 185.0,
+    "amount": 71.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e5",
+    "card": "C5",
+    "hours_before_open": 180.0,
+    "amount": 53.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.06
+   },
+   {
+    "id": "e6",
+    "card": "C6",
+    "hours_before_open": 175.0,
+    "amount": 64.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e7",
+    "card": "C7",
+    "hours_before_open": 170.0,
+    "amount": 59.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e8",
+    "card": "C8",
+    "hours_before_open": 165.0,
+    "amount": 82.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e9",
+    "card": "C9",
+    "hours_before_open": 160.0,
+    "amount": 49.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e10",
+    "card": "C10",
+    "hours_before_open": 155.0,
+    "amount": 77.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e11",
+    "card": "C11",
+    "hours_before_open": 150.0,
+    "amount": 68.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e12",
+    "card": "C12",
+    "hours_before_open": 145.0,
+    "amount": 51.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e13",
+    "card": "C13",
+    "hours_before_open": 140.0,
+    "amount": 60.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e14",
+    "card": "C14",
+    "hours_before_open": 135.0,
+    "amount": 66.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.05
+   },
+   {
+    "id": "e15",
+    "card": "B",
+    "hours_before_open": 110.0,
+    "amount": 240.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.12
+   },
+   {
+    "id": "e16",
+    "card": "A",
+    "hours_before_open": 96.0,
+    "amount": 49.99,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.09
+   },
+   {
+    "id": "e17",
+    "card": "A",
+    "hours_before_open": 0.5,
+    "amount": 285.0,
+    "product": "H",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "gmail.com",
+    "addr1": 299,
+    "risk_score": 0.16
+   }
+  ],
+  "case": {
+   "flagged": "e17",
+   "day": 26,
+   "trigger_type": "risk_score",
+   "trigger_text": "Risk score alert on online transaction of $285.00."
+  },
+  "truth": {
+   "verdict": "fraud",
+   "pattern": "account_takeover",
+   "affected": [
+    "e1",
+    "e2",
+    "e3",
+    "e4",
+    "e5",
+    "e6",
+    "e7",
+    "e8",
+    "e9",
+    "e10",
+    "e11",
+    "e12",
+    "e13",
+    "e14",
+    "e15",
+    "e16",
+    "e17"
+   ],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Because 16 cards share the device profile, Assay's ring cap (>15 cards dropped) ignores the shared device ring, and because e16 and e17 on dormant card A are spaced 95.5 hours apart, the 48-hour dormant burst detector also fails to fire."
+  }
+ },
+ {
+  "scenario_id": "sleeper-r4-4",
+  "idea": "Trigger a false positive on a legitimate customer whose dormant card wakes up with a 3-transaction burst inside 48 hours, baiting the dormant-card detector (LR 5.65).",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 30.0,
+    "amount": 45.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.12
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 14.0,
+    "amount": 135.5,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.19
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.5,
+    "amount": 540.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "home",
+    "risk_score": 0.34
+   }
+  ],
+  "case": {
+   "flagged": "e3",
+   "day": 21,
+   "trigger_type": "risk_score",
+   "trigger_text": "Velocity and dormancy alert: 3 in-person transactions totaling $720.50 within 30 hours after extended card inactivity."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "A legitimate cardholder returning to use a backup card in their home region triggers Assay's dormant-card wake-up detector (LR 5.65) combined with an elevated January risk score (which cannot clear a case due to the January drift guard), pushing Assay to over-escalate or block a legitimate customer."
+  }
+ }
+]

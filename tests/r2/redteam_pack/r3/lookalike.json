@@ -1,0 +1,671 @@
+[
+ {
+  "scenario_id": "lookalike-r3-1",
+  "idea": "Target the Dormant Card detector (LR 5.65) and Charge-Shape Campaign detector (LR 45.36) simultaneously by having three family members wake up their dormant reserve cards at the exact same resort for identical ski-pass packages.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "dormant"
+   },
+   {
+    "label": "B",
+    "profile": "dormant"
+   },
+   {
+    "label": "C",
+    "profile": "dormant"
+   },
+   {
+    "label": "D",
+    "profile": "dormant"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 4.2,
+    "amount": 649.5,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 1334x750",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "442",
+    "risk_score": 0.68
+   },
+   {
+    "id": "e2",
+    "card": "B",
+    "hours_before_open": 3.8,
+    "amount": 649.5,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 1334x750",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "442",
+    "risk_score": 0.72
+   },
+   {
+    "id": "e3",
+    "card": "C",
+    "hours_before_open": 2.1,
+    "amount": 649.5,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 1334x750",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "442",
+    "risk_score": 0.74
+   },
+   {
+    "id": "e4",
+    "card": "D",
+    "hours_before_open": 0.5,
+    "amount": 195.0,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 1334x750",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "442",
+    "risk_score": 0.58
+   },
+   {
+    "id": "e5",
+    "card": "D",
+    "hours_before_open": 0.0,
+    "amount": 649.5,
+    "product": "H",
+    "channel": "online",
+    "device": "iPhone | iOS 10.2 | mobile safari 10.0 | 1334x750",
+    "p_email": "home",
+    "r_email": "outlook.com",
+    "addr1": "442",
+    "risk_score": 0.81
+   }
+  ],
+  "case": {
+   "flagged": "e5",
+   "day": 14,
+   "trigger_type": "risk_score",
+   "trigger_text": "High risk score (0.81) on online hospitality purchase of $649.50 following prolonged card inactivity; shared device and billing region with 3 other recently reactivated cards."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Four dormant cards waking up on the same shared iPad/iPhone device in a new vacation billing region (442) with identical $649.50 amounts triggers the Dormant Card detector (LR 5.65), the Capped Graph Ring (<15 cards on one device), and the Charge-Shape Campaign detector (LR 45.36), pushing Assay well past 0.85 probability and blocking a simulated customer confirmation."
+  }
+ },
+ {
+  "scenario_id": "lookalike-r3-2",
+  "idea": "Exploit the new burst_hub detector (LR 10.68) and Recipient Fan-in detector (LR 3.0) by simulating a workplace disaster-relief charity drive where 16 colleagues use the office kiosk to donate to a regional domain.",
+  "cards": [
+   {
+    "label": "C1",
+    "profile": "regular"
+   },
+   {
+    "label": "C2",
+    "profile": "regular"
+   },
+   {
+    "label": "C3",
+    "profile": "thin"
+   },
+   {
+    "label": "C4",
+    "profile": "regular"
+   },
+   {
+    "label": "C5",
+    "profile": "dormant"
+   },
+   {
+    "label": "C6",
+    "profile": "regular"
+   },
+   {
+    "label": "C7",
+    "profile": "thin"
+   },
+   {
+    "label": "C8",
+    "profile": "regular"
+   },
+   {
+    "label": "C9",
+    "profile": "regular"
+   },
+   {
+    "label": "C10",
+    "profile": "heavy"
+   },
+   {
+    "label": "C11",
+    "profile": "regular"
+   },
+   {
+    "label": "C12",
+    "profile": "thin"
+   },
+   {
+    "label": "C13",
+    "profile": "regular"
+   },
+   {
+    "label": "C14",
+    "profile": "regular"
+   },
+   {
+    "label": "C15",
+    "profile": "dormant"
+   },
+   {
+    "label": "C16",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "C1",
+    "hours_before_open": 18.5,
+    "amount": 50.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.35
+   },
+   {
+    "id": "e2",
+    "card": "C2",
+    "hours_before_open": 18.0,
+    "amount": 100.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.38
+   },
+   {
+    "id": "e3",
+    "card": "C3",
+    "hours_before_open": 17.2,
+    "amount": 25.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.42
+   },
+   {
+    "id": "e4",
+    "card": "C4",
+    "hours_before_open": 16.5,
+    "amount": 50.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.39
+   },
+   {
+    "id": "e5",
+    "card": "C5",
+    "hours_before_open": 15.1,
+    "amount": 250.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.55
+   },
+   {
+    "id": "e6",
+    "card": "C6",
+    "hours_before_open": 14.0,
+    "amount": 50.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.41
+   },
+   {
+    "id": "e7",
+    "card": "C7",
+    "hours_before_open": 12.5,
+    "amount": 75.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.46
+   },
+   {
+    "id": "e8",
+    "card": "C8",
+    "hours_before_open": 10.2,
+    "amount": 100.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.44
+   },
+   {
+    "id": "e9",
+    "card": "C9",
+    "hours_before_open": 8.4,
+    "amount": 50.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.43
+   },
+   {
+    "id": "e10",
+    "card": "C10",
+    "hours_before_open": 6.0,
+    "amount": 500.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.61
+   },
+   {
+    "id": "e11",
+    "card": "C11",
+    "hours_before_open": 5.1,
+    "amount": 50.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.48
+   },
+   {
+    "id": "e12",
+    "card": "C12",
+    "hours_before_open": 4.0,
+    "amount": 25.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.5
+   },
+   {
+    "id": "e13",
+    "card": "C13",
+    "hours_before_open": 3.2,
+    "amount": 100.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.52
+   },
+   {
+    "id": "e14",
+    "card": "C14",
+    "hours_before_open": 2.0,
+    "amount": 50.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.54
+   },
+   {
+    "id": "e15",
+    "card": "C15",
+    "hours_before_open": 1.1,
+    "amount": 250.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.69
+   },
+   {
+    "id": "e16",
+    "card": "C16",
+    "hours_before_open": 0.0,
+    "amount": 1200.0,
+    "product": "C",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "home",
+    "r_email": "cox.net",
+    "addr1": "home",
+    "risk_score": 0.78
+   }
+  ],
+  "case": {
+   "flagged": "e16",
+   "day": 19,
+   "trigger_type": "risk_score",
+   "trigger_text": "Velocity and fan-in alert: 16 distinct cards transacting on shared Windows 10 terminal to recipient domain cox.net within 24h; flagged transaction is $1,200.00 executive matching gift."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Because normal graph rings drop hubs >15 cards, Assay added the `burst_hub` detector (LR 10.68, weighed at 4.45) after round 2 to catch >15 card bursts, alongside the `recipient_fanin` detector (15+ cards paying a domain like cox.net). This legitimate office charity kiosk triggers both detectors plus high exposure ($1,200), forcing a false BLOCK_CARD and FILE_REPORT."
+  }
+ },
+ {
+  "scenario_id": "lookalike-r3-3",
+  "idea": "Trigger Rule R5 (Card testing) and N7_dispute_episode on a legitimate gamer buying micro-transaction loot boxes on a new phone followed by an annual hardware bundle, who calls to check a pending hold.",
+  "cards": [
+   {
+    "label": "A",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "A",
+    "hours_before_open": 0.85,
+    "amount": 1.99,
+    "product": "S",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2960x1440",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.41
+   },
+   {
+    "id": "e2",
+    "card": "A",
+    "hours_before_open": 0.7,
+    "amount": 1.99,
+    "product": "S",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2960x1440",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.49
+   },
+   {
+    "id": "e3",
+    "card": "A",
+    "hours_before_open": 0.55,
+    "amount": 4.99,
+    "product": "S",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2960x1440",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.58
+   },
+   {
+    "id": "e4",
+    "card": "A",
+    "hours_before_open": 0.4,
+    "amount": 0.99,
+    "product": "S",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2960x1440",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.64
+   },
+   {
+    "id": "e5",
+    "card": "A",
+    "hours_before_open": 0.15,
+    "amount": 299.99,
+    "product": "R",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2960x1440",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.79
+   },
+   {
+    "id": "e6",
+    "card": "A",
+    "hours_before_open": 0.0,
+    "amount": 749.0,
+    "product": "R",
+    "channel": "online",
+    "device": "SM-G950U Build/NRD90M | Android 7.0 | chrome 63.0 for android | 2960x1440",
+    "p_email": "home",
+    "r_email": "gmail.com",
+    "addr1": "home",
+    "risk_score": 0.86
+   }
+  ],
+  "case": {
+   "flagged": "e6",
+   "day": 23,
+   "trigger_type": "customer_report",
+   "trigger_text": "Cardholder called regarding $749.00 online retail charge after noticing multiple small digital charges on new mobile device; inquiring whether the $749.00 bundle cleared twice."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Assay switched off innocence signals (`home_region` and `long_tenure_clean` do not help clear the customer), and under January drift a score can raise suspicion but never clear a case. Furthermore, `customer_report` triggers `N7_dispute_episode` (which gathers all 6 charges within the 1h cap on a new device, totaling >$1,050) and the exact sequence matches Rule R5 (3+ small online authorizations within an hour followed by >$100 cleared purchase), causing Assay to block and report the customer."
+  }
+ },
+ {
+  "scenario_id": "lookalike-r3-4",
+  "idea": "Exploit the Common Point of Compromise (CPC) detector (LR 68.66) by having 5 legitimate shoppers buy the same limited-edition sneaker drop at midnight after all having shopped at the same local mall earlier in the week.",
+  "cards": [
+   {
+    "label": "S1",
+    "profile": "regular"
+   },
+   {
+    "label": "S2",
+    "profile": "regular"
+   },
+   {
+    "label": "S3",
+    "profile": "regular"
+   },
+   {
+    "label": "S4",
+    "profile": "regular"
+   },
+   {
+    "label": "S5",
+    "profile": "regular"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "card": "S1",
+    "hours_before_open": 72.0,
+    "amount": 42.1,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "315",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e2",
+    "card": "S2",
+    "hours_before_open": 68.5,
+    "amount": 19.85,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "315",
+    "risk_score": 0.05
+   },
+   {
+    "id": "e3",
+    "card": "S3",
+    "hours_before_open": 54.0,
+    "amount": 88.0,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "315",
+    "risk_score": 0.03
+   },
+   {
+    "id": "e4",
+    "card": "S4",
+    "hours_before_open": 49.2,
+    "amount": 64.5,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "315",
+    "risk_score": 0.06
+   },
+   {
+    "id": "e5",
+    "card": "S5",
+    "hours_before_open": 45.0,
+    "amount": 31.2,
+    "product": "W",
+    "channel": "in_person",
+    "device": "none",
+    "p_email": "home",
+    "r_email": "none",
+    "addr1": "315",
+    "risk_score": 0.04
+   },
+   {
+    "id": "e6",
+    "card": "S1",
+    "hours_before_open": 0.4,
+    "amount": 220.0,
+    "product": "R",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_6 | chrome 63.0 | 2560x1440",
+    "p_email": "gmail.com",
+    "r_email": "anonymous.com",
+    "addr1": "204",
+    "risk_score": 0.62
+   },
+   {
+    "id": "e7",
+    "card": "S2",
+    "hours_before_open": 0.3,
+    "amount": 220.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | chrome 63.0 | 1920x1080",
+    "p_email": "yahoo.com",
+    "r_email": "anonymous.com",
+    "addr1": "204",
+    "risk_score": 0.65
+   },
+   {
+    "id": "e8",
+    "card": "S3",
+    "hours_before_open": 0.2,
+    "amount": 220.0,
+    "product": "R",
+    "channel": "online",
+    "device": "iPhone | iOS 11.1 | mobile safari 11.0 | 1334x750",
+    "p_email": "hotmail.com",
+    "r_email": "anonymous.com",
+    "addr1": "204",
+    "risk_score": 0.67
+   },
+   {
+    "id": "e9",
+    "card": "S4",
+    "hours_before_open": 0.1,
+    "amount": 220.0,
+    "product": "R",
+    "channel": "online",
+    "device": "Windows | Windows 10 | firefox 57.0 | 1920x1080",
+    "p_email": "gmail.com",
+    "r_email": "anonymous.com",
+    "addr1": "204",
+    "risk_score": 0.71
+   },
+   {
+    "id": "e10",
+    "card": "S5",
+    "hours_before_open": 0.0,
+    "amount": 220.0,
+    "product": "R",
+    "channel": "online",
+    "device": "MacOS | Mac OS X 10_12_6 | safari 11.0 | 1440x900",
+    "p_email": "icloud.com",
+    "r_email": "anonymous.com",
+    "addr1": "204",
+    "risk_score": 0.76
+   }
+  ],
+  "case": {
+   "flagged": "e10",
+   "day": 28,
+   "trigger_type": "analyst_request",
+   "trigger_text": "Cohort review requested: 5 cards with prior in-person activity in region 315 simultaneously executed $220.00 online retail purchases shipped to pickup hub in region 204."
+  },
+  "truth": {
+   "verdict": "legitimate",
+   "pattern": "none",
+   "affected": [],
+   "expect": "answer",
+   "why_it_should_fool_assay": "Five cards share prior in-person history in region 315 (e1-e5) and then simultaneously make identical $220.00 online purchases to `anonymous.com` in region 204 within 24 minutes (e6-e10). This directly triggers both the Common Point of Compromise detector (`cpc`, LR 68.66/23.49) and Charge-Shape Campaign detector (`B28_campaign`, LR 45.36), which dominate the Bayesian odds and override simulated customer confirmation."
+  }
+ }
+]

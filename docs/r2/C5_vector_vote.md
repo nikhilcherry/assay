@@ -1,40 +1,106 @@
+<!-- GENERATED; DO NOT EDIT BY HAND. Written by assay.r2.detectors.vector_vote.generate_c5_doc() -->
 # C5 — Putting TigerVector Precedent on the Decision Path (`vector_precedent`)
 
-## 1. Design & Zero-Leakage Causal Guarantee
-`VectorPrecedentVote` (`assay/r2/detectors/vector_vote.py`, detector name `"vector_precedent"`, pattern `"none"`, `blocks_assumed_clear = False`) puts the 24-dimensional behaviour embedding from `assay/r2/vector.py` onto the investigation decision path as a calibrated log-odds vote:
-- **Causal embedding (`t <= opened_at`):** Embeds the card's 24-hour episode window ending at the trigger/latest transaction at or before `opened_at`, compared strictly against prior card history before that window, standardized using only cases closed before `2016-10-01`.
-- **As-of Precedent Retrieval (`closed_at <= opened_at`):** Retrieves the `k` nearest closed cases with `closed_at <= opened_at` (leave-one-out: a case never retrieves itself or any case closed after `opened_at`).
-- **Backend & Fail-Closed:** When `ASSAY_TG=1`, queries TigerGraph (`_tg_run_query("similar_cases_vec", ...)`) and raises `TigerGraphUnavailableError` if TigerGraph errors or is unreachable (never falling back silently). Otherwise uses `LocalVectorIndex`.
-- **Outcome Enrichment on TigerGraph Hits:** TigerGraph's `similar_cases_vec` GSQL query prefixes vertex attributes as `Hits.outcome` / `Hits.pattern`, which `vector.py`'s `similar_cases_vec` reads as `attrs.get("outcome", "")` (`""`). `_enrich_tg_neighbors` joins the TigerGraph-returned neighbour `case_id`s to their static `outcome` / `pattern` labels in `closed_cases()` so the Laplace fraud score is computed identically on both backends.
-- **Idempotent TigerGraph Vector Sync (`sync_missing_closed_case_vectors`):** Diagnoses `ClosedCase` vertex and vector presence in TigerGraph for the 20 new Round 1 exam cases (`CC-5566..CC-5585`) using each case's `closed_at` cutoff (`k=50`, avoiding false misses from tied vectors on early cases like `CC-0001`), upserts any missing `ClosedCase` vertices/edges over REST++, and runs `load_case_vectors` when vectors are missing.
-- **Finding Contract:** Never names a typology (`pattern = "none"`), sets `blocks_assumed_clear = False`, `affected_txn_ids = []` and `connected_card_ids = []` (precedent is not a ring), includes `precedent=True` in `claim.params`, and attests the exact neighbour `case_ids`, outcomes, cosine distances, backend used, and `(k, theta, score)`.
+## 1. Design, Zero-Leakage Guarantee & Selection Cache
+- **Dataset Tag:** `r2-2017q1@1693bdeeccd1` | **Code Hash:** `a41581151cae`
+- **Selection Cache:** `data/stage/r2/vector_vote_selection.json`
+- **Detector:** `VectorPrecedentVote` (`name = 'vector_precedent'`, `pattern = 'none'`, `blocks_assumed_clear = False`).
+- **Strict Dual Constraint:** A candidate `(variant, k, theta)` is eligible **if and only if** both:
+  1. `P(fire | cleared case) <= 8%` (`<= 8%`), **and**
+  2. `P(fire | legit card-day) <= 3%` (`<= 3%`).
+  If no candidate satisfies both constraints, `enabled = False` and the detector abstains (`run(ctx) -> []`).
 
-## 2. Pure vs Specific-Element Fused Variant
-In `B14_vector.md`, naive 2-hop graph fusion over broad billing regions and freemail domains degraded accuracy (Brier `0.0896` vs `0.0863`). In C5 we tested a **specific-element fused variant** that boosts a candidate neighbour (`-0.25` cosine distance) *only* if it shares a high-specificity link with the case card as-of `opened_at`:
-1. A `device_profile` seen on `<= 15` cards as-of `opened_at`,
-2. A non-freemail `R_emaildomain` seen on `<= 15` cards as-of `opened_at`, or
-3. The candidate case's `connected_card_ids` (or `card_id`) contains the card.
+## 2. Stage & Filter Trace
+```
+Stage / Filter Trace (Closed Cases & Legitimate Card-Days):
+  total_closed_cases                        : 5585
+  total_confirmed_fraud_all_months          : 4675
+  total_cleared_all_months                  : 910
+  closed_before_oct1_standardizer_fit       : 4051
+  opened_ge_eval_start_aug1                 : 4070
+  opened_lt_eval_end_jan1                   : 5585
+  eval_closed_cases_aug_dec                 : 4070
+  eval_confirmed_fraud_aug_dec              : 3675
+  eval_cleared_aug_dec                      : 395
+  min_prior_closed_cases_at_eval            : 1389
+  total_tx_rows                             : 650938
+  tx_in_eval_window                         : 460447
+  distinct_cased_or_exam_cards_excluded     : 1951
+  uncased_tx_in_eval_window                 : 100287
+  total_uncased_card_days_in_window         : 75184
+  sampled_legit_card_days                   : 2400
+  n_grid_cells                              : 30
+  n_pass_cleared_le_8pct                    : 6
+  n_pass_legit_day_le_3pct                  : 4
+  n_qualifying_both                         : 0
+```
 
-## 3. Measured As-Of Backtest (Aug–Dec 2016 Closed Cases & 2,400 Legitimate Card-Days)
-Evaluated over all **4,335** closed cases opened in `2016-08-01 .. 2017-01-01` (**3,654** `confirmed_fraud`, **681** `cleared`) and a fixed-seed (`seed=42`) sample of **2,400** legitimate card-days from cards never named in any closed or exam case.
+## 3. Measured As-Of Backtest Grid (Aug–Dec 2016 Closed Cases & 2,400 Legitimate Card-Days)
+- **Evaluation window:** `2016-08-01` .. `2017-01-01`
+- **Evaluated closed cases:** `4070` (`confirmed_fraud = 3675`, `cleared = 395`)
+- **Sampled legitimate card-days (`seed=42`):** `2400`
+- **Selection outcome:** `DISABLED (abstains on all cases): 0/30 grid cells satisfied BOTH P(fire|cleared) <= 8% (min=0.00%) AND P(fire|legit_day) <= 3% (min=0.00%).`
 
-Because exam alerts are already selected for investigation, the honest likelihood ratio is `P(fire | fraud case) / P(fire | cleared case)` (Laplace-smoothed), constrained to `P(fire | cleared case) <= 8%` (and `P(fire | legit card-day) <= 3%`):
-
-| Variant | `k` | `theta` | `P(fire \| fraud case)` | `P(fire \| cleared case)` | `P(fire \| legit card-day)` | `LR vs cleared` | `95% CI (vs cleared)` | `LR vs legit day` | `95% CI (vs legit day)` | `Cleared <= 8%` |
+| Variant | `k` | `theta` | `P(fire \| fraud)` | `P(fire \| cleared)` | `P(fire \| legit day)` | `LR vs cleared` | `95% CI (cleared)` | `LR vs legit day` | `95% CI (legit day)` | Dual Gate (`<=8%` & `<=3%`) |
 |---|---:|---:|---:|---:|---:|---:|---|---:|---|---|
-| `pure` | 5 | `0.8571` (`5/5` fraud) | `62.73%` (`2292/3654`) | `36.86%` (`251/681`) | `14.12%` (`339/2400`) | `1.70` | `[1.54, 1.88]` | `4.43` | `[4.01, 4.90]` | `> 8%` (skip) |
-| `pure` | 10 | `0.9167` (`10/10` fraud) | `42.23%` (`1543/3654`) | `17.33%` (`118/681`) | `4.33%` (`104/2400`) | `2.42` | `[2.05, 2.86]` | `9.66` | `[7.98, 11.71]` | `> 8%` (skip) |
-| **`pure` \*** | **20** | **`0.9545` (`20/20` fraud)** | **`25.45%` (`930/3654`)** | **`6.46%` (`44/681`)** | **`1.42%` (`34/2400`)** | **`3.86`** | **`[2.90, 5.15]`** | **`17.64`** | **`[12.56, 24.75]`** | **`<= 8%` OK (Selected)** |
-| `fused` | 5 | `0.8571` (`5/5` fraud) | `62.89%` (`2298/3654`) | `37.00%` (`252/681`) | `14.12%` (`339/2400`) | `1.70` | `[1.54, 1.88]` | `4.44` | `[4.02, 4.91]` | `> 8%` (skip) |
-| `fused` | 10 | `0.9167` (`10/10` fraud) | `42.45%` (`1551/3654`) | `17.33%` (`118/681`) | `4.33%` (`104/2400`) | `2.44` | `[2.06, 2.88]` | `9.71` | `[8.02, 11.77]` | `> 8%` (skip) |
-| `fused` | 20 | `0.9545` (`20/20` fraud) | `25.45%` (`930/3654`) | `6.61%` (`45/681`) | `1.42%` (`34/2400`) | `3.78` | `[2.84, 5.02]` | `17.64` | `[12.56, 24.75]` | `<= 8%` OK |
+| `pure` | `5` | `0.2857` | `98.97%` (`3637/3675`) | `88.10%` (`348/395`) | `98.50%` (`2364/2400`) | `1.13` | `[1.08, 1.17]` | `1.00` | `[1.00, 1.01]` | FAIL (both) |
+| `pure` | `5` | `0.4286` | `96.63%` (`3551/3675`) | `73.42%` (`290/395`) | `97.00%` (`2328/2400`) | `1.32` | `[1.24, 1.40]` | `1.00` | `[0.99, 1.01]` | FAIL (both) |
+| `pure` | `5` | `0.5714` | `84.44%` (`3103/3675`) | `43.80%` (`173/395`) | `90.67%` (`2176/2400`) | `1.93` | `[1.72, 2.15]` | `0.93` | `[0.91, 0.95]` | FAIL (both) |
+| `pure` | `5` | `0.7143` | `65.66%` (`2413/3675`) | `23.54%` (`93/395`) | `84.38%` (`2025/2400`) | `2.77` | `[2.32, 3.31]` | `0.78` | `[0.76, 0.80]` | FAIL (both) |
+| `pure` | `5` | `0.8571` | `0.00%` (`0/3675`) | `0.00%` (`0/395`) | `0.00%` (`0/2400`) | `0.11` | `[0.01, 1.72]` | `0.65` | `[0.04, 10.44]` | FAIL (`legit_day > 3%`) |
+| `pure` | `10` | `0.5833` | `91.67%` (`3369/3675`) | `56.20%` (`222/395`) | `93.46%` (`2243/2400`) | `1.63` | `[1.50, 1.78]` | `0.98` | `[0.97, 1.00]` | FAIL (both) |
+| `pure` | `10` | `0.6667` | `81.99%` (`3013/3675`) | `39.24%` (`155/395`) | `89.21%` (`2141/2400`) | `2.09` | `[1.84, 2.36]` | `0.92` | `[0.90, 0.94]` | FAIL (both) |
+| `pure` | `10` | `0.7500` | `81.99%` (`3013/3675`) | `39.24%` (`155/395`) | `89.21%` (`2141/2400`) | `2.09` | `[1.84, 2.36]` | `0.92` | `[0.90, 0.94]` | FAIL (both) |
+| `pure` | `10` | `0.8333` | `71.81%` (`2639/3675`) | `24.81%` (`98/395`) | `85.96%` (`2063/2400`) | `2.88` | `[2.42, 3.42]` | `0.84` | `[0.81, 0.86]` | FAIL (both) |
+| `pure` | `10` | `0.9167` | `0.00%` (`0/3675`) | `0.00%` (`0/395`) | `0.00%` (`0/2400`) | `0.11` | `[0.01, 1.72]` | `0.65` | `[0.04, 10.44]` | FAIL (`legit_day > 3%`) |
+| `pure` | `20` | `0.7727` | `80.24%` (`2949/3675`) | `34.43%` (`136/395`) | `88.08%` (`2114/2400`) | `2.32` | `[2.03, 2.66]` | `0.91` | `[0.89, 0.93]` | FAIL (both) |
+| `pure` | `20` | `0.8182` | `67.67%` (`2487/3675`) | `23.04%` (`91/395`) | `84.75%` (`2034/2400`) | `2.92` | `[2.44, 3.50]` | `0.80` | `[0.78, 0.82]` | FAIL (both) |
+| `pure` | `20` | `0.8636` | `67.67%` (`2487/3675`) | `23.04%` (`91/395`) | `84.75%` (`2034/2400`) | `2.92` | `[2.44, 3.50]` | `0.80` | `[0.78, 0.82]` | FAIL (both) |
+| `pure` | `20` | `0.9091` | `36.54%` (`1343/3675`) | `5.82%` (`23/395`) | `76.33%` (`1832/2400`) | `6.05` | `[4.09, 8.93]` | `0.48` | `[0.46, 0.50]` | FAIL (`legit_day > 3%`) |
+| `pure` | `20` | `0.9545` | `36.54%` (`1343/3675`) | `5.82%` (`23/395`) | `76.33%` (`1832/2400`) | `6.05` | `[4.09, 8.93]` | `0.48` | `[0.46, 0.50]` | FAIL (`legit_day > 3%`) |
+| `fused` | `5` | `0.2857` | `99.05%` (`3640/3675`) | `88.10%` (`348/395`) | `98.50%` (`2364/2400`) | `1.13` | `[1.09, 1.17]` | `1.01` | `[1.00, 1.01]` | FAIL (both) |
+| `fused` | `5` | `0.4286` | `96.68%` (`3553/3675`) | `73.42%` (`290/395`) | `97.00%` (`2328/2400`) | `1.32` | `[1.24, 1.40]` | `1.00` | `[0.99, 1.01]` | FAIL (both) |
+| `fused` | `5` | `0.5714` | `85.69%` (`3149/3675`) | `46.08%` (`182/395`) | `90.67%` (`2176/2400`) | `1.86` | `[1.67, 2.07]` | `0.95` | `[0.93, 0.96]` | FAIL (both) |
+| `fused` | `5` | `0.7143` | `63.97%` (`2351/3675`) | `26.58%` (`105/395`) | `84.38%` (`2025/2400`) | `2.40` | `[2.03, 2.82]` | `0.76` | `[0.74, 0.78]` | FAIL (both) |
+| `fused` | `5` | `0.8571` | `0.00%` (`0/3675`) | `0.00%` (`0/395`) | `0.00%` (`0/2400`) | `0.11` | `[0.01, 1.72]` | `0.65` | `[0.04, 10.44]` | FAIL (`legit_day > 3%`) |
+| `fused` | `10` | `0.5833` | `91.89%` (`3377/3675`) | `55.95%` (`221/395`) | `93.46%` (`2243/2400`) | `1.64` | `[1.50, 1.79]` | `0.98` | `[0.97, 1.00]` | FAIL (both) |
+| `fused` | `10` | `0.6667` | `82.88%` (`3046/3675`) | `40.00%` (`158/395`) | `89.21%` (`2141/2400`) | `2.07` | `[1.83, 2.34]` | `0.93` | `[0.91, 0.95]` | FAIL (both) |
+| `fused` | `10` | `0.7500` | `82.88%` (`3046/3675`) | `40.00%` (`158/395`) | `89.21%` (`2141/2400`) | `2.07` | `[1.83, 2.34]` | `0.93` | `[0.91, 0.95]` | FAIL (both) |
+| `fused` | `10` | `0.8333` | `73.47%` (`2700/3675`) | `27.59%` (`109/395`) | `85.96%` (`2063/2400`) | `2.65` | `[2.26, 3.11]` | `0.85` | `[0.83, 0.88]` | FAIL (both) |
+| `fused` | `10` | `0.9167` | `0.00%` (`0/3675`) | `0.00%` (`0/395`) | `0.00%` (`0/2400`) | `0.11` | `[0.01, 1.72]` | `0.65` | `[0.04, 10.44]` | FAIL (`legit_day > 3%`) |
+| `fused` | `20` | `0.7727` | `80.57%` (`2961/3675`) | `36.20%` (`143/395`) | `88.08%` (`2114/2400`) | `2.22` | `[1.95, 2.53]` | `0.91` | `[0.90, 0.93]` | FAIL (both) |
+| `fused` | `20` | `0.8182` | `68.38%` (`2513/3675`) | `24.05%` (`95/395`) | `84.75%` (`2034/2400`) | `2.83` | `[2.37, 3.37]` | `0.81` | `[0.78, 0.83]` | FAIL (both) |
+| `fused` | `20` | `0.8636` | `68.38%` (`2513/3675`) | `24.05%` (`95/395`) | `84.75%` (`2034/2400`) | `2.83` | `[2.37, 3.37]` | `0.81` | `[0.78, 0.83]` | FAIL (both) |
+| `fused` | `20` | `0.9091` | `33.01%` (`1213/3675`) | `8.10%` (`32/395`) | `76.33%` (`1832/2400`) | `3.97` | `[2.86, 5.52]` | `0.43` | `[0.41, 0.46]` | FAIL (both) |
+| `fused` | `20` | `0.9545` | `33.01%` (`1213/3675`) | `8.10%` (`32/395`) | `76.33%` (`1832/2400`) | `3.97` | `[2.86, 5.52]` | `0.43` | `[0.41, 0.46]` | FAIL (both) |
 
-### Selection & Weight
-- At **`k=20, theta=0.9545` (`20/20` confirmed-fraud neighbours)**, `P(fire | cleared case) = 6.46% (44/681) <= 8%` and `P(fire | legit card-day) = 1.42% (34/2400) <= 3%`, while catching **`25.45%` (`930/3654`)** of confirmed-fraud cases.
-- **Pure vs Fused at `k=20, theta=0.9545`:** `pure` achieves `LR vs cleared = 3.86` with **95% CI `[2.90, 5.15]`**, beating `fused` (`LR vs cleared = 3.78`, 95% CI `[2.84, 5.02]`, `45/681` cleared cases acted against). We therefore select **`variant="pure", k=20, theta=0.9545, weight=2.9016` (`~2.90`)**.
+## 4. Measured Run on the 18 Final-Round Exam Cases (`case_pack()`)
+- **Detector config:** `enabled=False`, `variant=pure`, `k=20`, `theta=1.0000`, `weight=1.0000`
+- **Exam cases firing (Local):** `[]`
 
-## 4. Measured Run & Parity Check on the 18 Final-Round Exam Cases (`case_pack()`)
-Running `VectorPrecedentVote(k=20, theta=0.9545, variant="pure", weight=2.9016)` on all 18 exam cases:
-- **Fire decision parity:** `18/18` identical between Local and TigerGraph.
-- **Score parity:** `|tg_score - local_score| <= 0.10` on `18/18` cases (high HNSW set Jaccard `~0.90–1.00`).
-- **Cases firing (`k=20, theta=0.9545`):** `HHF-005`, `HHF-008`, `HHF-009`, `HHF-010` (`20/20` confirmed-fraud neighbours, score `0.9545`).
+| Case ID | Card ID | Opened At | Score | Fired? | Fraud / `k` | Top-5 Precedent Neighbours (`id:outcome:dist`) |
+|---|---|---|---:|:---:|---:|---|
+| `HHF-001` | `C05061-K1` | `2017-01-15 01:25:19` | `0.7727` | `False` | `16/20` | `CC-3841:F:0.345, CC-5571:F:0.394, CC-4190:F:0.396, CC-5058:F:0.413, CC-4398:F:0.414` |
+| `HHF-002` | `C06220-K1` | `2017-01-19 23:18:58` | `0.8636` | `False` | `18/20` | `CC-3365:F:0.139, CC-5147:F:0.177, CC-4545:F:0.190, CC-1820:F:0.191, CC-5094:F:0.201` |
+| `HHF-003` | `C11663-K1` | `2017-01-31 20:31:28` | `0.4545` | `False` | `9/20` | `CC-3751:C:0.179, CC-1732:C:0.209, CC-5397:F:0.212, CC-1975:F:0.212, CC-3862:C:0.218` |
+| `HHF-004` | `C12975-K2` | `2017-01-26 21:09:37` | `0.9091` | `False` | `19/20` | `CC-3733:F:0.201, CC-1728:F:0.245, CC-3214:F:0.267, CC-0782:F:0.269, CC-3058:F:0.274` |
+| `HHF-005` | `C00348-K1` | `2017-01-28 23:45:16` | `0.7273` | `False` | `15/20` | `CC-3523:F:0.134, CC-3950:F:0.142, CC-2937:C:0.150, CC-4792:F:0.154, CC-1559:F:0.158` |
+| `HHF-006` | `C01727-K2` | `2017-01-28 10:59:42` | `0.9091` | `False` | `19/20` | `CC-2985:F:0.202, CC-4838:F:0.320, CC-4275:F:0.322, CC-2237:C:0.322, CC-2436:F:0.329` |
+| `HHF-007` | `C09582-K1` | `2017-01-14 15:57:30` | `0.8182` | `False` | `17/20` | `CC-0782:F:0.191, CC-5137:C:0.251, CC-2937:C:0.251, CC-2209:F:0.255, CC-3523:F:0.276` |
+| `HHF-008` | `C07871-K1` | `2017-01-21 13:23:58` | `0.7727` | `False` | `16/20` | `CC-2879:F:0.288, CC-1721:F:0.299, CC-3807:F:0.299, CC-2322:F:0.311, CC-2629:F:0.330` |
+| `HHF-009` | `C09177-K1` | `2017-01-27 18:08:36` | `0.7273` | `False` | `15/20` | `CC-4165:F:0.343, CC-3748:F:0.392, CC-3818:F:0.425, CC-5571:F:0.444, CC-2591:C:0.445` |
+| `HHF-010` | `C07196-K2` | `2017-01-08 16:13:05` | `0.8636` | `False` | `18/20` | `CC-3208:F:0.084, CC-2366:F:0.092, CC-3468:F:0.115, CC-2014:F:0.119, CC-5263:F:0.126` |
+| `HHF-011` | `C09241-K2` | `2017-01-20 09:06:19` | `0.8182` | `False` | `17/20` | `CC-4017:C:0.078, CC-4844:C:0.084, CC-4998:F:0.084, CC-4277:F:0.085, CC-2621:F:0.093` |
+| `HHF-012` | `C12223-K1` | `2017-01-09 04:34:19` | `0.9091` | `False` | `19/20` | `CC-5510:F:0.027, CC-5039:F:0.036, CC-2436:F:0.038, CC-1441:F:0.042, CC-4210:F:0.048` |
+| `HHF-013` | `C06115-K1` | `2017-01-26 20:40:00` | `0.9545` | `False` | `20/20` | `CC-4522:F:0.016, CC-3529:F:0.041, CC-4106:F:0.050, CC-4959:F:0.051, CC-5436:F:0.054` |
+| `HHF-014` | `C00750-K2` | `2017-01-01 05:00:25` | `0.9545` | `False` | `20/20` | `CC-4895:F:0.148, CC-2485:F:0.191, CC-3895:F:0.204, CC-3307:F:0.206, CC-3651:F:0.219` |
+| `HHF-015` | `C00543-K1` | `2017-01-22 12:21:48` | `0.9545` | `False` | `20/20` | `CC-1894:F:0.035, CC-3825:F:0.050, CC-4867:F:0.053, CC-4007:F:0.054, CC-4861:F:0.055` |
+| `HHF-016` | `C02502-K2` | `2017-01-01 03:07:47` | `0.7727` | `False` | `16/20` | `CC-5572:F:0.003, CC-2947:F:0.008, CC-3761:C:0.012, CC-4671:F:0.013, CC-4112:C:0.016` |
+| `HHF-017` | `C08842-K2` | `2017-01-01 02:02:06` | `0.5000` | `False` | `10/20` | `CC-3095:F:0.110, CC-2065:F:0.133, CC-3098:F:0.146, CC-3414:F:0.152, CC-2181:F:0.160` |
+| `HHF-018` | `C02753-K1` | `2017-01-01 18:29:48` | `0.7727` | `False` | `16/20` | `CC-2846:F:0.129, CC-2347:F:0.137, CC-2831:F:0.178, CC-5232:C:0.180, CC-1544:F:0.204` |
+
+## 5. TigerGraph vs Local Parity Check
+- **Fire decision agreement:** `18/18`
+- **Score within `<= 0.10`:** `18/18`
+- **Fired under Local:** `[]`
+- **Fired under TigerGraph:** `[]`

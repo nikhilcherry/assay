@@ -29,29 +29,21 @@
         "source": "graph"
       },
       {
-        "claim": "Vector precedent search (tigergraph:similar_cases_vec, variant=pure, k=20, theta=0.9091) on card C00750-K2 as-of 2017-01-01 05:00:25 retrieved 20/20 confirmed-fraud neighbours (Laplace score 0.9545 >= 0.9091): CC-3895:confirmed_fraud(d=0.2041), CC-2578:confirmed_fraud(d=0.2677), CC-3722:confirmed_fraud(d=0.2548), CC-2784:confirmed_fraud(d=0.2794), CC-2919:confirmed_fraud(d=0.2941).",
-        "entity_ids": [
-          "3602445"
-        ],
-        "ref": "query:similar_cases_vec(as_of=2017-01-01 05:00:25, backend=tigergraph:similar_cases_vec, k=20, neighbor_case_ids=['CC-3895', 'CC-2578', 'CC-3722', 'CC-2784', 'CC-2919', 'CC-2645', 'CC-5431', 'CC-1438', 'CC-3754', 'CC-4641', 'CC-3307', 'CC-4895', 'CC-5124', 'CC-2217', 'CC-2485', 'CC-3651', 'CC-2172', 'CC-1753', 'CC-3696', 'CC-5150'], neighbor_distances=[0.204141, 0.267709, 0.254822, 0.27937, 0.29408, 0.281078, 0.224307, 0.219357, 0.261036, 0.22506, 0.205591, 0.148485, 0.279595, 0.289653, 0.191029, 0.219092, 0.231428, 0.228403, 0.28741, 0.289743], neighbor_outcomes=['confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud', 'confirmed_fraud'], precedent=True, qv=[0.237968, 0.291324, 0.422036, 0.137696, 0.137759, 0.026183, 0.392601, -0.098233, -0.104236, -0.02262, -0.059291, -0.080618, -0.026008, 0.026008, -0.10015, -0.087827, -0.087153, 0.578816, -0.014566, -0.208721, -0.160075, 0.107163, 0.041192, 0.11084], score=0.9545, theta=0.9091, variant=pure)",
-        "source": "graph"
-      },
-      {
         "claim": "Simulated customer validation: Cardholder confirms they made the transaction.",
         "entity_ids": [],
         "ref": "evidence_request:1",
         "source": "customer"
       },
       {
-        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
-        "entity_ids": [],
-        "ref": "document:fraud-policy#R3",
-        "source": "document"
-      },
-      {
         "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
         "entity_ids": [],
         "ref": "document:fraud-policy#§3a",
+        "source": "document"
+      },
+      {
+        "claim": "Policy R3: Customer confirms the transaction: CLOSE_NO_FRAUD, with the confirmation noted in the case file.",
+        "entity_ids": [],
+        "ref": "document:fraud-policy#R3",
         "source": "document"
       },
       {
@@ -81,7 +73,7 @@
   "case_id": "HHF-014",
   "evidence_requests": [
     {
-      "asked_after_step": 9,
+      "asked_after_step": 8,
       "assumed_response": "Cardholder confirms they made the transaction.",
       "question": "",
       "type": "customer_validation"
@@ -91,13 +83,13 @@
   "next_best_actions": {
     "final": [
       {
-        "action": "CLOSE_NO_FRAUD",
-        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file.",
+        "action": "CREATE_CASE",
+        "reason": "Policy §3a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached.",
         "route": "auto"
       },
       {
-        "action": "CREATE_CASE",
-        "reason": "Policy §3a: a case was opened when evidence was requested; it closes as legitimate with the confirmation attached.",
+        "action": "CLOSE_NO_FRAUD",
+        "reason": "R3: the customer confirmed they made the transaction. The confirmation is recorded in the case file.",
         "route": "auto"
       }
     ],
@@ -130,5 +122,5 @@
   },
   "stop_reason": "Policy §6: the customer confirms the transaction, which settles the question. No further evidence would change the decision.",
   "tokens": 0,
-  "tool_calls": 11
+  "tool_calls": 10
 }

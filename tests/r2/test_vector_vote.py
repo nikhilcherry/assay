@@ -1,33 +1,40 @@
 """Tests for Block C5 -- `VectorPrecedentVote` (`assay/r2/detectors/vector_vote.py`).
 
 Tests assert only what we control:
-  1. Reproducibility & determinism across repeated runs.
-  2. As-of correctness: no retrieved neighbour ever has `closed_at > opened_at`, and
+  1. Reproducibility & determinism across repeated runs, plus persistence to
+     `data/stage/r2/vector_vote_selection.json` keyed by `(dataset_tag(), code_hash)`.
+  2. Strict enforcement of BOTH backtest constraints (`P(fire|cleared) <= 8%` AND
+     `P(fire|legit card-day) <= 3%`); if no cell satisfies both, `det.enabled is False`
+     and `det.run(ctx)` emits `[]`.
+  3. As-of correctness: no retrieved neighbour ever has `closed_at > opened_at`, and
      no case ever retrieves itself.
-  3. Schema/shape and attestation contract fields (`what`, `evidence`, `how`, `when`),
+  4. Schema/shape and attestation contract fields (`what`, `evidence`, `how`, `when`),
      `pattern == "none"`, `blocks_assumed_clear is False`, `precedent=True` in params,
      `affected_txn_ids == []`, `connected_card_ids == []`, and all attested IDs exist
      in `closed_cases()` / `tx_all()`.
-  4. Backtest measurement table is produced and printed over Aug-Dec closed cases and
-     `>= 2,000` legitimate card-days, with `P(fire|cleared) <= 8%` and `weight` equal to
-     the 95% CI lower bound of `P(fire|fraud)/P(fire|cleared)` (Laplace).
   5. Fail-closed behaviour when `ASSAY_TG=1` and TigerGraph errors or is unreachable.
   6. `parity_check` syncs missing closed-case vectors (`CC-5566..CC-5585`), prints a raw
      TigerGraph reply for `HHF-001`, prints which of the 18 exam cases fire under local
      and under TG, asserts that the fire decision is identical on all 18 cases and
-     `|tg_score - local_score| <= 0.10`, and skips cleanly with a printed reason when TG
-     is down.
+     `|tg_score - local_score| <= 0.10`, and writes `docs/r2/C5_vector_vote.md` from
+     the live measured numbers so doc and code can never drift.
 """
 
 from __future__ import annotations
 
+import json
 import pandas as pd
 import pytest
 
 from assay.r2.detectors.vector_vote import (
+    DOC_OUTPUT_PATH,
     MAX_CLEARED_CASE_FPR,
+    MAX_LEGIT_CARD_DAY_FPR,
+    SELECTION_CACHE_PATH,
     VectorPrecedentVote,
     format_backtest_grid,
+    generate_c5_doc,
+    load_or_compute_selection,
     parity_check,
     run_vector_vote_backtest,
 )
@@ -51,7 +58,7 @@ def _make_ctx(row, tx: pd.DataFrame, cc: pd.DataFrame, tx_by_id: pd.DataFrame) -
     )
 
 
-def test_backtest_grid_and_selection():
+def test_backtest_grid_dual_constraints_and_persistence():
     summary = run_vector_vote_backtest()
     table_str = format_backtest_grid(summary)
     print("\n=== C5 VectorPrecedentVote Backtest Grid (Aug-Dec 2016 Closed Cases + Legit Card-Days) ===")
@@ -62,11 +69,13 @@ def test_backtest_grid_and_selection():
     assert summary.n_legit_days >= 2000
     assert len(summary.grid) > 0
 
-    chosen = summary.chosen
-    assert chosen.k in (5, 10, 20)
-    assert chosen.variant in ("pure", "fused")
-    assert chosen.p_fire_cleared <= MAX_CLEARED_CASE_FPR
-    assert chosen.ci_cleared_low > 0.0
+    # Verify selection persistence file was written and matches current dataset_tag & code_hash
+    assert SELECTION_CACHE_PATH.exists()
+    cached = load_or_compute_selection()
+    assert cached["n_fraud"] == summary.n_fraud
+    assert cached["n_cleared"] == summary.n_cleared
+    assert cached["n_legit_days"] == summary.n_legit_days
+    assert cached["enabled"] == summary.enabled
 
     det = VectorPrecedentVote()
     assert REGISTRY.get("vector_precedent") is VectorPrecedentVote
@@ -74,16 +83,36 @@ def test_backtest_grid_and_selection():
     assert det.pattern == "none"
     assert VectorPrecedentVote.blocks_assumed_clear is False
     assert det.blocks_assumed_clear is False
-    assert det.k == chosen.k
-    assert abs(det.theta - chosen.theta) < 1e-6
-    assert abs(det.weight - round(chosen.ci_cleared_low, 4)) < 1e-6
+    assert det.enabled == summary.enabled
+
+    # Strictly enforce BOTH constraints if enabled; if no cell satisfies both, detector MUST be disabled
+    if summary.chosen is not None:
+        chosen = summary.chosen
+        assert summary.enabled is True
+        assert chosen.qualifies is True
+        assert chosen.k in (5, 10, 20)
+        assert chosen.variant in ("pure", "fused")
+        assert chosen.p_fire_cleared <= MAX_CLEARED_CASE_FPR, (
+            f"Chosen cell violated P(fire|cleared) <= 8%: {chosen.p_fire_cleared:.4f}"
+        )
+        assert chosen.p_fire_legit_day <= MAX_LEGIT_CARD_DAY_FPR, (
+            f"Chosen cell violated P(fire|legit_day) <= 3%: {chosen.p_fire_legit_day:.4f}"
+        )
+        assert chosen.ci_cleared_low > 0.0
+        assert det.k == chosen.k
+        assert abs(det.theta - chosen.theta) < 1e-6
+        assert abs(det.weight - round(chosen.ci_cleared_low, 4)) < 1e-6
+    else:
+        assert summary.enabled is False
+        assert det.enabled is False
+        assert all(not c.qualifies for c in summary.grid)
 
     bt = det.backtest()
     assert bt.detector == "vector_precedent"
     assert bt.n_cases == summary.n_fraud + summary.n_cleared
     assert len(bt.caught) + len(bt.missed) == summary.n_fraud
     print(
-        f"\n[Backtest Summary] caught={len(bt.caught)}/{summary.n_fraud} ({bt.recall:.2%}), "
+        f"\n[Backtest Summary] enabled={det.enabled}, caught={len(bt.caught)}/{summary.n_fraud} ({bt.recall:.2%}), "
         f"cleared_acted_against={len(bt.legit_acted_against)}/{summary.n_cleared} "
         f"({len(bt.legit_acted_against) / summary.n_cleared:.2%}), "
         f"precision={bt.precision:.2%}, lr_vs_cleared={bt.lr_measured:.2f}, "
@@ -105,7 +134,7 @@ def test_exam_cases_asof_determinism_and_attestations(monkeypatch):
 
     print(
         f"\n=== C5 VectorPrecedentVote on 18 Exam Cases "
-        f"(variant={det.variant}, k={det.k}, theta={det.theta:.4f}, weight={det.weight:.2f}) ==="
+        f"(enabled={det.enabled}, variant={det.variant}, k={det.k}, theta={det.theta:.4f}, weight={det.weight:.2f}) ==="
     )
     header = (
         f"{'Case':<8} {'Card':<10} {'Opened_At':<19} {'Score':>7} {'Fired?':<6} "
@@ -147,7 +176,10 @@ def test_exam_cases_asof_determinism_and_attestations(monkeypatch):
             f"{ev1.score:>7.4f} {str(ev1.fired):<6} {f'{n_fraud_nb}/{len(ev1.neighbors)}':>7}  {nb_str}"
         )
 
-        if ev1.fired:
+        if not det.enabled:
+            assert ev1.fired is False
+            assert findings == []
+        elif ev1.fired:
             fired_local.append(ctx.case_id)
             assert len(findings) == 1
             fd = findings[0]
@@ -175,6 +207,17 @@ def test_exam_cases_asof_determinism_and_attestations(monkeypatch):
             assert findings == []
 
     print(f"\n[Exam Pack Local Run] Fired cases ({len(fired_local)}/18): {fired_local}")
+
+    # Also test attestation contract explicitly with an explicit enabled instance on a high-score case
+    forced_det = VectorPrecedentVote(k=5, theta=0.50, variant="pure", weight=2.50, enabled=True)
+    ctx0 = _make_ctx(next(cp.itertuples()), tx, cc, tx_by_id)
+    forced_fds = forced_det.run(ctx0)
+    if forced_fds:
+        ad0 = forced_fds[0].claim.to_dict()
+        assert ad0["how"]["params"]["precedent"] is True
+        assert forced_fds[0].pattern == "none"
+        assert forced_fds[0].affected_txn_ids == []
+        assert forced_fds[0].connected_card_ids == []
 
 
 def test_asof_leave_one_out_on_closed_cases_sample(monkeypatch):
@@ -228,7 +271,8 @@ def test_fail_closed_when_tg_enabled_and_unreachable(monkeypatch):
         det.run(ctx)
 
 
-def test_parity_check():
+def test_parity_check_and_doc_generation():
+    summary = run_vector_vote_backtest()
     res = parity_check()
     assert "skipped" in res
     if not res["skipped"]:
@@ -236,3 +280,11 @@ def test_parity_check():
         assert res["sync_info"]["still_missing"] == []
         assert res["fire_mismatches"] == [], f"TG vs Local fire decision mismatch: {res['fire_mismatches']}"
         assert res["score_mismatches"] == [], f"TG vs Local score diff > 0.10: {res['score_mismatches']}"
+
+    doc_path = generate_c5_doc(summary=summary, parity_res=res)
+    assert doc_path == DOC_OUTPUT_PATH
+    assert doc_path.exists()
+    doc_txt = doc_path.read_text()
+    assert "GENERATED; DO NOT EDIT BY HAND" in doc_txt
+    assert str(summary.n_fraud) in doc_txt
+    assert str(summary.n_cleared) in doc_txt
