@@ -697,6 +697,7 @@ class LocalVectorIndex:
         self.cc_emb = cc_emb.reset_index(drop=True)
         self.cc = cc.reset_index(drop=True)
         self.case_ids = self.cc_emb["case_id"].to_numpy()
+        self.case_to_idx: dict[str, int] = {str(cid): i for i, cid in enumerate(self.case_ids)}
         self.outcomes = self.cc_emb["outcome"].to_numpy()
         self.patterns = self.cc_emb["pattern"].to_numpy()
         self.cards = self.cc_emb["card_id"].to_numpy()
@@ -774,21 +775,32 @@ class LocalVectorIndex:
                     "as_of": as_of_str,
                 },
             )
+            q = np.asarray(qv, dtype=np.float64).ravel()
+            q_norm = q / max(float(np.linalg.norm(q)), 1e-9)
             out_tg: list[VectorNeighbor] = []
             for r in rows:
                 vid = str(r.get("v_id", r.get("case_id", "")))
                 if exclude_case_id and vid == exclude_case_id:
                     continue
                 attrs = r.get("attributes", r)
+                raw_dist = attrs.get("distance", attrs.get("@dist"))
+                if raw_dist is not None:
+                    dist_val = float(raw_dist)
+                elif vid in self.case_to_idx:
+                    dist_val = round(float(max(1.0 - float(self.mat[self.case_to_idx[vid]] @ q_norm), 0.0)), 6)
+                else:
+                    dist_val = 0.0
+                sc = attrs.get("shared_cards", attrs.get("@shared_cards", []))
+                sd = attrs.get("shared_devices", attrs.get("@shared_devices", []))
                 out_tg.append(
                     VectorNeighbor(
                         case_id=vid,
                         outcome=str(attrs.get("outcome", "")),
                         pattern=str(attrs.get("pattern", "")),
-                        distance=float(attrs.get("@dist", 0.0)),
+                        distance=dist_val,
                         connecting_path="tigergraph_vectorSearch",
-                        shared_cards=tuple(str(x) for x in attrs.get("@shared_cards", []) if x),
-                        shared_devices=tuple(str(x) for x in attrs.get("@shared_devices", []) if x),
+                        shared_cards=tuple(str(x) for x in sc if x),
+                        shared_devices=tuple(str(x) for x in sd if x),
                     )
                 )
             return out_tg[:k]
@@ -962,21 +974,32 @@ class LocalVectorIndex:
                     "as_of": as_of_str,
                 },
             )
+            q = np.asarray(qv, dtype=np.float64).ravel()
+            q_norm = q / max(float(np.linalg.norm(q)), 1e-9)
             out_tg: list[VectorNeighbor] = []
             for r in rows:
                 vid = str(r.get("v_id", r.get("case_id", "")))
                 if exclude_case_id and vid == exclude_case_id:
                     continue
                 attrs = r.get("attributes", r)
+                raw_dist = attrs.get("distance", attrs.get("@dist"))
+                if raw_dist is not None:
+                    dist_val = float(raw_dist)
+                elif vid in self.case_to_idx:
+                    dist_val = round(float(max(1.0 - float(self.mat[self.case_to_idx[vid]] @ q_norm), 0.0)), 6)
+                else:
+                    dist_val = 0.0
+                sc = attrs.get("shared_cards", attrs.get("@shared_cards", []))
+                sd = attrs.get("shared_devices", attrs.get("@shared_devices", []))
                 out_tg.append(
                     VectorNeighbor(
                         case_id=vid,
                         outcome=str(attrs.get("outcome", "")),
                         pattern=str(attrs.get("pattern", "")),
-                        distance=float(attrs.get("@dist", 0.0)),
+                        distance=dist_val,
                         connecting_path=str(attrs.get("connecting_path", attrs.get("@connecting_path", ""))),
-                        shared_cards=tuple(str(x) for x in attrs.get("@shared_cards", []) if x),
-                        shared_devices=tuple(str(x) for x in attrs.get("@shared_devices", []) if x),
+                        shared_cards=tuple(str(x) for x in sc if x),
+                        shared_devices=tuple(str(x) for x in sd if x),
                     )
                 )
             return out_tg[:k]
