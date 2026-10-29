@@ -611,6 +611,8 @@ def execute_query_ref(
             "cpc_origin_search": ["cpc"],
             "rerun_micro_drip_cohort": ["micro_drip_cohort"],
             "similar_cases_vec": ["vector_precedent"],
+            "r2_micro_drip_cohort": ["micro_drip_cohort"],
+            "r2_recipient_fanin": ["FanIn"],
             "ring_for": ["ring_wcc"],
             "dormant_wake_check": ["dormant_wake"],
             "rerun_recipient_fan_in_burst": ["FanIn"],

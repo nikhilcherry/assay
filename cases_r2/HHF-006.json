@@ -68,7 +68,7 @@
           "3660288",
           "3660289"
         ],
-        "ref": "query:rerun_recipient_fan_in_burst(baseline_max=0, baseline_mean=0.0, card_id=C01727-K2, flagged_txn_id=3660263, k_now=12, kind=evidence, linking_value=R_emaildomain=sc.rr.com, min_amount=100.0, opened_at=2017-01-28 10:59:42, p_value=0.0, window_days=21)",
+        "ref": "query:r2_recipient_fanin(baseline_max=0, baseline_mean=0.0, card_id=C01727-K2, flagged_txn_id=3660263, k_now=12, kind=evidence, linking_value=R_emaildomain=sc.rr.com, min_amount=100.0, opened_at=2017-01-28 10:59:42, p_value=0.0, window_days=21)",
         "source": "graph"
       },
       {

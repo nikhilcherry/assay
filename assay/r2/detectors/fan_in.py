@@ -26,6 +26,8 @@ from __future__ import annotations
 
 import math
 
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -400,8 +402,14 @@ class FanIn(Detector):
             return default_info
 
         # 1. Check primary cohort via pure function `cohort_members` (requires flagged txn itself to pay recipient)
-        members, per_card_txns, params = cohort_members(
-            tx_asof,
+        on_tg = os.environ.get("ASSAY_TG") == "1"
+        if on_tg:   # the graph decides the cohort (r2_recipient_fanin, fails closed); parity in docs/r2/C6_tg_cohorts.md
+            from assay.r2.tg_cohorts import recipient_fanin_tg as _members
+            args, kw = (), {"tx_asof": tx_asof}
+        else:
+            _members, args, kw = cohort_members, (tx_asof,), {}
+        members, per_card_txns, params = _members(
+            *args, **kw,
             flagged_txn_id=int(ctx.flagged_txn_id),
             opened_at=t_open,
             window_days=self.window_days,
@@ -552,7 +560,7 @@ class FanIn(Detector):
                     customer_ids=info["all_win_custs"],
                     case_ids=[ctx.case_id],
                 ),
-                query="rerun_recipient_fan_in_burst",
+                query="r2_recipient_fanin" if os.environ.get("ASSAY_TG") == "1" else "rerun_recipient_fan_in_burst",
                 params={
                     "kind": "context",
                     "card_id": str(ctx.card_id),
@@ -594,7 +602,7 @@ class FanIn(Detector):
                 customer_ids=info["all_win_custs"],
                 case_ids=[ctx.case_id],
             ),
-            query="rerun_recipient_fan_in_burst",
+            query="r2_recipient_fanin" if os.environ.get("ASSAY_TG") == "1" else "rerun_recipient_fan_in_burst",
             params={
                 "kind": "evidence",
                 "card_id": str(ctx.card_id),

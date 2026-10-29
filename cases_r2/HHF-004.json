@@ -139,7 +139,7 @@
           "3660259",
           "3660260"
         ],
-        "ref": "query:rerun_micro_drip_cohort(card_id=C12975-K2, flagged_txn_id=3660260, max_amt=6.5, min_charges=4, min_other_cards=6, min_span_days=7.0, opened_at=2017-01-26 21:09:37, quiet_days=60, window_days=30)",
+        "ref": "query:r2_micro_drip_cohort(card_id=C12975-K2, flagged_txn_id=3660260, max_amt=6.5, min_charges=4, min_other_cards=6, min_span_days=7.0, opened_at=2017-01-26 21:09:37, quiet_days=60, window_days=30)",
         "source": "graph"
       },
       {

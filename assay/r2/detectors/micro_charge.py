@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import math
 
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -371,8 +373,16 @@ class MicroDripCohort(Detector):
             return []
 
         t_open = pd.Timestamp(ctx.opened_at)
-        members, per_card_txns, params = cohort_members(
-            ctx.tx,
+        # under ASSAY_TG=1 the graph decides the cohort (r2_micro_drip_cohort, fails closed); same semantics,
+        # parity on all 18 exam cases in docs/r2/C6_tg_cohorts.md
+        on_tg = os.environ.get("ASSAY_TG") == "1"
+        if on_tg:
+            from assay.r2.tg_cohorts import micro_drip_cohort_tg as _members
+            args = ()
+        else:
+            _members, args = cohort_members, (ctx.tx,)
+        members, per_card_txns, params = _members(
+            *args,
             flagged_txn_id=int(ctx.flagged_txn_id),
             opened_at=t_open,
             max_amt=self.max_amt,
@@ -407,7 +417,7 @@ class MicroDripCohort(Detector):
                 customer_ids=cust_ids,
                 case_ids=[ctx.case_id],
             ),
-            query="rerun_micro_drip_cohort",
+            query="r2_micro_drip_cohort" if on_tg else "rerun_micro_drip_cohort",
             params={
                 "card_id": str(ctx.card_id),
                 "flagged_txn_id": int(ctx.flagged_txn_id),

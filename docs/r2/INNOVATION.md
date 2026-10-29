@@ -33,8 +33,14 @@ re-run all 177 of them ourselves (`verify_claims`): 0 mismatches, 0 unresolvable
 | Recipient fan-in | HHF-006: 12 first-time payers to `sc.rr.com` in 21 days | link only (lr 1.0) | `docs/r2/C3_cohorts.md` |
 
 Verdicts: 6 fraud, 3 uncertain, 9 legitimate, which matches the brief's "nine of the 18 cases are
-legitimate". The official grader reports 18/18 clean. TigerGraph and the local code agree on every
-ring decision and on all 18 vector fire decisions.
+legitimate". The official grader reports 18/18 clean.
+
+**The graph decides.** Under `ASSAY_TG=1` (how the shipped answers are produced), four kinds of
+decision come from installed GSQL: the ring (`r2_ring_wcc`), both cohorts (`r2_micro_drip_cohort`,
+`r2_recipient_fanin`) and the precedent vote (`similar_cases_vec`, TigerVector). Any graph error
+fails the run closed. Graph and local code return identical cohort members and transaction ids on all
+18 cases (`docs/r2/C6_tg_cohorts.md`), the same ring decisions, and the same vector fire decisions.
+The 18 answers are decision-identical either way.
 
 ## 3. Where it changes the outcome (ablation, `docs/r2/ABLATION.md`)
 - **Without `cpc`**, HHF-001 and HHF-002 go from fraud to legitimate ($4,355.73 no longer acted on).
