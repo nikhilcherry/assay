@@ -481,10 +481,21 @@ class _FakeTGResponse:
     def __init__(self, body_bytes: bytes, status: int = 200):
         self._body = body_bytes
         self.status = status
+        self.status_code = status
         self.code = status
+        self.text = body_bytes.decode("utf-8", errors="replace")
         self.headers = {{"Content-Type": "application/json"}}
     def read(self, *args, **kwargs) -> bytes:
         return self._body
+    def json(self):
+        if _MODE == "empty_dict":
+            return {{}}
+        if _MODE == "empty_list":
+            return []
+        if _MODE == "malformed_json":
+            raise ValueError("Expecting property name enclosed in double quotes")
+        import json as _json
+        return _json.loads(self.text)
     def getcode(self) -> int:
         return self.status
     def info(self):
@@ -516,6 +527,58 @@ def _patched_urlopen(req, *args, **kwargs):
     return _orig_urlopen(req, *args, **kwargs)
 
 urllib.request.urlopen = _patched_urlopen
+
+try:
+    import httpx
+
+    _orig_httpx_get = httpx.get
+    _orig_client_request = httpx.Client.request
+    _IN_HTTPX_GET = False
+
+    def _is_tg_url(url) -> bool:
+        u = str(url)
+        return (":14240" in u) or ("/query/" in u) or ("/restpp/query/" in u) or ("/restpp/" in u)
+
+    def _handle_tg_httpx(url_str: str, tag: str):
+        global _CALL_COUNT
+        _CALL_COUNT += 1
+        if _MODE == "raises" and _CALL_COUNT >= 1:
+            _mark_fired(tag + "_raises@" + str(_CALL_COUNT) + ":" + url_str)
+            raise httpx.ConnectError("Injected TigerGraph query failure")
+        if _MODE == "empty_dict" and _CALL_COUNT >= 1:
+            _mark_fired(tag + "_empty_dict@" + str(_CALL_COUNT) + ":" + url_str)
+            return _FakeTGResponse(b"{{}}")
+        if _MODE == "empty_list" and _CALL_COUNT >= 1:
+            _mark_fired(tag + "_empty_list@" + str(_CALL_COUNT) + ":" + url_str)
+            return _FakeTGResponse(b"[]")
+        if _MODE == "malformed_json" and _CALL_COUNT >= 1:
+            _mark_fired(tag + "_malformed_json@" + str(_CALL_COUNT) + ":" + url_str)
+            return _FakeTGResponse(b"{{malformed_json: [unclosed")
+        return None
+
+    def _patched_httpx_get(url, *args, **kwargs):
+        global _IN_HTTPX_GET
+        if _is_tg_url(url):
+            fake = _handle_tg_httpx(str(url), "httpx_get")
+            if fake is not None:
+                return fake
+        _IN_HTTPX_GET = True
+        try:
+            return _orig_httpx_get(url, *args, **kwargs)
+        finally:
+            _IN_HTTPX_GET = False
+
+    def _patched_client_request(self, method, url, *args, **kwargs):
+        if not _IN_HTTPX_GET and _is_tg_url(url):
+            fake = _handle_tg_httpx(str(url), "httpx_request")
+            if fake is not None:
+                return fake
+        return _orig_client_request(self, method, url, *args, **kwargs)
+
+    httpx.get = _patched_httpx_get
+    httpx.Client.request = _patched_client_request
+except ImportError:
+    pass
 """
 
 

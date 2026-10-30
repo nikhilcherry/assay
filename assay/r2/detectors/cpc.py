@@ -581,7 +581,6 @@ class CommonPointOfCompromise(Detector):
         return CommonPointOfCompromise._cached_stratified_lr or {}
 
     def run(self, ctx: CaseCtx) -> list[Finding]:
-        t0_run = time.perf_counter()
         idx = get_precomputed_index()
         opened_ns = int(pd.Timestamp(ctx.opened_at).value)
 
@@ -602,16 +601,21 @@ class CommonPointOfCompromise(Detector):
                 "cohort_size": 0,
                 "cohort_cards": [],
             }
-            if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-                print(f"\n[{ctx.case_id}] No C-online burst shape on card {ctx.card_id}; affected set size: 0 ({time.perf_counter() - t0_run:.2f}s)", flush=True)
             return []
 
         cohort_size = len(affected_cards)
         bucket = _size_bucket(cohort_size)
 
-        if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-            print(f"\n[{ctx.case_id}] Affected set size: {cohort_size} (found in {time.perf_counter() - t0_run:.2f}s)", flush=True)
-            print(f"[{ctx.case_id}] Affected cards: {affected_cards}", flush=True)
+        if cohort_size < 3 or ctx.card_id not in affected_cards:
+            CommonPointOfCompromise.last_diagnostics[ctx.case_id] = {
+                "status": "cohort_too_small",
+                "cohort_size": cohort_size,
+                "cohort_cards": affected_cards,
+                "min_allowed_size": 3,
+                "bucket_lr": 1.0,
+                "bucket_ci_low": 0.0,
+            }
+            return []
 
         strat_table = self.get_stratified_lr_table()
         bucket_stats = strat_table.get(bucket, {}) if bucket else {}
@@ -630,39 +634,12 @@ class CommonPointOfCompromise(Detector):
                 "bucket_lr": lr_val,
                 "bucket_ci_low": ci_low,
             }
-            if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-                print(
-                    f"[{ctx.case_id}] Verdict: cohort size {cohort_size} < min_allowed_size {min_allowed_size} "
-                    f"(size-3 LR={strat_table.get('3', {}).get('lr', 0.0):.2f}, 95% CI low={strat_table.get('3', {}).get('ci_low', 0.0):.2f}) -> cohort too small.",
-                    flush=True
-                )
             return []
 
         controls = fast_matched_controls(idx, affected_cards, shape['t0_ns'], rng_seed=42)
         res_60, aff_feats_60 = origin_lifts(idx, affected_cards, first_loss_ns, controls, ctx.tx, lookback_days=60)
-        res_full, _ = origin_lifts(idx, affected_cards, first_loss_ns, controls, ctx.tx, lookback_days=210)
 
         cap = idx.cap_99
-
-        if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-            print(f"[{ctx.case_id}] Stratified bucket '{bucket}': LR={lr_val:.2f} (95% CI [{ci_low:.2f}, {bucket_stats.get('ci_high', 0.0):.2f}])", flush=True)
-            print(f"[{ctx.case_id}] Cardinality 99th-pct cap: {cap:.1f}", flush=True)
-            for lead_feat in ('ProductCD_amount:R_99.93', 'ProductCD_amount:R_100.09'):
-                r60 = res_60[res_60.feature == lead_feat] if not res_60.empty else pd.DataFrame()
-                rfull = res_full[res_full.feature == lead_feat] if not res_full.empty else pd.DataFrame()
-                if not r60.empty:
-                    r = r60.iloc[0]
-                    print(f"[{ctx.case_id}] Lead test (60d) {lead_feat}: k_aff={r.k_aff}/{cohort_size}, k_ctrl={r.k_ctrl}, matched_lift={r.lift:.2f}x, fisher_p={r.pval:.2e}, cardinality={r.cardinality}", flush=True)
-                elif not rfull.empty:
-                    r = rfull.iloc[0]
-                    print(f"[{ctx.case_id}] Lead test (full-hist) {lead_feat}: k_aff={r.k_aff}/{cohort_size}, k_ctrl={r.k_ctrl}, matched_lift={r.lift:.2f}x, fisher_p={r.pval:.2e}, cardinality={r.cardinality}", flush=True)
-                else:
-                    print(f"[{ctx.case_id}] Lead test {lead_feat}: not present in cohort", flush=True)
-
-            if not res_60.empty:
-                print(f"[{ctx.case_id}] Top 5 candidate origins (60d lookback):", flush=True)
-                for _, r in res_60.head(5).iterrows():
-                    print(f"  - {r.feature}: k_aff={r.k_aff}/{cohort_size}, k_ctrl={r.k_ctrl}, lift={r.lift:.2f}x, p={r.pval:.2e}, cardinality={r.cardinality}", flush=True)
 
         min_k_origin = min(4, cohort_size) if cohort_size >= 3 else 4
         valid = pd.DataFrame()
@@ -691,8 +668,6 @@ class CommonPointOfCompromise(Detector):
                 "ci_low": ci_low,
                 "best_candidate": best_desc,
             }
-            if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-                print(f"[{ctx.case_id}] Verdict: no common origin passed matched-control test; emitting coordinated loss-shape cohort finding (LR={lr_val:.2f}, total {time.perf_counter() - t0_run:.2f}s).", flush=True)
 
             claim = Attestation(
                 what=(
@@ -705,7 +680,7 @@ class CommonPointOfCompromise(Detector):
                     card_ids=affected_cards,
                     customer_ids=[ctx.customer_id],
                 ),
-                query="cpc_loss_shape_cohort",
+                query="r2_cpc_loss_cohort" if on_tg else "cpc_loss_shape_cohort",
                 params={
                     "card_id": ctx.card_id,
                     "flagged_txn_id": int(ctx.flagged_txn_id),
@@ -741,8 +716,6 @@ class CommonPointOfCompromise(Detector):
             "ci_low": ci_low,
             "origin": best_feat,
         }
-        if ctx.case_id in ('HHF-001', 'HHF-002', 'HHF-006'):
-            print(f"[{ctx.case_id}] Verdict: common origin found -> {best_feat} (lift={best.lift:.2f}x, p={best.pval:.2e}, LR={lr_val:.2f}, total {time.perf_counter() - t0_run:.2f}s)", flush=True)
 
         claim = Attestation(
             what=(
@@ -754,7 +727,7 @@ class CommonPointOfCompromise(Detector):
                 card_ids=affected_cards,
                 customer_ids=[ctx.customer_id],
             ),
-            query="cpc_origin_search",
+            query="r2_cpc_origin_counts" if on_tg else "cpc_origin_search",
             params={
                 "card_id": ctx.card_id,
                 "flagged_txn_id": int(ctx.flagged_txn_id),
@@ -873,6 +846,55 @@ class CommonPointOfCompromise(Detector):
             CommonPointOfCompromise._cached_bt = bt
         print(f"[CPC] Backtest completed in {time.perf_counter() - t0_bt:.2f}s (n_pos={n_pos}, n_neg={n_neg}, LR={bt.lr_measured:.2f})", flush=True)
         return bt
+
+
+CPC_QUERY_NAMES = (
+    "cpc_loss_shape_cohort",
+    "r2_cpc_loss_cohort",
+    "cpc_origin_search",
+    "r2_cpc_origin_counts",
+)
+
+
+def rerun(params: dict, query: str | None = None) -> list[int]:
+    """Re-runnable attestation query entrypoint for CPC queries (`cpc_loss_shape_cohort` /
+    `r2_cpc_loss_cohort` and `cpc_origin_search` / `r2_cpc_origin_counts`).
+    """
+    q = query or params.get("query")
+    if q is not None and str(q) not in CPC_QUERY_NAMES:
+        return []
+    from assay.r2.frames import case_pack, closed_cases, tx_all
+
+    tx = tx_all()
+    cc = closed_cases()
+    card_id = str(params["card_id"])
+    flagged_txn_id = int(params["flagged_txn_id"])
+    if "as_of" in params or "opened_at" in params:
+        as_of = pd.Timestamp(params.get("as_of") or params.get("opened_at"))
+    else:
+        cp = case_pack()
+        hit = cp.loc[cp["flagged_txn_id"] == flagged_txn_id, "opened_at"]
+        if not hit.empty:
+            as_of = pd.Timestamp(hit.iat[0])
+        else:
+            t_hit = tx.loc[tx["TransactionID"] == flagged_txn_id, "t"]
+            as_of = pd.Timestamp(t_hit.iat[0]) if not t_hit.empty else pd.Timestamp.max
+
+    cust_rows = tx.loc[tx["card_id"] == card_id, "customer_id"]
+    customer_id = str(cust_rows.iat[0]) if not cust_rows.empty else ""
+    ctx = CaseCtx(
+        case_id=str(params.get("case_id", "RERUN")),
+        flagged_txn_id=flagged_txn_id,
+        card_id=card_id,
+        customer_id=customer_id,
+        opened_at=as_of,
+        tx=tx[tx["t"] <= as_of],
+        cc=cc[pd.to_datetime(cc["closed_at"]) <= as_of],
+    )
+    findings = CommonPointOfCompromise().run(ctx)
+    if not findings:
+        return []
+    return [int(x) for x in findings[0].claim.evidence.txn_ids]
 
 
 if __name__ == "__main__":

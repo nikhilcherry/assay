@@ -42,7 +42,9 @@ def test_intent_tool_and_asof(cid, tool, q):
     r, opened = _open(cid)
     out = ask.answer(cid, q)
     assert out["tool"] == tool
-    assert len(out["rows"]) <= 20 and out["total"] >= len(out["rows"])
+    # the ring panel lists every linked card up to SHOW_CARDS; other answers show SHOW rows
+    cap = ask.SHOW_CARDS if tool == "shipped_answer" else ask.SHOW
+    assert len(out["rows"]) <= cap and out["total"] >= len(out["rows"])
     assert out["attestation"]["params"] == out["params"]
     for row in out["rows"]:
         if "t" in row:

@@ -13,6 +13,7 @@ import hashlib
 import hmac
 import json
 import logging
+import math
 import os
 import secrets
 import sys
@@ -44,12 +45,17 @@ FORBIDDEN_BODY_FIELDS = {"role", "user", "username", "user_id", "token"}
 
 def route_for(action: str, exposure_usd: float) -> str:
     """Computes approval route server-side per Fraud Operations Policy Section 2."""
+    if isinstance(exposure_usd, bool):
+        raise ValueError(f"Invalid exposure_usd: {exposure_usd}")
+    val = float(exposure_usd)
+    if not (math.isfinite(val) and val >= 0.0):
+        raise ValueError(f"Invalid exposure_usd: {exposure_usd}")
     if action in AUTO_ACTIONS:
         return "auto"
     if action == "DECLINE_TRANSACTION":
         return "L1"
     if action == "BLOCK_CARD":
-        return "L1" if float(exposure_usd) <= 2500.0 else "L2"
+        return "L1" if val <= 2500.0 else "L2"
     if action in ("BLOCK_ALL_CARDS", "FILE_REPORT"):
         return "L2"
     raise ValueError(f"Unknown action: {action}")
@@ -316,16 +322,6 @@ def create_app(
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid JSON body")
 
-        # Replay / Idempotency check
-        if idempotency_key in app.state.idempotency_store:
-            stored_body, stored_response = app.state.idempotency_store[idempotency_key]
-            if stored_body == body:
-                return stored_response
-            else:
-                raise HTTPException(
-                    status_code=409, detail="Idempotency key reused with different request body"
-                )
-
         found_forbidden = FORBIDDEN_BODY_FIELDS.intersection(body.keys())
         if found_forbidden:
             logger.warning(
@@ -336,9 +332,6 @@ def create_app(
             raise HTTPException(status_code=404, detail="Proposal not found")
 
         proposal = app.state.proposals[proposal_id]
-
-        if proposal["status"] != "pending":
-            raise HTTPException(status_code=409, detail="Proposal already decided")
 
         # Rate limiting check per token for wrong-role attempts (5 per minute)
         token_hash = user.get("token_sha256", "")
@@ -378,6 +371,20 @@ def create_app(
             )
             raise HTTPException(status_code=403, detail=role_error)
 
+        # Replay / Idempotency check scoped to (proposal_id, user["token_sha256"], idempotency_key)
+        idem_scope_key = (proposal_id, token_hash, idempotency_key)
+        if idem_scope_key in app.state.idempotency_store:
+            stored_body, stored_response = app.state.idempotency_store[idem_scope_key]
+            if stored_body == body:
+                return stored_response
+            else:
+                raise HTTPException(
+                    status_code=409, detail="Idempotency key reused with different request body"
+                )
+
+        if proposal["status"] != "pending":
+            raise HTTPException(status_code=409, detail="Proposal already decided")
+
         decision = body.get("decision")
         if decision not in ("approve", "reject"):
             raise HTTPException(status_code=400, detail="Decision must be 'approve' or 'reject'")
@@ -401,7 +408,7 @@ def create_app(
         }
         app.state.ledger.append("proposal_decided", decision_data)
 
-        app.state.idempotency_store[idempotency_key] = (body, proposal)
+        app.state.idempotency_store[idem_scope_key] = (body, dict(proposal))
         return proposal
 
     @app.get("/proposals")

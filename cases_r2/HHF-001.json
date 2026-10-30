@@ -50,7 +50,7 @@
           "3660123",
           "3660124"
         ],
-        "ref": "query:cpc_loss_shape_cohort(ProductCD=C, backend=tigergraph, card_id=C05061-K1, channel=online, cohort_size_bucket=3, flagged_txn_id=3660108, lookback_days=60, max_amt=2200.0, min_amt=250.0)",
+        "ref": "query:r2_cpc_loss_cohort(ProductCD=C, backend=tigergraph, card_id=C05061-K1, channel=online, cohort_size_bucket=3, flagged_txn_id=3660108, lookback_days=60, max_amt=2200.0, min_amt=250.0)",
         "source": "graph"
       },
       {
@@ -96,7 +96,7 @@
       "CC-5571"
     ],
     "status": "closed_fraud",
-    "summary": "Undocumented on card C05061-K1: 3 transaction(s) from 2017-01-12 to 2017-01-14 totalling $2,189.02, probability 0.99. Linked to 2 other card(s) through Coordinated loss-shape cohort across 3 cards (bucket '3', measured LR=714.57, 95% CI low=68.66: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_amount:H_99.99 (lift=30.00x, p=2.52e-04, cardinali. Cardholder states they did not make this transaction and still has the card.",
+    "summary": "Undocumented on card C05061-K1: 3 transaction(s) from 2017-01-12 to 2017-01-14 totalling $2,189.02, probability 0.99. Linked to 2 other card(s) through Coordinated loss-shape cohort across 3 cards (bucket '3', measured LR=714.57, 95% CI low=68.66: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_amount:H_99.99 (lift=30.00x, p=2.52e-04, cardinality=193)). Cardholder states they did not make this transaction and still has the card.",
     "verdict": "fraud",
     "written_to_graph": true
   },
@@ -124,12 +124,12 @@
       },
       {
         "action": "MONITOR_CONNECTED_CARDS",
-        "reason": "R6: every card sharing Coordinated loss-shape cohort across 3 cards (bucket '3', measured LR=714.57, 95% CI low=68.66: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_amount:H_99.99 (lift=30.00x, p=2.52e-04, cardinali goes under monitoring (2 card(s)).",
+        "reason": "R6: every card sharing Coordinated loss-shape cohort across 3 cards (bucket '3', measured LR=714.57, 95% CI low=68.66: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_amount:H_99.99 (lift=30.00x, p=2.52e-04, cardinality=193)) goes under monitoring (2 card(s)).",
         "route": "auto"
       },
       {
         "action": "FILE_REPORT",
-        "reason": "Policy §3a: fraud is suspected and exposure $2,189.02 exceeds $1,000; activity connects to Coordinated loss-shape cohort across 3 cards (bucket '3', measured LR=714.57, 95% CI low=68.66: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_amount:H_99.99 (lift=30.00x, p=2.52e-04, cardinali; the pattern is coordinated or undocumented (R9).",
+        "reason": "Policy §3a: fraud is suspected and exposure $2,189.02 exceeds $1,000; activity connects to Coordinated loss-shape cohort across 3 cards (bucket '3', measured LR=714.57, 95% CI low=68.66: 2-3 online ProductCD C charges on novel devices with no shared device); no common origin found above matched-control threshold (best candidate: ProductCD_amount:H_99.99 (lift=30.00x, p=2.52e-04, cardinality=193)); the pattern is coordinated or undocumented (R9).",
         "route": "L2"
       },
       {

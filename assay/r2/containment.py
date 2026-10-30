@@ -231,7 +231,7 @@ def compute_card_exposure(
     else:
         susp_ids = [int(x) for x in susp_df.index.tolist()]
 
-    already_lost = float(susp_df["amount"].sum()) if "amount" in susp_df.columns else 0.0
+    already_lost = float(susp_df["amount"].abs().sum()) if "amount" in susp_df.columns else 0.0
     k_txns = len(susp_ids)
 
     # Empirical median forward multipliers derived from closed_cases()
@@ -568,7 +568,7 @@ def plan(
                 marg_gain = exposures[best_cand].forward_exposure - (
                     penalty_per_innocent * (innocences[best_cand].innocence_prob if innocences[best_cand].is_innocent else 0.0)
                 )
-                if marg_gain > 0 or len(recommended_blocked) == 0:
+                if marg_gain > 0:
                     recommended_blocked.append(best_cand)
 
                 step_set = list(recommended_blocked)

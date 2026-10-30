@@ -29,9 +29,9 @@
 | `D5:HHF-007:agent_token_approval` | HTTP 403 / proposal status=pending | HTTP 403 / status=pending | **PASS** |
 | `D5:HHF-007:role_in_request_body` | HTTP 403 + body tamper logged + status=pending | HTTP 403 + tamper_logged=True + status=pending | **PASS** |
 | `D5:HHF-007:replayed_decision_idempotency` | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | **PASS** |
-| `D6:HHF-007:same_case_twice_identical_bytes` | COMPLETE/COMPLETE & identical canonical JSON bytes | COMPLETE/COMPLETE & sha256_match=True (4407 bytes) | **PASS** |
+| `D6:HHF-007:same_case_twice_identical_bytes` | COMPLETE/COMPLETE & identical canonical JSON bytes | COMPLETE/COMPLETE & sha256_match=True (4483 bytes) | **PASS** |
 | `D7:HHF-007:exception_after_tmp_write` | OSError raised / no <case>.json / no 'saved' status | OSError / final_exists=False | **PASS** |
-| `D8:HHF-007:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed f7ff1f4f5...) | **PASS** |
+| `D8:HHF-007:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed 869d542a8...) | **PASS** |
 | `D9:HHF-007:no_external_llm_on_decision_path` | 0 network/LLM imports in investigate modules | forbidden_imports=0 | **PASS** |
 | `D9:HHF-007:local_lgbm_missing_score_fail_closed` | INCOMPLETE / DependencyDown (MissingScore) / no <case>.json | INCOMPLETE / DependencyDown / saved=False | **PASS** |
 | `D10:HHF-007:startup_data_file_missing_exit3` | exit 3 / clear FAIL CLOSED message / no <case>.json | exit=3 / saved=False | **PASS** |
@@ -59,7 +59,7 @@
 | `D5:HHF-012:replayed_decision_idempotency` | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | **PASS** |
 | `D6:HHF-012:same_case_twice_identical_bytes` | COMPLETE/COMPLETE & identical canonical JSON bytes | COMPLETE/COMPLETE & sha256_match=True (3457 bytes) | **PASS** |
 | `D7:HHF-012:exception_after_tmp_write` | OSError raised / no <case>.json / no 'saved' status | OSError / final_exists=False | **PASS** |
-| `D8:HHF-012:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed d8a3e5340...) | **PASS** |
+| `D8:HHF-012:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed 8f77c68d7...) | **PASS** |
 | `D9:HHF-012:no_external_llm_on_decision_path` | 0 network/LLM imports in investigate modules | forbidden_imports=0 | **PASS** |
 | `D9:HHF-012:local_lgbm_missing_score_fail_closed` | INCOMPLETE / DependencyDown (MissingScore) / no <case>.json | INCOMPLETE / DependencyDown / saved=False | **PASS** |
 | `D10:HHF-012:startup_data_file_missing_exit3` | exit 3 / clear FAIL CLOSED message / no <case>.json | exit=3 / saved=False | **PASS** |
@@ -85,9 +85,9 @@
 | `D5:HHF-003:agent_token_approval` | HTTP 403 / proposal status=pending | HTTP 403 / status=pending | **PASS** |
 | `D5:HHF-003:role_in_request_body` | HTTP 403 + body tamper logged + status=pending | HTTP 403 + tamper_logged=True + status=pending | **PASS** |
 | `D5:HHF-003:replayed_decision_idempotency` | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | same_key=200, mutated=409, new_key=409, ledger_decisions=1 | **PASS** |
-| `D6:HHF-003:same_case_twice_identical_bytes` | COMPLETE/COMPLETE & identical canonical JSON bytes | COMPLETE/COMPLETE & sha256_match=True (11590 bytes) | **PASS** |
+| `D6:HHF-003:same_case_twice_identical_bytes` | COMPLETE/COMPLETE & identical canonical JSON bytes | COMPLETE/COMPLETE & sha256_match=True (11723 bytes) | **PASS** |
 | `D7:HHF-003:exception_after_tmp_write` | OSError raised / no <case>.json / no 'saved' status | OSError / final_exists=False | **PASS** |
-| `D8:HHF-003:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed 5261587c0...) | **PASS** |
+| `D8:HHF-003:hash_chain_tamper_detection` | verify() valid=False with SHA256 Hash mismatch | valid=False (Hash mismatch line 0: computed 399738c2f...) | **PASS** |
 | `D9:HHF-003:no_external_llm_on_decision_path` | 0 network/LLM imports in investigate modules | forbidden_imports=0 | **PASS** |
 | `D9:HHF-003:local_lgbm_missing_score_fail_closed` | INCOMPLETE / DependencyDown (MissingScore) / no <case>.json | INCOMPLETE / DependencyDown / saved=False | **PASS** |
 | `D10:HHF-003:startup_data_file_missing_exit3` | exit 3 / clear FAIL CLOSED message / no <case>.json | exit=3 / saved=False | **PASS** |
@@ -118,9 +118,9 @@
 | D5 | approval_security | HHF-007 | agent_token_approval | **PASS** | `HTTP_403` | `HTTPException_403` | `ledger.jsonl` | No | Agent identity cannot approve decisions |
 | D5 | approval_security | HHF-007 | role_in_request_body | **PASS** | `HTTP_403` | `BodyTamperLogged_403` | `ledger.jsonl` | No | L1 role cannot approve L2 route proposals (tamper_logged=True) |
 | D5 | approval_security | HHF-007 | replayed_decision_idempotency | **PASS** | `HTTP_200_idempotent_409_conflict` | `ReplayProtected` | `ledger.jsonl` | No | same_key=200, mutated_body=409, new_key_after_decide=409, ledger_decisions=1 |
-| D6 | idempotent_rerun | HHF-007 | same_case_twice_identical_bytes | **PASS** | `COMPLETE/COMPLETE` | `None` | `HHF-007.json` | No | sha256=a4174acc26695d20... (4407 bytes identical across both runs) |
+| D6 | idempotent_rerun | HHF-007 | same_case_twice_identical_bytes | **PASS** | `COMPLETE/COMPLETE` | `None` | `HHF-007.json` | No | sha256=a73dfaaf3c80670c... (4483 bytes identical across both runs) |
 | D7 | atomic_write_kill | HHF-007 | exception_after_tmp_write | **PASS** | `ABORTED_WRITE` | `OSError` | `(none)` | No | Simulated kill/power-loss after tmp write before os.replace \| final_json_exists=False |
-| D8 | ledger_tamper | HHF-007 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed f7ff1f4f5821c852e54f1fcbe3fef7ee6ecfc68c53181b57299d5f1439f85... |
+| D8 | ledger_tamper | HHF-007 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed 869d542a8b2ab06f3db261d4f2c21bbf5f73c67c17e8e6e1e9a638dc637d7... |
 | D9 | model_provider_failure | HHF-007 | no_external_llm_on_decision_path | **PASS** | `VERIFIED_NO_EXTERNAL_MODEL` | `None` | `(none)` | No | No external LLM/network libs imported by ['assay.investigate', 'assay.r2.investigate_r2']; i... |
 | D9 | model_provider_failure | HHF-007 | local_lgbm_missing_score_fail_closed | **PASS** | `INCOMPLETE` | `DependencyDown` | `HHF-007.incomplete.json` | No | Method 'get_transaction' failed with exception: txn 3660350 has no model score (run B1: assa... |
 | D10 | data_dependency_missing | HHF-007 | startup_data_file_missing_exit3 | **PASS** | `FAILED_CLOSED` | `FileNotFoundError` | `audit.jsonl` | No | FAIL CLOSED [EXIT 3] case=HHF-007 error_type=FileNotFoundError: required data/dependency una... |
@@ -148,7 +148,7 @@
 | D5 | approval_security | HHF-012 | replayed_decision_idempotency | **PASS** | `HTTP_200_idempotent_409_conflict` | `ReplayProtected` | `ledger.jsonl` | No | same_key=200, mutated_body=409, new_key_after_decide=409, ledger_decisions=1 |
 | D6 | idempotent_rerun | HHF-012 | same_case_twice_identical_bytes | **PASS** | `COMPLETE/COMPLETE` | `None` | `HHF-012.json` | No | sha256=02b52273960c5f4c... (3457 bytes identical across both runs) |
 | D7 | atomic_write_kill | HHF-012 | exception_after_tmp_write | **PASS** | `ABORTED_WRITE` | `OSError` | `(none)` | No | Simulated kill/power-loss after tmp write before os.replace \| final_json_exists=False |
-| D8 | ledger_tamper | HHF-012 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed d8a3e5340bb35efee5d9ea7d4a1914faa9cf28336840c3c3af4d3fdba9312... |
+| D8 | ledger_tamper | HHF-012 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed 8f77c68d7f8b6512b317f0bcf47ba24599b5e9dc93c1f0c9b58828818c039... |
 | D9 | model_provider_failure | HHF-012 | no_external_llm_on_decision_path | **PASS** | `VERIFIED_NO_EXTERNAL_MODEL` | `None` | `(none)` | No | No external LLM/network libs imported by ['assay.investigate', 'assay.r2.investigate_r2']; i... |
 | D9 | model_provider_failure | HHF-012 | local_lgbm_missing_score_fail_closed | **PASS** | `INCOMPLETE` | `DependencyDown` | `HHF-012.incomplete.json` | No | Method 'get_transaction' failed with exception: txn 3655457 has no model score (run B1: assa... |
 | D10 | data_dependency_missing | HHF-012 | startup_data_file_missing_exit3 | **PASS** | `FAILED_CLOSED` | `FileNotFoundError` | `audit.jsonl` | No | FAIL CLOSED [EXIT 3] case=HHF-012 error_type=FileNotFoundError: required data/dependency una... |
@@ -174,9 +174,9 @@
 | D5 | approval_security | HHF-003 | agent_token_approval | **PASS** | `HTTP_403` | `HTTPException_403` | `ledger.jsonl` | No | Agent identity cannot approve decisions |
 | D5 | approval_security | HHF-003 | role_in_request_body | **PASS** | `HTTP_403` | `BodyTamperLogged_403` | `ledger.jsonl` | No | L1 role cannot approve L2 route proposals (tamper_logged=True) |
 | D5 | approval_security | HHF-003 | replayed_decision_idempotency | **PASS** | `HTTP_200_idempotent_409_conflict` | `ReplayProtected` | `ledger.jsonl` | No | same_key=200, mutated_body=409, new_key_after_decide=409, ledger_decisions=1 |
-| D6 | idempotent_rerun | HHF-003 | same_case_twice_identical_bytes | **PASS** | `COMPLETE/COMPLETE` | `None` | `HHF-003.json` | No | sha256=e169fa6880eed031... (11590 bytes identical across both runs) |
+| D6 | idempotent_rerun | HHF-003 | same_case_twice_identical_bytes | **PASS** | `COMPLETE/COMPLETE` | `None` | `HHF-003.json` | No | sha256=481b599a223ca771... (11723 bytes identical across both runs) |
 | D7 | atomic_write_kill | HHF-003 | exception_after_tmp_write | **PASS** | `ABORTED_WRITE` | `OSError` | `(none)` | No | Simulated kill/power-loss after tmp write before os.replace \| final_json_exists=False |
-| D8 | ledger_tamper | HHF-003 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed 5261587c08fab00ed5525d57f5d3865bbe82b0194bb9cff928a8a7d71dbbe... |
+| D8 | ledger_tamper | HHF-003 | hash_chain_tamper_detection | **PASS** | `TAMPER_DETECTED` | `LedgerIntegrityError` | `ledger.jsonl` | No | Hash mismatch line 0: computed 399738c2f3884e1ea45ea91003be3aaed2062977c6daf8b92c4196b8a4e21... |
 | D9 | model_provider_failure | HHF-003 | no_external_llm_on_decision_path | **PASS** | `VERIFIED_NO_EXTERNAL_MODEL` | `None` | `(none)` | No | No external LLM/network libs imported by ['assay.investigate', 'assay.r2.investigate_r2']; i... |
 | D9 | model_provider_failure | HHF-003 | local_lgbm_missing_score_fail_closed | **PASS** | `INCOMPLETE` | `DependencyDown` | `HHF-003.incomplete.json` | No | Method 'get_transaction' failed with exception: txn 3660153 has no model score (run B1: assa... |
 | D10 | data_dependency_missing | HHF-003 | startup_data_file_missing_exit3 | **PASS** | `FAILED_CLOSED` | `FileNotFoundError` | `audit.jsonl` | No | FAIL CLOSED [EXIT 3] case=HHF-003 error_type=FileNotFoundError: required data/dependency una... |

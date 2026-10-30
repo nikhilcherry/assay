@@ -461,7 +461,7 @@
       "CC-3035"
     ],
     "status": "closed_fraud",
-    "summary": "Undocumented on card C00348-K1: 6 transaction(s) from 2017-01-07 to 2017-01-28 totalling $23.17, probability 0.96. Linked to 31 other card(s) through Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov .",
+    "summary": "Undocumented on card C00348-K1: 6 transaction(s) from 2017-01-07 to 2017-01-28 totalling $23.17, probability 0.96. Linked to 31 other card(s) through Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-28 23:45:16 (total cohort txns=104, measured lr=1.00).",
     "verdict": "fraud",
     "written_to_graph": true
   },
@@ -482,12 +482,12 @@
       },
       {
         "action": "MONITOR_CONNECTED_CARDS",
-        "reason": "R6: every card sharing Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov  goes under monitoring (31 card(s)).",
+        "reason": "R6: every card sharing Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-28 23:45:16 (total cohort txns=104, measured lr=1.00) goes under monitoring (31 card(s)).",
         "route": "auto"
       },
       {
         "action": "FILE_REPORT",
-        "reason": "Policy §3a: fraud is suspected and activity connects to Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov ; the pattern is coordinated or undocumented (R9).",
+        "reason": "Policy §3a: fraud is suspected and activity connects to Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-28 23:45:16 (total cohort txns=104, measured lr=1.00); the pattern is coordinated or undocumented (R9).",
         "route": "L2"
       },
       {
@@ -509,12 +509,12 @@
       },
       {
         "action": "MONITOR_CONNECTED_CARDS",
-        "reason": "R6: every card sharing Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov  goes under monitoring (31 card(s)).",
+        "reason": "R6: every card sharing Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-28 23:45:16 (total cohort txns=104, measured lr=1.00) goes under monitoring (31 card(s)).",
         "route": "auto"
       },
       {
         "action": "FILE_REPORT",
-        "reason": "Policy §3a: fraud is suspected and activity connects to Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov ; the pattern is coordinated or undocumented (R9).",
+        "reason": "Policy §3a: fraud is suspected and activity connects to Card C00348-K1 is in wcc ring RING-WCC-c4e13e20 containing 12 cards ($29,568.99 vol, 7 prior fraud members); Coordinated sub-threshold micro-drip cohort on card C00348-K1: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 20 other card(s) (21 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-28 23:45:16 (total cohort txns=104, measured lr=1.00); the pattern is coordinated or undocumented (R9).",
         "route": "L2"
       },
       {

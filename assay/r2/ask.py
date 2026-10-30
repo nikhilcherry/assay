@@ -33,6 +33,7 @@ ASK_MODEL = os.environ.get("ASSAY_ASK_MODEL", "gemini-3.5-flash")
 ASK_TIMEOUT_S = 8.0
 _POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ask-gemini")
 SHOW = 20
+SHOW_CARDS = 50
 ROW_CAP = 500
 ANSWERS_DIR = Path(__file__).resolve().parents[2] / "cases_r2"
 CASE_ID_RE = re.compile(r"^HHF-\d{3}$")
@@ -217,48 +218,67 @@ def _answer_one(case_id: str, intent: str) -> Dict[str, Any]:
     opened = pd.Timestamp(row["opened_at"])
     srv, store = _srv(), _srv().store
     tx = tx_all()
+    flagged_sub = tx[(tx.TransactionID == txn) & (tx.t <= opened)]
+    actual_card = str(flagged_sub.iloc[0].card_id) if len(flagged_sub) else card
+    card_mismatch = actual_card != card
+    mismatch_note = (
+        f" Note: case row lists card {card}, but flagged transaction {txn} is recorded on {actual_card} "
+        f"(card_id mismatch: {card} vs {actual_card})."
+        if card_mismatch else ""
+    )
 
-    def done(tool, params, rows, total, text, query=None):
-        return {"intent": intent, "tool": tool, "params": params, "rows": rows[:SHOW], "total": total,
+    def done(tool, params, rows, total, text, query=None, limit=SHOW):
+        return {"intent": intent, "tool": tool, "params": params, "rows": rows[:limit], "total": total,
                 "answer": text, "attestation": {"query": query or tool, "params": params}}
 
     if intent == "get_transaction":
         params = {"txn_id": txn}
         srv._validate_args("get_transaction", params)
-        sub = tx[(tx.TransactionID == txn) & (tx.t <= opened)]
+        sub = flagged_sub
         rows = _tx_rows(sub)
-        text = (f"Flagged transaction {txn} is {_fmt(float(sub.iloc[0].amount))} on {card} at {rows[0]['t']}."
-                if len(sub) else f"Transaction {txn} is not visible as of {opened}.")
+        if len(sub):
+            text = f"Flagged transaction {txn} is {_fmt(float(sub.iloc[0].amount))} on {actual_card} at {rows[0]['t']}.{mismatch_note}"
+        else:
+            text = f"Transaction {txn} is not visible as of {opened}."
         return done("get_transaction", params, rows, len(sub), text)
 
     if intent == "card_history":
         params = {"card_id": card, "start": str(opened - pd.Timedelta(days=120)), "end": str(opened)}
         res = srv.call_tool("card_window", dict(params))
         recs = [r for r in res["transactions"] if pd.Timestamp(r["t"]) <= opened]
+        used_card = card
+        if not recs and card_mismatch:
+            used_card = actual_card
+            params = {"card_id": actual_card, "start": str(opened - pd.Timedelta(days=120)), "end": str(opened)}
+            res = srv.call_tool("card_window", dict(params))
+            recs = [r for r in res["transactions"] if pd.Timestamp(r["t"]) <= opened]
         am = pd.Series([r["amount"] for r in recs], dtype=float)
         recs.sort(key=lambda r: r["t"])
         rows = [{k: _s(r.get(k)) for k in _TX_COLS} for r in recs[-10:]]
         if len(am):
-            text = (f"{card} has {len(am)} transactions in the 120 days to opening: median {_fmt(am.median())}, "
-                    f"95th percentile {_fmt(am.quantile(0.95))}; last {len(rows)} shown.")
+            text = (f"{used_card} has {len(am)} transactions in the 120 days to opening: median {_fmt(am.median())}, "
+                    f"95th percentile {_fmt(am.quantile(0.95))}; last {len(rows)} shown.{mismatch_note}")
         else:
-            text = f"{card} has no transactions in the 120 days before opening."
+            text = f"{used_card} has no transactions in the 120 days before opening.{mismatch_note}"
         return done("card_window", params, rows, len(recs), text)
 
     if intent == "device_neighbors":
-        params = {"card_id": card}
+        q_card = actual_card if card_mismatch else card
+        params = {"card_id": q_card}
         srv._validate_args("device_neighbors", params)
         flagged = tx[tx.TransactionID == txn]
         prof = flagged.iloc[0].device_profile if len(flagged) else None
         if prof is None or pd.isna(prof) or not str(prof).strip():
-            return done("device_neighbors", params, [], 0, "The flagged transaction has no device profile, so no device neighbours can be found.")
-        df, _ = store.device_neighbors(card)
-        df = df[(df.device_profile == prof) & (df.card_id != card) & (df.t <= opened)
+            return done("device_neighbors", params, [], 0,
+                        f"The flagged transaction has no device profile, so no device neighbours can be found.{mismatch_note}")
+        df, _ = store.device_neighbors(q_card)
+        df = df[(df.device_profile == prof) & (df.card_id != q_card) & (df.t <= opened)
                 & (df.t >= opened - pd.Timedelta(days=30))].sort_values("t").tail(ROW_CAP)
         cards = sorted(set(df.card_id))
         params2 = dict(params, as_of=str(opened), days=30, device_profile=str(prof)[:60])
-        text = (f"{len(cards)} other card(s) used the flagged device profile in the 30 days to opening "
-                f"({len(df)} transactions)." if len(df) else "No other cards used the flagged device in the 30 days to opening.")
+        text = ((f"{len(cards)} other card(s) used the flagged device profile in the 30 days to opening "
+                 f"({len(df)} transactions)." if len(df) else "No other cards used the flagged device in the 30 days to opening.")
+                + mismatch_note)
         return done("device_neighbors", params2, _tx_rows(df), len(df), text)
 
     if intent == "holder_history":
@@ -266,8 +286,13 @@ def _answer_one(case_id: str, intent: str) -> Dict[str, Any]:
         srv._validate_args("holder_history", params)
         df, _ = store.holder_history(card)
         df = df[df.t <= opened].sort_values("t").tail(ROW_CAP)
+        if df.empty and card_mismatch:
+            params = {"card_id": actual_card}
+            srv._validate_args("holder_history", params)
+            df, _ = store.holder_history(actual_card)
+            df = df[df.t <= opened].sort_values("t").tail(ROW_CAP)
         cards = sorted(set(df.card_id))
-        text = f"The holder has {len(df)} transactions across {len(cards)} card(s) up to opening: {', '.join(cards[:6])}."
+        text = f"The holder has {len(df)} transactions across {len(cards)} card(s) up to opening: {', '.join(cards[:6])}.{mismatch_note}"
         return done("holder_history", dict(params, as_of=str(opened)), _tx_rows(df.tail(SHOW)), len(df), text)
 
     if intent == "prior_cases":
@@ -275,11 +300,18 @@ def _answer_one(case_id: str, intent: str) -> Dict[str, Any]:
         srv._validate_args("prior_cases", params)
         df, _ = store.prior_cases(card)
         df = df[pd.to_datetime(df.closed_at) <= opened]
+        used_card = card
+        if df.empty and card_mismatch:
+            used_card = actual_card
+            params = {"card_id": actual_card}
+            srv._validate_args("prior_cases", params)
+            df, _ = store.prior_cases(actual_card)
+            df = df[pd.to_datetime(df.closed_at) <= opened]
         rows = [{k: _s(r.get(k), 80) for k in ("case_id", "card_id", "closed_at", "outcome", "pattern", "n_txns")}
                 for r in _clean_data(df)]
-        text = (f"{len(rows)} case(s) closed before opening touch {card}; outcomes: "
-                + (", ".join(sorted({str(r.get('outcome')) for r in rows})) or "none") + ".") if rows else \
-            f"No cases closed before opening touch {card}."
+        text = ((f"{len(rows)} case(s) closed before opening touch {used_card}; outcomes: "
+                 + (", ".join(sorted({str(r.get('outcome')) for r in rows})) or "none") + ".") if rows else
+                f"No cases closed before opening touch {used_card}.") + mismatch_note
         return done("prior_cases", dict(params, as_of=str(opened)), rows, len(rows), text)
 
     # ring: read-only from the shipped answer file
@@ -289,10 +321,15 @@ def _answer_one(case_id: str, intent: str) -> Dict[str, Any]:
         return done("shipped_answer", params, [], 0, "No shipped answer file for this case.")
     case = json.loads(p.read_text()).get("case", {})
     conn = [str(c) for c in case.get("connected_card_ids", []) if CARD_RE.fullmatch(str(c))]
-    refs = [str(e.get("ref", ""))[:120] for e in case.get("evidence", []) if isinstance(e, dict)]
-    rows = [{"connected_card": c} for c in conn] + [{"evidence_ref": r} for r in refs]
-    text = f"The shipped answer links {len(conn)} card(s) and cites {len(refs)} evidence reference(s)."
-    return done("shipped_answer", params, rows, len(rows), text)
+    refs = [str(e.get("ref", ""))[:120] for e in case.get("evidence", []) if isinstance(e, dict) and e.get("ref")]
+    rows = [{"index": i + 1, "connected_card_id": c} for i, c in enumerate(conn)]
+    refs_str = "; ".join(refs) if refs else "none"
+    text = (
+        f"The shipped answer links {len(conn)} connected card(s)"
+        + (f" ({', '.join(conn)})" if conn else "")
+        + f" and cites {len(refs)} evidence reference(s) ({refs_str}).{mismatch_note}"
+    )
+    return done("shipped_answer", params, rows, len(rows), text, limit=SHOW_CARDS)
 
 
 CARD_RE = re.compile(r"^C\d{5}-K\d+$")

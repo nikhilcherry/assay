@@ -873,7 +873,9 @@ def execute_query_ref(
         detector_map: dict[str, list[str]] = {
             "cpc_bleed_cohort": ["cpc"],
             "cpc_loss_shape_cohort": ["cpc"],
+            "r2_cpc_loss_cohort": ["cpc"],
             "cpc_origin_search": ["cpc"],
+            "r2_cpc_origin_counts": ["cpc"],
             "rerun_micro_drip_cohort": ["micro_drip_cohort"],
             "similar_cases_vec": ["vector_precedent"],
             "r2_micro_drip_cohort": ["micro_drip_cohort"],

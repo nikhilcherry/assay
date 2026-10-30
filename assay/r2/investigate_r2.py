@@ -81,17 +81,44 @@ class R2Investigator(Investigator):
             # Nor may it claim any other typology: an unsettled case has not established a pattern
             # (the summary keeps the classifier's reading for the analyst).
             if c["pattern"] != "none":
+                old_prefix = f"{c['pattern'].replace('_', ' ').capitalize()} on card"
                 c["pattern"], c["pattern_description"] = "none", ""
-                c["summary"] = c["summary"].replace("Undocumented on card", "Unresolved activity on card", 1)
+                for pfx in (
+                    old_prefix,
+                    "Undocumented on card",
+                    "Out of region use on card",
+                    "Account takeover on card",
+                    "Card testing on card",
+                    "Card not present fraud on card",
+                    "Card not present new device on card",
+                    "Device ring on card",
+                ):
+                    c["summary"] = c["summary"].replace(pfx, "Uncertain activity on card", 1)
+            if c["pattern"] == "none":
+                c["evidence"] = [
+                    ev for ev in c["evidence"]
+                    if not str(ev.get("ref", "")).startswith("document:brief#known-fraud-patterns/")
+                ]
             linked = sorted({x for fd in self._multi for x in fd.connected_card_ids})
             if linked and not c["connected_card_ids"]:
                 # the cards the analyst is asked to monitor are named, not just counted
                 c["connected_card_ids"] = linked
             if linked and not any(a["action"] == "MONITOR_CONNECTED_CARDS" for a in nba["final"]):
-                nba["final"].insert(0, {"action": "MONITOR_CONNECTED_CARDS", "route": "auto",
-                                        "reason": f"Linked by {', '.join(sorted({fd.detector for fd in self._multi}))} "
-                                                  f"to {len(linked)} card(s); monitoring costs the customers nothing "
-                                                  "while an analyst decides."})
+                mon_act = {
+                    "action": "MONITOR_CONNECTED_CARDS",
+                    "route": "auto",
+                    "reason": f"Linked by {', '.join(sorted({fd.detector for fd in self._multi}))} "
+                              f"to {len(linked)} card(s); monitoring costs the customers nothing "
+                              "while an analyst decides.",
+                }
+                nba["final"].insert(0, dict(mon_act))
+                if not any(a["action"] == "MONITOR_CONNECTED_CARDS" for a in nba["initial"]):
+                    if not ans.get("evidence_requests"):
+                        nba["initial"].insert(0, dict(mon_act))
+                    elif "MONITOR_CONNECTED_CARDS" not in nba.get("what_changed", ""):
+                        nba["what_changed"] = (
+                            nba.get("what_changed", "").rstrip(".") + "; added MONITOR_CONNECTED_CARDS."
+                        )
         return ans
 
     def _episode(self, f, card_win, scenario, ring):
@@ -111,7 +138,11 @@ class R2Investigator(Investigator):
             ep.txns = jan
         if self._multi and not ep.connected_cards:
             ep.connected_cards = sorted({x for fd in self._multi for x in fd.connected_card_ids})
-            ep.shared_origin = "; ".join(fd.claim.what for fd in self._multi)[:300]
+            raw_origin = "; ".join(fd.claim.what.rstrip(".") for fd in self._multi)
+            if len(raw_origin) > 500:
+                cut = raw_origin[:500]
+                raw_origin = (cut.rsplit("; ", 1)[0] if "; " in cut else cut.rsplit(" ", 1)[0]).rstrip(" ,;.")
+            ep.shared_origin = raw_origin
         return ep
 
     def evidence_conflict(self) -> bool:

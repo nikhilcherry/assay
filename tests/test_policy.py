@@ -380,14 +380,16 @@ def test_sar_and_file_report_always_agree():
 # §6 Stopping
 # --------------------------------------------------------------------------
 
-@pytest.mark.parametrize("p,n,expect", [
-    (0.90, 2, "at or above 0.85"),
-    (0.10, 2, "at or below 0.15"),
-    (0.90, 1, "exhausted"),   # high probability on one signal is not enough to stop
-    (0.50, 5, "exhausted"),
+@pytest.mark.parametrize("p,n,verdict,expect", [
+    (0.90, 2, Verdict.UNCERTAIN, "at or above 0.85"),
+    (0.10, 2, Verdict.LEGITIMATE, "at or below 0.15"),
+    # low probability but still uncertain: the reason must not read as a clearance
+    (0.10, 2, Verdict.UNCERTAIN, "prevents clearing"),
+    (0.90, 1, Verdict.UNCERTAIN, "exhausted"),   # high probability on one signal is not enough to stop
+    (0.50, 5, Verdict.UNCERTAIN, "exhausted"),
 ])
-def test_stop_reason_states_which_condition_was_met(p, n, expect):
-    s = Signals(fraud_probability=p, verdict=Verdict.UNCERTAIN, independent_evidence_count=n)
+def test_stop_reason_states_which_condition_was_met(p, n, verdict, expect):
+    s = Signals(fraud_probability=p, verdict=verdict, independent_evidence_count=n)
     assert expect in stop_reason(s)
 
 

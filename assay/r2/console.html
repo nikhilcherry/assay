@@ -1447,6 +1447,32 @@
     document.getElementById("btn-instant").disabled = false;
     document.getElementById("btn-verify").disabled = false;
     document.getElementById("verify-body").style.display = "none";
+    document.getElementById("fail-closed-container").style.display = "none";
+    document.getElementById("fail-closed-container").innerHTML = "";
+    LAST_RUN_DATA = null;
+    CF_OFF_STEPS.clear();
+
+    document.getElementById("out-verdict").textContent = "—";
+    document.getElementById("out-verdict").className = "metric-value";
+    document.getElementById("out-pattern").textContent = "—";
+    document.getElementById("out-pattern").title = "";
+    document.getElementById("out-exposure").textContent = "—";
+    const sarEl = document.getElementById("out-sar");
+    sarEl.textContent = "—";
+    sarEl.style.color = "var(--ink-3)";
+    document.getElementById("verdict-telemetry").textContent = "Awaiting run · 0 LLM tokens on decision path";
+    document.getElementById("ring-link").style.display = "none";
+    document.getElementById("out-elapsed").textContent = "";
+    document.getElementById("actions-list").innerHTML =
+      `<div style="color:var(--ink-3); font-family:var(--font-mono); font-size:11.5px;">Run a case to compute policy routes (auto / L1 / L2 awaiting approval).</div>`;
+    document.getElementById("sar-box").style.display = "none";
+    document.getElementById("sar-narrative").textContent = "";
+    document.getElementById("calls-list").innerHTML = "";
+    document.getElementById("ledger-list").innerHTML = "";
+    document.getElementById("calls-counter").textContent = "0 calls";
+    document.getElementById("ledger-counter").textContent = "0 findings";
+    document.getElementById("needle-readout").textContent = "--";
+    document.getElementById("needle-marker").style.opacity = "0";
 
     const bankP = bankScore !== null && bankScore !== undefined ? Number(bankScore) : null;
     drawLogitScale({ bankRisk: bankP, priorP: null, currentP: null, bridges: [], ghostP: null });
@@ -1600,7 +1626,9 @@
     const fallbackBank = c ? (c.risk_score !== null && c.risk_score !== undefined ? c.risk_score : c.tx_risk_score) : null;
     const bankRisk = extra.bankRisk !== undefined ? extra.bankRisk : (LAST_RUN_DATA?.visual?.bank_risk ?? fallbackBank);
     const priorP = extra.priorP !== undefined ? extra.priorP : (LAST_RUN_DATA?.prior_probability ?? p);
-    const bridges = extra.bridges !== undefined ? extra.bridges : buildBridgesFromLedger(LAST_RUN_DATA?.ledger || [], p);
+    const bridges = extra.bridges !== undefined
+      ? extra.bridges
+      : buildBridgesFromLedger(LAST_RUN_DATA?.ledger || [], p, extra.upToStep ?? null);
 
     drawLogitScale({
       bankRisk,
@@ -1611,15 +1639,30 @@
     });
   }
 
-  function buildBridgesFromLedger(ledger, upToP) {
+  function buildBridgesFromLedger(ledger, upToP, upToStep = null) {
     const bridges = [];
     if (!ledger || !ledger.length) return bridges;
+    let maxStep = upToStep;
+    if (maxStep === null && typeof upToP === "number") {
+      if (Number.isInteger(upToP) && upToP >= 1) {
+        maxStep = upToP;
+      } else {
+        for (let i = 0; i < ledger.length; i++) {
+          if (Math.abs(Number(ledger[i].probability_after) - upToP) < 1e-4) {
+            maxStep = ledger[i].step ?? (i + 1);
+            break;
+          }
+        }
+      }
+    }
     let prevP = ledger[0].probability_after;
     for (let i = 1; i < ledger.length; i++) {
       const item = ledger[i];
+      const stepNum = item.step ?? (i + 1);
+      if (maxStep !== null && maxStep !== undefined && stepNum > maxStep) break;
       if (item.lr && Math.abs(Number(item.lr) - 1.0) > 1e-4) {
         bridges.push({
-          step: item.step,
+          step: stepNum,
           lr: Number(item.lr),
           fromP: prevP,
           toP: item.probability_after,
@@ -1817,7 +1860,9 @@
 
       // Bottom strip: Precedent cases & Graph write-back
       const simText = (topo.similar_cases || []).length ? `Precedent: ${topo.similar_cases.join(", ")}` : "Precedent: none";
-      const wbText = topo.graph_case_id ? `Graph write-back: FraudCase ${topo.graph_case_id}` : "Not written to FraudCase";
+      const wbText = topo.graph_case_id
+        ? (verdict === "fraud" ? `Graph write-back: FraudCase: ${topo.graph_case_id}` : `Graph write-back: Case vertex: ${topo.graph_case_id}`)
+        : "Not written to FraudCase";
       s += `
         <line x1="12" y1="162" x2="458" y2="162" stroke="#242f3b" stroke-width="1" />
         <text x="14" y="176" fill="#a7b4c2" font-family="JetBrains Mono, monospace" font-size="8.8">${escapeHtml(simText)}</text>
@@ -1848,7 +1893,9 @@
       });
 
       const simText = (topo.similar_cases || []).length ? `Precedent: ${topo.similar_cases.join(", ")}` : "Multi-card rings: 0";
-      const wbText = topo.graph_case_id ? `FraudCase: ${topo.graph_case_id}` : "No FraudCase write-back (cleared)";
+      const wbText = topo.graph_case_id
+        ? (verdict === "fraud" ? `FraudCase: ${topo.graph_case_id}` : `Case vertex: ${topo.graph_case_id}`)
+        : "No FraudCase write-back (cleared)";
       s += `
         <text x="14" y="172" fill="#6c7a89" font-family="JetBrains Mono, monospace" font-size="8.8">${escapeHtml(simText)}</text>
         <text x="456" y="172" fill="#a7b4c2" font-family="JetBrains Mono, monospace" font-size="8.8" text-anchor="end">${escapeHtml(wbText)}</text>
@@ -1910,15 +1957,59 @@
     const paramsStr = Object.entries(call.params || {})
       .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
       .join(", ");
+    const hashLine = call.hash
+      ? `<div class="step-params" style="margin-top:2px; color:var(--legit); font-size:10px;">` +
+        `prev_hash ${escapeHtml(String(call.prev_hash || "").slice(0, 12))}&hellip; &rarr; hash ${escapeHtml(String(call.hash).slice(0, 12))}&hellip;` +
+        (call.result_digest ? ` &middot; result_digest=${escapeHtml(String(call.result_digest).slice(0, 12))}&hellip;` : "") +
+        `</div>`
+      : "";
     div.innerHTML = `
       <div class="step-top">
         <span class="step-name">#${call.step} ${escapeHtml(call.name)}</span>
         <span class="step-badge">${call.row_count} row${call.row_count === 1 ? "" : "s"}</span>
       </div>
       <div class="step-params">(${escapeHtml(paramsStr)})</div>
+      ${hashLine}
     `;
     list.appendChild(div);
     document.getElementById("calls-counter").textContent = `${totalSoFar} calls`;
+  }
+
+  function renderAuditChain(audit) {
+    if (!audit || !Array.isArray(audit.entries)) return;
+    const list = document.getElementById("calls-list");
+    const existing = document.getElementById("audit-chain-banner");
+    if (existing) existing.remove();
+
+    const validStr = audit.valid ? "VALID" : "INVALID";
+    const col = audit.valid ? "var(--legit)" : "var(--fraud)";
+    const bg = audit.valid ? "var(--legit-soft)" : "var(--fraud-soft)";
+    const wrapper = document.createElement("div");
+    wrapper.id = "audit-chain-banner";
+    wrapper.className = "step-item";
+    wrapper.style.borderColor = col;
+    wrapper.style.background = bg;
+
+    const rowsHtml = audit.entries.map((e, i) => {
+      const label = e.event_type === "tool_call" ? `${e.event_type}:${e.name}` : e.event_type;
+      const dig = e.result_digest ? ` · result_digest=${String(e.result_digest).slice(0, 12)}…` : "";
+      return `<div style="padding:2px 0; border-bottom:1px solid var(--rule); font-family:var(--font-mono); font-size:10px; color:var(--ink-2);">` +
+        `<b>[${i + 1}] ${escapeHtml(label)}</b>${escapeHtml(dig)}<br/>` +
+        `<span style="color:var(--ink-3);">${escapeHtml(String(e.prev_hash || "").slice(0, 16))}… &rarr; ${escapeHtml(String(e.hash || "").slice(0, 16))}…</span>` +
+        `</div>`;
+    }).join("");
+
+    wrapper.innerHTML = `
+      <div class="step-top" style="margin-bottom:2px;">
+        <span style="color:${col}; font-weight:800; font-size:11px;">SHA-256 Audit Chain: ${validStr} &middot; ${audit.entries.length} entries</span>
+        <span class="step-badge" style="color:${col}; border-color:${col};">audit.verify()=${String(Boolean(audit.valid))}</span>
+      </div>
+      <details style="margin-top:3px;">
+        <summary style="cursor:pointer; font-family:var(--font-mono); font-size:10.5px; color:var(--ink-2);">Inspect prev_hash &rarr; hash chain (${audit.entries.length} records)</summary>
+        <div style="margin-top:4px; max-height:160px; overflow-y:auto;">${rowsHtml}</div>
+      </details>
+    `;
+    list.prepend(wrapper);
   }
 
   function appendLedgerStep(item, totalSoFar) {
@@ -1967,7 +2058,7 @@
       list.appendChild(div);
     }
     document.getElementById("ledger-counter").textContent = `${totalSoFar} findings`;
-    setNeedle(item.probability_after, `Step ${item.step}`);
+    setNeedle(item.probability_after, `Step ${item.step}`, { upToStep: item.step });
   }
 
   function toggleCounterfactualStep(stepNum, rowEl) {
@@ -1993,7 +2084,7 @@
     const ledger = LAST_RUN_DATA.ledger || [];
     if (CF_OFF_STEPS.size === 0) {
       whatifEl.innerHTML = `▬ Brass = Bank score (${fmtP(LAST_RUN_DATA.visual?.bank_risk)}) · ○ Prior = ${fmtP(LAST_RUN_DATA.prior_probability)} · ▼ Posterior = <b>${fmtP(LAST_RUN_DATA.fraud_probability)}</b> · Click any ×LR finding below for counterfactual`;
-      setNeedle(LAST_RUN_DATA.fraud_probability, `Verdict: ${LAST_RUN_DATA.verdict}`, { ghostP: null });
+      setNeedle(LAST_RUN_DATA.fraud_probability, `Verdict: ${LAST_RUN_DATA.verdict}`, { ghostP: null, upToStep: ledger.length });
       return;
     }
 
@@ -2015,10 +2106,13 @@
       ? "still clears 0.85 ACT gate"
       : (cfP <= 0.15 ? "lands inside ≤0.15 CLEAR gate" : "drops into 0.15–0.85 UNCERTAIN band");
     whatifEl.innerHTML = `Counterfactual without <b>${escapeHtml(droppedLabels.join(" + "))}</b>: ghost <b>p = ${fmtP(cfP)}</b> (vs ${fmtP(LAST_RUN_DATA.fraud_probability)}) — ${gateNote}`;
-    setNeedle(LAST_RUN_DATA.fraud_probability, `Verdict: ${LAST_RUN_DATA.verdict}`, { ghostP: cfP });
+    setNeedle(LAST_RUN_DATA.fraud_probability, `Verdict: ${LAST_RUN_DATA.verdict}`, { ghostP: cfP, upToStep: ledger.length });
   }
 
   function renderFinalOutcome(data) {
+    if (data.audit) {
+      renderAuditChain(data.audit);
+    }
     if (data.fail_closed || !data.ok) {
       const fc = document.getElementById("fail-closed-container");
       fc.style.display = "block";
@@ -2035,6 +2129,21 @@
       document.getElementById("needle-readout").textContent = "HALTED · no verdict";
       document.getElementById("out-verdict").textContent = "HALTED";
       document.getElementById("out-verdict").className = "metric-value verdict-fraud";
+      document.getElementById("out-pattern").textContent = "—";
+      document.getElementById("out-pattern").title = "";
+      document.getElementById("out-exposure").textContent = "—";
+      const sarEl = document.getElementById("out-sar");
+      sarEl.textContent = "—";
+      sarEl.style.color = "var(--ink-3)";
+      document.getElementById("verdict-telemetry").textContent =
+        `Fail-closed after ${data.calls ? data.calls.length : 0} queries · no verdict emitted`;
+      document.getElementById("ring-link").style.display = "none";
+      document.getElementById("out-elapsed").textContent = data.elapsed_ms ? `${data.elapsed_ms} ms` : "";
+      document.getElementById("actions-list").innerHTML = "";
+      document.getElementById("sar-box").style.display = "none";
+      document.getElementById("sar-narrative").textContent = "";
+      document.getElementById("pulse-svg").innerHTML = "";
+      document.getElementById("topo-svg").innerHTML = "";
       drawLogitScale({ bankRisk: null, priorP: null, currentP: null, bridges: [], ghostP: null });
       return;
     }
@@ -2074,7 +2183,7 @@
       `${affCount} affected txn(s) · ${connCount} linked card(s) · ${data.calls ? data.calls.length : 0} queries · ${data.elapsed_ms} ms`;
 
     document.getElementById("out-elapsed").textContent = `${data.elapsed_ms} ms`;
-    setNeedle(data.fraud_probability, `Verdict: ${data.verdict}`);
+    setNeedle(data.fraud_probability, `Verdict: ${data.verdict}`, { upToStep: (data.ledger || []).length });
     updateCounterfactualView();
 
     if (data.visual) {

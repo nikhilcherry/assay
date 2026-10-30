@@ -147,7 +147,7 @@ def _parse_ts(ts_val: Any) -> datetime:
     if isinstance(ts_val, datetime):
         dt = ts_val
     else:
-        ts_str = str(ts_val).replace("Z", "+00:00")
+        ts_str = str(ts_val).strip().replace("Z", "+00:00")
         if "T" not in ts_str and " " in ts_str:
             ts_str = ts_str.replace(" ", "T")
         try:
@@ -179,15 +179,21 @@ class CaseStore:
 
     def __init__(self, db_path: str = "cases.db"):
         self.db_path = db_path
+        self._mem_conn: Optional[sqlite3.Connection] = None
         self._init_db()
 
     def _get_conn(self) -> sqlite3.Connection:
+        if str(self.db_path) == ":memory:":
+            if self._mem_conn is None:
+                self._mem_conn = sqlite3.connect(":memory:")
+                self._mem_conn.row_factory = sqlite3.Row
+            return self._mem_conn
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
 
     def _init_db(self) -> None:
-        if self.db_path != ":memory:":
+        if str(self.db_path) != ":memory:":
             Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         with self._get_conn() as conn:
             conn.execute("""
@@ -393,6 +399,7 @@ class CaseFile:
         action: Optional[str] = None,
         exposure: Optional[float] = None,
         ts: Optional[str] = None,
+        details: Optional[dict] = None,
     ) -> Event:
         curr = self.current_state
 
@@ -403,18 +410,32 @@ class CaseFile:
 
         effective_req = get_required_role(action, exposure) or required_role
 
-        if curr == CaseState.AWAITING_APPROVAL and not effective_req:
-            last = self.store.get_last_event(self.case_id)
-            if last and last.event_type == "REQUEST_APPROVAL":
-                if "L2" in last.reason:
-                    effective_req = "L2"
-                elif "L1" in last.reason:
-                    effective_req = "L1"
+        if curr == CaseState.AWAITING_APPROVAL:
+            pending_req = None
+            for ev in reversed(self.events):
+                if ev.event_type == "REQUEST_APPROVAL":
+                    if "L2" in ev.reason:
+                        pending_req = "L2"
+                    elif "L1" in ev.reason:
+                        pending_req = "L1"
+                    break
+                if ev.from_state != CaseState.AWAITING_APPROVAL and ev.to_state != CaseState.AWAITING_APPROVAL:
+                    break
+            if "L2" in (effective_req, pending_req):
+                effective_req = "L2"
+            elif not effective_req and pending_req:
+                effective_req = pending_req
 
         if effective_req:
             actor_role = None
+            if isinstance(details, dict) and details.get("role"):
+                actor_role = str(details["role"])
             if actor.startswith("approver:"):
-                actor_role = actor.split(":", 1)[1]
+                suffix = actor.split(":", 1)[1]
+                if suffix in ("L1", "L2") or not actor_role:
+                    actor_role = suffix
+            elif actor in ("L1", "L2") and not actor_role:
+                actor_role = actor
 
             valid = False
             if actor_role == "L2":
@@ -465,9 +486,12 @@ class CaseFile:
     def record_approval(
         self, approver: str, role: str, action: str, reason: str = "Approved", evidence: Optional[list] = None, ts: Optional[str] = None, next_state: str = CaseState.INVESTIGATING, exposure: Optional[float] = None
     ) -> Event:
-        actor = approver if approver.startswith("approver:") else (f"analyst:{approver}" if not approver.startswith("analyst:") else approver)
-        policy_req = get_required_role(action, exposure) or role
+        app_clean = approver.strip()
+        is_agent = app_clean.lower() in ("agent", "system", "") or app_clean.lower().startswith("agent:")
+        actor = app_clean if app_clean.startswith("approver:") else (f"analyst:{app_clean}" if not app_clean.startswith("analyst:") else app_clean)
+        policy_req = get_required_role(action, exposure)
         full_reason = f"Action '{action}' approved by {role}: {reason}"
+        details = {} if is_agent else {"role": role, "approver": app_clean, "action": action}
         return self.transition(
             next_state,
             actor=actor,
@@ -478,6 +502,7 @@ class CaseFile:
             action=action,
             exposure=exposure,
             ts=ts,
+            details=details,
         )
 
     def escalate(

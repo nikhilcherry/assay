@@ -201,12 +201,12 @@ def _is_suspicious_base64(token: str) -> bool:
 def _extract_txn_ids(text: str) -> list[int]:
     """Extract transaction IDs referenced in text without hardcoding 3xxxxxx prefix."""
     explicit = re.findall(
-        r"(?:transaction|Refers\s+to|txn|charge|purchase)\s+#?(\d{5,12})\b",
+        r"(?:Refers\s+to\s+#?(\d+)|(?:transaction|txn|charge|purchase)\s+#?(\d{5,12}))\b",
         text,
         re.IGNORECASE,
     )
     if explicit:
-        return list(dict.fromkeys(int(x) for x in explicit))
+        return list(dict.fromkeys(int(a or b) for a, b in explicit if (a or b)))
     fallback = re.findall(r"\b(\d{6,10})\b", text)
     if fallback:
         return list(dict.fromkeys(int(x) for x in fallback))
@@ -221,9 +221,12 @@ def _classify_customer_denial(msg: str) -> bool:
         if not DENIAL_PATTERN.search(msg_without_dn):
             return False
 
-    has_denial = bool(DENIAL_PATTERN.search(msg))
+    denial_matches = [m.group(0).strip().lower() for m in DENIAL_PATTERN.finditer(msg)]
+    has_denial = bool(denial_matches)
     has_confirm = bool(CONFIRMATION_PATTERN.search(msg))
 
+    if has_confirm and has_denial and all(m == "dispute" for m in denial_matches):
+        return False
     if has_denial:
         return True
     if has_confirm:
@@ -329,16 +332,28 @@ def parse_trigger(trigger_type: str, text: str) -> TriggerFacts:
 
     elif trigger_type == "customer_report":
         # Anchor outer quote to "Refers to" or end of clean template to avoid stopping at contractions like "didn't"
-        m_quoted = re.search(
-            r"Customer\s+(?P<cust>C\d+)\s+message:\s*(?P<q>['\"])(?P<msg>[\s\S]*)(?P=q)\s*(?:Refers\s+to\s*(?P<ref>\d+)\.?)?",
-            clean_norm,
-            re.IGNORECASE,
+        m_quoted = (
+            re.search(
+                r"Customer\s+(?P<cust>C\d+)\s+message:\s*(?P<q>['\"])(?P<msg>[\s\S]*?)(?P=q)\s*Refers\s+to\s*#?(?P<ref>\d+)\.?",
+                clean_norm,
+                re.IGNORECASE,
+            )
+            or re.search(
+                r"Customer\s+(?P<cust>C\d+)\s+message:\s*(?P<q>['\"])(?P<msg>[\s\S]*?)\s*Refers\s+to\s*#?(?P<ref>\d+)\.?\s*(?P=q)",
+                clean_norm,
+                re.IGNORECASE,
+            )
+            or re.search(
+                r"Customer\s+(?P<cust>C\d+)\s+message:\s*(?P<q>['\"])(?P<msg>[\s\S]*)(?P=q)(?P<ref>)",
+                clean_norm,
+                re.IGNORECASE,
+            )
         )
         # Also support unquoted customer messages
         m_unquoted = None
         if not m_quoted:
             m_unquoted = re.search(
-                r"Customer\s+(?P<cust>C\d+)\s+message:\s*(?P<msg>[\s\S]*?)(?:\s+Refers\s+to\s*(?P<ref>\d+)\.?|\s*$)",
+                r"Customer\s+(?P<cust>C\d+)\s+message:\s*(?P<msg>[\s\S]*?)(?:\s+Refers\s+to\s*#?(?P<ref>\d+)\.?|\s*$)",
                 clean_norm,
                 re.IGNORECASE,
             )
