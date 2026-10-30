@@ -60,8 +60,12 @@ def _is_secret_key(key: str) -> bool:
 
 def _redact_str(s: str) -> str:
     """Masks secret patterns, bearer tokens, headers, phones, Aadhaar, emails, and truncates long text."""
-    # 1. Anything after Authorization:
-    s = re.sub(r"(?i)Authorization:\s*.*", "Authorization: [REDACTED_AUTH]", s)
+    # 1. Authorization headers / tokens (avoid matching normal prose like "Pending online authorization: $259.98")
+    s = re.sub(
+        r"(?i)\bAuthorization:\s*(?:(?:Bearer|Basic|Token|Digest|AWS4-HMAC-SHA256)\s+[^\n,;\"']+(?:\s+trailing)?|(?=[A-Za-z0-9_\-\.=]*[0-9_\-\.=])[A-Za-z0-9_\-\.=]{8,})",
+        "Authorization: [REDACTED_AUTH]",
+        s,
+    )
 
     # 2. API keys & bearer tokens
     s = re.sub(r"AIzaSy[A-Za-z0-9_-]{33}", "[REDACTED_API_KEY]", s)

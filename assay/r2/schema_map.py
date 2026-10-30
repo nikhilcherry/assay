@@ -89,15 +89,14 @@ def normalize_timestamp_series(s: pd.Series) -> pd.Series:
     """Parse any timestamp series (naive ISO, timezone-aware ISO with 'Z' or '+05:30',
     or datetime64) into tz-naive UTC `datetime64[ns]` so downstream comparisons
     (`self._tx.t <= t0`) never raise `TypeError` on tz-aware vs tz-naive."""
-    if pd.api.types.is_datetime64tz_dtype(s.dtype):
+    if isinstance(s.dtype, pd.DatetimeTZDtype):
         return s.dt.tz_convert("UTC").dt.tz_localize(None)
     if pd.api.types.is_datetime64_any_dtype(s.dtype):
         return s
-    str_s = s.astype(str)
-    sample = str_s.iloc[:500]
-    if bool(sample.str.contains(r"(?:Z|[+-]\d{2}:?\d{2})$", regex=True).any()):
-        return pd.to_datetime(str_s, utc=True, format="ISO8601").dt.tz_localize(None)
-    return pd.to_datetime(str_s, format="ISO8601")
+    try:
+        return pd.to_datetime(s, utc=True, format="ISO8601").dt.tz_localize(None)
+    except Exception:
+        return pd.to_datetime(s, utc=True).dt.tz_localize(None)
 
 
 @dataclass
@@ -262,16 +261,26 @@ _PROPOSAL_REGISTRY: dict[str, SchemaMapping] = {}
 _REF_PROFILES_CACHE: dict[str, ColumnProfile] | None = None
 
 
+class _ApprovedProposalDict(dict):
+    """Dict returned when approving an on-disk proposal not in _PROPOSAL_REGISTRY, supporting both dict and attribute access."""
+
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return self[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+
 def approve(
     proposal_id: str | SchemaMapping,
     approver_role: str = "L1",
     canonical_cols: list[str] | None = None,
-) -> SchemaMapping:
+) -> SchemaMapping | dict[str, Any]:
     """Server-side human approval gate for a schema mapping proposal.
 
     Verifies that `approver_role` is an authorized L1/L2 role, marks the proposal
     and its choices as approved, updates the proposal JSON file on disk, and returns
-    the updated SchemaMapping.
+    the updated SchemaMapping (or loaded/updated proposal dict).
     """
     role = approver_role.strip()
     if role not in VALID_APPROVER_ROLES:
@@ -305,7 +314,7 @@ def approve(
             c_val["approved"] = True
             c_val["notes"] = f"Approved by {role} at {now_s}"
     prop_path.write_text(json.dumps(data, indent=2, sort_keys=True))
-    raise KeyError(f"Proposal {pid} updated on disk, but not in memory registry.")
+    return _ApprovedProposalDict(data)
 
 
 def recompute_derived_columns(

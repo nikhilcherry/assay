@@ -37,12 +37,6 @@
         "source": "external"
       },
       {
-        "claim": "Account takeover: mixed-channel activity inconsistent with the cardholder, often with device and match-flag anomalies, pointing to stolen credentials.",
-        "entity_ids": [],
-        "ref": "document:brief#known-fraud-patterns/account_takeover",
-        "source": "document"
-      },
-      {
         "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
         "entity_ids": [],
         "ref": "document:fraud-policy#§3a",
@@ -67,7 +61,7 @@
       "CC-5469"
     ],
     "status": "escalated",
-    "summary": "Account takeover on card C09241-K2: 1 transaction(s) from 2017-01-20 to 2017-01-20 totalling $881.55, probability 0.01. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: The case names card C09241-K1 but the bank records transaction 3640919 on C09241-K2, so the cardholder who would be asked is not established.",
+    "summary": "Uncertain activity on card C09241-K2: 1 transaction(s) from 2017-01-20 to 2017-01-20 totalling $881.55, probability 0.01. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: The case names card C09241-K1 but the bank records transaction 3640919 on C09241-K2, so the cardholder who would be asked is not established.",
     "verdict": "uncertain",
     "written_to_graph": true
   },
@@ -126,7 +120,7 @@
     "subjects": [],
     "total_amount_usd": 0
   },
-  "stop_reason": "Policy §6: probability 0.01 remains between 0.15 and 0.85, but the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
+  "stop_reason": "Policy §6: fraud probability is 0.01, but unresolved evidence or identity conflict prevents clearing (The case names card C09241-K1 but the bank records transaction 3640919 on C09241-K2, so the cardholder who would be asked is not established); the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
   "tokens": 0,
   "tool_calls": 10
 }

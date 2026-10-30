@@ -230,7 +230,7 @@ CONFIG_SPECS: list[ConfigSpec] = [
     ConfigSpec(
         name="full",
         category="baseline",
-        description="Full shipped R2 agent (all 6 enabled detectors and all guards active).",
+        description="Full shipped R2 agent (all 8 enabled detectors and all guards active).",
     ),
     *(
         ConfigSpec(
@@ -243,7 +243,7 @@ CONFIG_SPECS: list[ConfigSpec] = [
     ConfigSpec(
         name="no_r2_detectors",
         category="detector_group",
-        description="Disable all 6 R2 detectors (`investigate_r2.ENABLED = []`).",
+        description="Disable all 8 R2 detectors (`investigate_r2.ENABLED = []`).",
     ),
     ConfigSpec(
         name="no_jan_drift_guard",

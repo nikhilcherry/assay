@@ -31,6 +31,7 @@ import argparse
 import fcntl
 import hashlib
 import json
+import os
 import re
 import signal
 import sys
@@ -208,7 +209,11 @@ def scrub_secrets_and_pii(value: Any) -> Any:
         for pat, repl in EXTRA_SECRET_PII_PATTERNS:
             s = pat.sub(repl, s)
         # Apply audit_redact without truncating short/medium claims
-        s = re.sub(r"(?i)Authorization:\s*.*", "Authorization: [REDACTED_AUTH]", s)
+        s = re.sub(
+            r"(?i)\bAuthorization:\s*(?:(?:Bearer|Basic|Token|Digest|AWS4-HMAC-SHA256)\s+[^\n,;\"']+(?:\s+trailing)?|(?=[A-Za-z0-9_\-\.=]*[0-9_\-\.=])[A-Za-z0-9_\-\.=]{8,})",
+            "Authorization: [REDACTED_AUTH]",
+            s,
+        )
         s = re.sub(r"AIzaSy[A-Za-z0-9_-]{33}", "[REDACTED_API_KEY]", s)
         s = re.sub(r"AQ\.Ab8[A-Za-z0-9_\-]{10,}", "[REDACTED_TOKEN]", s)
         s = re.sub(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", "[REDACTED_EMAIL]", s)
@@ -300,7 +305,7 @@ class StoreProxyAdapter:
             raise GarbageResponse(f"Injected fault: query '{tool}' returned garbage")
         safe_params = _to_json_safe(params)
         arg = ", ".join(f"{k}={v!r}" for k, v in safe_params.items())
-        self._local_calls.append({"tool": tool, "params": safe_params})
+        self._local_calls.append({"tool": tool, "params": safe_params, "source": "detector"})
         return f"query:{tool}({arg})"
 
     @property
@@ -338,7 +343,7 @@ class StoreProxyAdapter:
                 self._raw.as_of = object.__getattribute__(self, "as_of")
                 out = res(*args, **kwargs)
                 safe_kw = _to_json_safe(kwargs) if kwargs else {"args": [str(a) for a in args]}
-                self._local_calls.append({"tool": name, "params": safe_kw})
+                self._local_calls.append({"tool": name, "params": safe_kw, "source": "proxy"})
                 return out
             return _wrapped
         return res
@@ -414,6 +419,8 @@ def _record_untrusted_evidence(
     case_id: str,
     facts: TriggerFacts,
     warnings: list[str],
+    flagged_txn_id: int | None = None,
+    valid_txn_ids: Any = None,
 ) -> None:
     """Records quarantined hostile strings, injection spans, and cross-check warnings in `answer['case']['evidence']`
     after scrubbing all secrets and PII."""
@@ -436,11 +443,18 @@ def _record_untrusted_evidence(
         "Untrusted trigger parser quarantined hostile/anomalous input as data (ignored by decision logic): "
         + "; ".join(parts)
     )
+    if valid_txn_ids is not None:
+        verified_tids = [str(int(x)) for x in facts.referenced_txn_ids if int(x) in valid_txn_ids]
+    else:
+        tx_index = tx_all().set_index("TransactionID").index
+        verified_tids = [str(int(x)) for x in facts.referenced_txn_ids if int(x) in tx_index]
+    if not verified_tids and flagged_txn_id is not None:
+        verified_tids = [str(int(flagged_txn_id))]
     ev_entry = {
         "source": "document",
         "ref": f"query:parse_trigger(case_id={case_id})",
         "claim": claim_text,
-        "entity_ids": [str(x) for x in (facts.referenced_txn_ids or [case_id])],
+        "entity_ids": verified_tids,
     }
     answer["case"]["evidence"].append(ev_entry)
 
@@ -985,7 +999,14 @@ def _run_agent_case_impl(
                 inv.writer = prev_writer
 
         # Record untrusted trigger findings into evidence as data (with secrets/PII scrubbed)
-        _record_untrusted_evidence(ans, case_id, facts, warnings)
+        _record_untrusted_evidence(
+            ans,
+            case_id,
+            facts,
+            warnings,
+            flagged_txn_id=fid,
+            valid_txn_ids=store.tx.index,
+        )
 
         # 5. Attach attested SAR narrative/timeline if sar_required(ans) says a report is owed
         opened_ts = pd.Timestamp(raw_row["opened_at"])
@@ -1029,6 +1050,25 @@ def _run_agent_case_impl(
                 result={"ok": c.ok},
                 row_count=1 if c.ok else 0,
                 ms=round(c.ms, 2),
+            )
+        for tc in getattr(adapter, "_local_calls", []):
+            if tc.get("source", "detector") == "detector":
+                audit.log_tool_call(
+                    case_id,
+                    name=str(tc["tool"]),
+                    params=dict(tc.get("params") or {}),
+                    result={"ok": True, "source": "detector"},
+                    row_count=1,
+                    ms=0.0,
+                )
+        if os.environ.get("ASSAY_TG") == "1" and ans.get("case", {}).get("written_to_graph"):
+            audit.log_tool_call(
+                case_id,
+                name="r2_upsert_case",
+                params={"case_id": case_id, "graph_case_id": ans["case"].get("graph_case_id", "")},
+                result={"ok": True, "graph_case_id": ans["case"].get("graph_case_id", "")},
+                row_count=1,
+                ms=0.0,
             )
         tc_list = ans.get("tool_calls", [])
         for tc in (tc_list if isinstance(tc_list, list) else []):   # the answer format stores a count

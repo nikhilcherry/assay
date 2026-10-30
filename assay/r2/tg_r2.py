@@ -97,6 +97,11 @@ def require_tg(host: str | None = None, port: int | None = None, timeout: float 
             raise TigerGraphUnavailableError(
                 f"TigerGraph at {url} returned HTTP {r.status_code}: {r.text[:200]}"
             )
+        data = r.json()
+        if not isinstance(data, dict) or data.get("error", False):
+            raise TigerGraphUnavailableError(
+                f"Fail-closed: TigerGraph at {url} returned malformed or error payload: {data!r}"
+            )
     except TigerGraphUnavailableError:
         raise
     except Exception as exc:
@@ -203,16 +208,24 @@ def run_query(
             f"Fail-closed: TigerGraph query '{query_name}' HTTP {resp.status_code}: {resp.text[:500]}"
         )
 
-    data = resp.json()
-    if data.get("error"):
+    try:
+        data = resp.json()
+    except Exception as exc:
+        raise TigerGraphUnavailableError(
+            f"Fail-closed: TigerGraph query '{query_name}' returned invalid JSON: {exc}"
+        ) from exc
+
+    if isinstance(data, dict) and data.get("error"):
         raise TigerGraphUnavailableError(
             f"Fail-closed: TigerGraph query '{query_name}' error {data.get('code')}: {data.get('message')}"
         )
 
-    results = data.get("results", [])
-    if not isinstance(results, list):
-        return []
-    return results
+    if not isinstance(data, dict) or "results" not in data or not isinstance(data["results"], list):
+        raise TigerGraphUnavailableError(
+            f"Fail-closed: TigerGraph query '{query_name}' returned malformed payload: {data!r}"
+        )
+
+    return data["results"]
 
 
 def _ensure_january_loaded(gname: str) -> dict[str, int]:

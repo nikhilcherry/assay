@@ -145,6 +145,7 @@ class Signals:
     # R10.
     cards_with_confirmed_fraud: int = 0
     credentials_compromised: bool = False
+    steps_taken: int = 0
 
     def connects_to_other_fraud(self) -> bool:
         """The §3a SAR trigger: shared device profile, shared region cluster,
@@ -227,7 +228,11 @@ def stop_reason(s: Signals) -> str:
             f"Policy §6: fraud probability {s.fraud_probability:.2f} is at or above 0.85 on "
             f"{s.independent_evidence_count} independent pieces of evidence."
         )
-    if s.fraud_probability <= STOP_LOW and s.independent_evidence_count >= 2:
+    if (
+        s.fraud_probability <= STOP_LOW
+        and s.independent_evidence_count >= 2
+        and s.verdict is Verdict.LEGITIMATE
+    ):
         return (
             f"Policy §6: fraud probability {s.fraud_probability:.2f} is at or below 0.15 on "
             f"{s.independent_evidence_count} independent pieces of evidence."
@@ -236,6 +241,13 @@ def stop_reason(s: Signals) -> str:
         return (
             "Policy §6: no reply within 24 hours. R4 actions apply and further waiting is "
             "unlikely to change the decision."
+        )
+    if s.fraud_probability <= STOP_LOW or s.fraud_probability >= STOP_HIGH:
+        detail = f" ({s.uncertain_reason})" if s.uncertain_reason else ""
+        return (
+            f"Policy §6: fraud probability is {s.fraud_probability:.2f}, but unresolved evidence or "
+            f"identity conflict prevents clearing{detail}; the available graph evidence is exhausted "
+            "and further traversal is unlikely to change the recommendation. Handed to a human under R8."
         )
     return (
         f"Policy §6: probability {s.fraud_probability:.2f} remains between 0.15 and 0.85, but "

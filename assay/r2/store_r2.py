@@ -53,6 +53,10 @@ class R2LocalStore(LocalStore):
         w, ref = super().card_window(card_id, t0, hours_before, hours_after)
         return self._tx_asof(w), ref
 
+    def card_history(self, card_id, before):
+        w, ref = super().card_history(card_id, before)
+        return self._tx_asof(w), ref
+
     def holder_history(self, uid):
         w, ref = super().holder_history(uid)
         return self._tx_asof(w), ref
@@ -69,6 +73,21 @@ class R2LocalStore(LocalStore):
         cc, ref = super().closed_cases_by_device(profile)
         return self._cc_asof(cc), ref
 
+    def closed_cases_touching(self, card_ids):
+        cc, ref = super().closed_cases_touching(card_ids)
+        return self._cc_asof(cc), ref
+
+    def closed_cases_like(self, pattern: str, device_profile: str = "", limit: int = 3, product: str = "",
+                          amount: float = 0.0):
+        self._case_txns()
+        full_cc = self.cc
+        try:
+            self.cc = self._cc_asof(full_cc)
+            cc, ref = super().closed_cases_like(pattern, device_profile, limit, product, amount)
+            return self._cc_asof(cc), ref
+        finally:
+            self.cc = full_cc
+
     def get_transaction(self, txn_id: int):
         row, ref = super().get_transaction(txn_id)
         if pd.isna(row.p_fraud):
@@ -81,20 +100,20 @@ def r2_pattern_model():
     import lightgbm as lgb
 
     from assay.data import load_transactions
-    from assay.patterns import PATH, PatternModel, novelty
+    from assay.patterns import CATS, NUM, PATH, PatternModel, novelty
     from assay.r2.frames import _jan
 
     pm = PatternModel.__new__(PatternModel)
     pm.m = lgb.Booster(model_file=str(PATH))
     old = load_transactions()
     jan = _jan()
-    jan["card_id"] = jan.TransactionID.map(tx_all().set_index("TransactionID").card_id)
     # Only the columns the classifier and its novelty features read: all 397 cost ~8 GB.
-    from assay.patterns import CATS, NUM
     keep = ["TransactionID", "ts", "card_id", "addr1", "DeviceInfo"] + [c for c in CATS + NUM if c in old.columns]
     keep = list(dict.fromkeys(keep))
+    jan_sub = jan[[c for c in keep if c != "card_id" and c in jan.columns]].copy()
+    jan_sub["card_id"] = jan_sub.TransactionID.map(tx_all().set_index("TransactionID").card_id)
     old = old[keep]
-    pm.tx = novelty(pd.concat([old, jan[[c for c in keep if c in jan.columns]]], ignore_index=True)).set_index("TransactionID")
+    pm.tx = novelty(pd.concat([old, jan_sub[[c for c in keep if c in jan_sub.columns]]], ignore_index=True)).set_index("TransactionID")
     return pm
 
 

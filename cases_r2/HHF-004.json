@@ -187,7 +187,7 @@
       "CC-3035"
     ],
     "status": "closed_fraud",
-    "summary": "Undocumented on card C12975-K2: 6 transaction(s) from 2017-01-05 to 2017-01-26 totalling $23.99, probability 0.76. Linked to 16 other card(s) through Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu.",
+    "summary": "Undocumented on card C12975-K2: 6 transaction(s) from 2017-01-05 to 2017-01-26 totalling $23.99, probability 0.76. Linked to 16 other card(s) through Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measured lr=1.00).",
     "verdict": "fraud",
     "written_to_graph": true
   },
@@ -208,12 +208,12 @@
       },
       {
         "action": "MONITOR_CONNECTED_CARDS",
-        "reason": "R6: every card sharing Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu goes under monitoring (16 card(s)).",
+        "reason": "R6: every card sharing Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measured lr=1.00) goes under monitoring (16 card(s)).",
         "route": "auto"
       },
       {
         "action": "FILE_REPORT",
-        "reason": "Policy §3a: fraud is suspected and activity connects to Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu; the pattern is coordinated or undocumented (R9).",
+        "reason": "Policy §3a: fraud is suspected and activity connects to Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measured lr=1.00); the pattern is coordinated or undocumented (R9).",
         "route": "L2"
       },
       {
@@ -235,12 +235,12 @@
       },
       {
         "action": "MONITOR_CONNECTED_CARDS",
-        "reason": "R6: every card sharing Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu goes under monitoring (16 card(s)).",
+        "reason": "R6: every card sharing Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measured lr=1.00) goes under monitoring (16 card(s)).",
         "route": "auto"
       },
       {
         "action": "FILE_REPORT",
-        "reason": "Policy §3a: fraud is suspected and activity connects to Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measu; the pattern is coordinated or undocumented (R9).",
+        "reason": "Policy §3a: fraud is suspected and activity connects to Coordinated sub-threshold micro-drip cohort on card C12975-K2: 6 online ProductCD=='C' charges < $6.50 over >= 7d with 0 prior in 60d; 16 other card(s) (17 total, threshold K>=6 from Aug-Nov base rate 1-6/mo) have overlapping 30d new micro-drips as of 2017-01-26 21:09:37 (total cohort txns=83, measured lr=1.00); the pattern is coordinated or undocumented (R9).",
         "route": "L2"
       },
       {

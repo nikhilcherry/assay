@@ -361,7 +361,7 @@ def compile_rule(prose: str, rule_id: str | None = None) -> RuleSpec:
 # Precomputed, low-memory as-of index & vectorised evaluators
 # ---------------------------------------------------------------------------
 
-_PREP_CACHE: dict[tuple[int, int, int, int], dict] = {}
+_PREP_CACHE: dict[tuple, dict] = {}
 
 
 def _get_precomputed_index(cc: pd.DataFrame, tx: pd.DataFrame) -> dict:
@@ -370,8 +370,13 @@ def _get_precomputed_index(cc: pd.DataFrame, tx: pd.DataFrame) -> dict:
     Avoids copying `tx` (650k rows) or creating massive pandas indexes per rule.
     Memory footprint < 80 MB, build time ~0.4 s.
     """
-    key = (id(cc), len(cc), id(tx), len(tx))
-    if key in _PREP_CACHE:
+    case_sig = (
+        tuple(cc["case_id"].astype(str)),
+        tuple(cc["card_id"].astype(str)),
+        tuple(cc["opened_at"].astype(str)),
+    )
+    key = (id(cc), len(cc), case_sig, id(tx), len(tx))
+    if len(cc) > 1 and key in _PREP_CACHE:
         return _PREP_CACHE[key]
 
     # Map timestamps to epoch seconds (int64) for fast comparison with TransactionDT / t
@@ -496,9 +501,10 @@ def _get_precomputed_index(cc: pd.DataFrame, tx: pd.DataFrame) -> dict:
         "card_to_cases": card_to_cases,
         "entity_groups": entity_groups,
     }
-    if len(_PREP_CACHE) >= 8:
-        _PREP_CACHE.clear()
-    _PREP_CACHE[key] = prep
+    if len(cc) > 1:
+        if len(_PREP_CACHE) >= 8:
+            _PREP_CACHE.clear()
+        _PREP_CACHE[key] = prep
     return prep
 
 
@@ -682,7 +688,7 @@ def evaluate_rule_on_cases(
                     last_c_pos = int(c_positions[-1])
                     anchor_t = int(g_t[last_c_pos])
                     w_start = int(np.searchsorted(g_t[:k], anchor_t - win, side="left"))
-                    w_end = int(np.searchsorted(g_t[:k], anchor_t + win, side="right"))
+                    w_end = int(np.searchsorted(g_t[:k], anchor_t, side="right"))
 
                     win_cards = pd.unique(g_c[w_start:w_end])
                     if len(win_cards) < spec.min_cards:

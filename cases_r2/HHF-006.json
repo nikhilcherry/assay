@@ -78,12 +78,6 @@
         "source": "external"
       },
       {
-        "claim": "The known patterns are not the only ones: activity that fits none of them is described in the analyst's own words.",
-        "entity_ids": [],
-        "ref": "document:brief#known-fraud-patterns/undocumented",
-        "source": "document"
-      },
-      {
         "claim": "Policy R1: Verify before you block on a weak signal: a single signal below 0.70 gets VERIFY_WITH_CUSTOMER or STEP_UP_AUTH before any block.",
         "entity_ids": [],
         "ref": "document:fraud-policy#R1",
@@ -114,7 +108,7 @@
       "CC-5579"
     ],
     "status": "escalated",
-    "summary": "Unresolved activity on card C01727-K2: 3 transaction(s) from 2017-01-17 to 2017-01-28 totalling $967.68, probability 0.15. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: FanIn tie this card to 11 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards.",
+    "summary": "Uncertain activity on card C01727-K2: 3 transaction(s) from 2017-01-17 to 2017-01-28 totalling $967.68, probability 0.15. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: FanIn tie this card to 11 other card(s) (C00534-K2, C01357-K1, C01507-K1, C01594-K1, C02167-K2, C03060-K1). One cardholder's confirmation cannot clear activity that spans other cards.",
     "verdict": "uncertain",
     "written_to_graph": true
   },
@@ -178,7 +172,7 @@
         "route": "auto"
       }
     ],
-    "what_changed": "The evidence request did not change the recommendation; probability 0.15 -> 0.15."
+    "what_changed": "The evidence request did not change the recommendation; probability 0.15 -> 0.15; added MONITOR_CONNECTED_CARDS."
   },
   "sar": {
     "activity_dates": [],
@@ -188,7 +182,7 @@
     "subjects": [],
     "total_amount_usd": 0
   },
-  "stop_reason": "Policy §6: probability 0.15 remains between 0.15 and 0.85, but the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
+  "stop_reason": "Policy §6: fraud probability is 0.15, but unresolved evidence or identity conflict prevents clearing; the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
   "tokens": 0,
   "tool_calls": 11
 }

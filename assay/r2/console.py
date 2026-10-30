@@ -36,11 +36,21 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from assay.r2.attest import dataset_tag
+from assay.r2.agent import (
+    _attach_sar_if_required,
+    _record_untrusted_evidence,
+    _sanitize_trigger_for_row,
+    _scrub_customer_tip_off,
+    _to_json_safe,
+    scrub_secrets_and_pii,
+)
 from assay.r2.approvals import create_app as create_approvals_app
+from assay.r2.attest import dataset_tag
+from assay.r2.audit import AuditLog
 from assay.r2.frames import case_pack
 from assay.r2.investigate_r2 import R2Investigator
 from assay.r2.store_r2 import R2LocalStore, case_writer, r2_pattern_model
+from assay.r2.untrusted import cross_check, parse_trigger
 
 HTML_PATH = Path(__file__).with_name("console.html")
 # The ring replay page and its traces (python -m assay.r2.ring_replay writes them)
@@ -184,26 +194,48 @@ class InstrumentedR2Store(R2LocalStore):
         "write_case",
     )
 
+    FAULT_ALIASES = {
+        "ring_for": "r2_ring_wcc",
+        "r2_ring_wcc": "ring_for",
+        "rerun_micro_drip_cohort": "r2_micro_drip_cohort",
+        "r2_micro_drip_cohort": "rerun_micro_drip_cohort",
+        "rerun_recipient_fan_in_burst": "r2_recipient_fanin",
+        "r2_recipient_fanin": "rerun_recipient_fan_in_burst",
+        "cpc_loss_shape_cohort": "r2_cpc_loss_cohort",
+        "r2_cpc_loss_cohort": "cpc_loss_shape_cohort",
+        "cpc_origin_search": "r2_cpc_origin_counts",
+        "r2_cpc_origin_counts": "cpc_origin_search",
+        "write_case": "r2_upsert_case",
+        "r2_upsert_case": "write_case",
+    }
+
     def __init__(self):
         super().__init__()
         self.call_rows: List[int] = []
         self.method_counts: Dict[str, int] = {}
         self.total_query_calls: int = 0
+        self._in_wrapped_query: bool = False
+        self._in_fault_log: bool = False
 
     def reset(self) -> None:
         super().reset()
         self.call_rows = []
         self.method_counts = {}
         self.total_query_calls = 0
+        self._in_wrapped_query = False
+        self._in_fault_log = False
 
-    def _log(self, name: str, **args) -> str:
-        ref = super()._log(name, **args)
+    def _log(self, tool: str, **params) -> str:
+        if not self._in_wrapped_query and not self._in_fault_log:
+            self._check_fault(tool)
+        ref = super()._log(tool, **params)
         # Default row count 1 for direct `self.s._log(...)` calls from detectors;
         # wrapped methods overwrite the last entry with the exact dataframe length.
         self.call_rows.append(1)
         return ref
 
-    def _check_fault(self, method_name: str, logged_name: str) -> None:
+    def _check_fault(self, method_name: str, logged_name: Optional[str] = None) -> None:
+        logged_name = logged_name or method_name
         spec_str = os.environ.get("ASSAY_FAULT", "").strip()
         if not spec_str:
             return
@@ -213,28 +245,32 @@ class InstrumentedR2Store(R2LocalStore):
         mode = spec.get("mode", "down")
 
         self.total_query_calls += 1
-        m_cnt = self.method_counts.get(method_name, 0) + 1
-        self.method_counts[method_name] = m_cnt
-        if logged_name != method_name:
-            l_cnt = self.method_counts.get(logged_name, 0) + 1
-            self.method_counts[logged_name] = l_cnt
-        else:
-            l_cnt = m_cnt
+        names_to_bump = {method_name, logged_name}
+        for n in list(names_to_bump):
+            alias = self.FAULT_ALIASES.get(n)
+            if alias:
+                names_to_bump.add(alias)
+        for n in names_to_bump:
+            self.method_counts[n] = self.method_counts.get(n, 0) + 1
 
+        m_cnt = self.method_counts.get(target, self.method_counts.get(method_name, 1))
         triggered = False
         if target in ("*", "any", "all"):
             triggered = self.total_query_calls >= at
-        elif target == method_name:
-            triggered = m_cnt >= at
-        elif target == logged_name:
-            triggered = l_cnt >= at
+        elif target in names_to_bump:
+            triggered = self.method_counts[target] >= at
 
         if triggered:
-            self._log(logged_name, fault=f"{mode}@{at}")
+            report_name = target if target in names_to_bump and target not in ("*", "any", "all") else logged_name
+            self._in_fault_log = True
+            try:
+                self._log(report_name, fault=f"{mode}@{at}")
+            finally:
+                self._in_fault_log = False
             self.call_rows[-1] = 0
             raise FaultInjectedError(
                 f"FAIL_CLOSED: dependency fault injected via ASSAY_FAULT={spec_str} "
-                f"on tool '{logged_name}' (call #{m_cnt} -> {mode})"
+                f"on tool '{report_name}' (call #{m_cnt} -> {mode})"
             )
 
 
@@ -249,7 +285,11 @@ def _wrap_store_queries(store: InstrumentedR2Store) -> None:
         def _make_wrapper(fn, m_name: str, l_name: str):
             def _wrapped(*args, **kwargs):
                 store._check_fault(m_name, l_name)
-                res = fn(*args, **kwargs)
+                store._in_wrapped_query = True
+                try:
+                    res = fn(*args, **kwargs)
+                finally:
+                    store._in_wrapped_query = False
                 if store.call_rows:
                     store.call_rows[-1] = _row_count_for_result(res)
                 return res
@@ -422,22 +462,28 @@ def _build_visual_payload(
         det_name = str(getattr(top_fd, "detector", "multi"))
         hub_lr = round(float(getattr(top_fd, "lr", 1.0)), 2)
         params = getattr(top_fd.claim, "params", {}) or {}
+        q_name = str(getattr(top_fd.claim, "query", ""))
         if det_name == "ring_wcc":
             hub_type = "ring"
             # The ring id lives in the claim text; the claim's query names who computed it
             m = re.search(r"RING-[A-Z]+-[0-9a-f]{8}", str(getattr(top_fd.claim, "what", "")))
             hub_label = m.group(0) if m else "SHARED-ELEMENT RING"
-            via_tg = str(getattr(top_fd.claim, "query", "")).startswith("r2_ring_wcc")
+            via_tg = q_name.startswith("r2_ring_wcc")
             hub_sub = f"{len(conn_cards) + 1} cards · {'TigerGraph r2_ring_wcc' if via_tg else 'local WCC (TigerGraph off)'}"
         elif det_name == "cpc":
             hub_type = "cpc"
-            origin = params.get("common_origin") or params.get("origin")
+            origin = params.get("origin_key") or params.get("common_origin") or params.get("origin")
             if origin:
                 hub_label = f"CPC ORIGIN · {origin}"
             else:
                 bucket = params.get("cohort_size_bucket", f"{len(conn_cards) + 1}")
                 hub_label = f"LOSS-SHAPE COHORT (bucket {bucket})"
             hub_sub = f"{len(conn_cards) + 1} cards · Product {params.get('ProductCD', 'C')} online burst"
+            if q_name.startswith("r2_"):
+                hub_sub += f" · TigerGraph {q_name}"
+            elif params.get("backend") == "tigergraph":
+                tg_q = "r2_cpc_origin_counts" if origin else "r2_cpc_loss_cohort"
+                hub_sub += f" · TigerGraph {tg_q}"
         elif det_name == "FanIn":
             hub_type = "fan_in"
             recip = params.get("linking_value")
@@ -445,10 +491,14 @@ def _build_visual_payload(
             window = params.get("window_days", "?")
             lr_kind = "assumed" if params.get("lr_assumption") else "measured"
             hub_sub = f"{len(conn_cards) + 1} first-time cards in {window}d ({lr_kind} ×{hub_lr})"
+            if q_name.startswith("r2_"):
+                hub_sub += f" · TigerGraph {q_name}"
         else:
             hub_type = det_name
             hub_label = det_name.upper()
             hub_sub = f"{len(conn_cards) + 1} linked cards"
+            if q_name.startswith("r2_"):
+                hub_sub += f" · TigerGraph {q_name}"
     else:
         pat = str(ans.get("case", {}).get("pattern", "none"))
         if pat == "card_testing":
@@ -564,9 +614,34 @@ def create_app() -> FastAPI:
     store = InstrumentedR2Store()
     _wrap_store_queries(store)
     inv = R2Investigator(store, r2_pattern_model(), writer=case_writer(store))
+    det_gsql_map = {
+        "ring_wcc": "r2_ring_wcc",
+        "micro_drip_cohort": "r2_micro_drip_cohort",
+        "FanIn": "r2_recipient_fanin",
+        "cpc": "r2_cpc_loss_cohort",
+        "vector_precedent": "similar_cases_vec",
+    }
+    for det in inv.detectors:
+        gsql_q = det_gsql_map.get(getattr(det, "name", ""))
+        if gsql_q:
+            orig_det_run = det.run
+
+            def _make_det_wrapper(fn, d_name: str, q_name: str):
+                def _wrapped_det(ctx, *a, **kw):
+                    spec = _parse_fault_spec(os.environ.get("ASSAY_FAULT", ""))
+                    target = spec.get("method", "")
+                    if target in (d_name, q_name, InstrumentedR2Store.FAULT_ALIASES.get(q_name, "")):
+                        store._check_fault(q_name, q_name)
+                    return fn(ctx, *a, **kw)
+
+                return _wrapped_det
+
+            det.run = _make_det_wrapper(orig_det_run, det.name, gsql_q)
     startup_sec = round(time.time() - t0, 3)
 
     cp_df = case_pack().copy()
+    audit_dir = tmp_dir / "audit"
+    audit_dir.mkdir(parents=True, exist_ok=True)
 
     app.state.store = store
     app.state.investigator = inv
@@ -574,6 +649,8 @@ def create_app() -> FastAPI:
     app.state.case_pack = cp_df
     app.state.startup_sec = startup_sec
     app.state.warm = False
+    app.state.audit_dir = audit_dir
+    app.state.audit_by_case: Dict[str, Dict[str, Any]] = {}
     # One investigation at a time: the store's call log and memory are shared state
     run_lock = threading.Lock()
 
@@ -783,6 +860,15 @@ def create_app() -> FastAPI:
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+    @app.get("/audit/{case_id}")
+    async def get_audit(case_id: str) -> Dict[str, Any]:
+        """Returns the hash-chained SHA-256 audit log entries for `case_id`."""
+        if not re.fullmatch(r"HHF-\d{3}", case_id):
+            raise HTTPException(status_code=400, detail="case_id must match HHF-NNN")
+        if case_id not in app.state.audit_by_case:
+            return {"case_id": case_id, "valid": True, "first_bad_line": -1, "count": 0, "entries": []}
+        return app.state.audit_by_case[case_id]
+
     @app.post("/run/{case_id}")
     def run_case(case_id: str) -> Dict[str, Any]:
         # Plain def: FastAPI runs it in a worker thread, so a long run never freezes /status or /cases
@@ -799,6 +885,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
 
         case_row = sub.iloc[0]
+        raw_row = case_row.to_dict()
         store: InstrumentedR2Store = app.state.store
         inv: R2Investigator = app.state.investigator
 
@@ -806,15 +893,39 @@ def create_app() -> FastAPI:
         store.memory.clear()   # same answer as `python -m assay.r2.agent <case>`, whatever ran before
         t_start = time.time()
         active_fault = os.environ.get("ASSAY_FAULT", "").strip()
+        tg_active = os.environ.get("ASSAY_TG") == "1"
+
+        audit_file = app.state.audit_dir / f"audit_{case_id}.jsonl"
+        if audit_file.exists():
+            audit_file.unlink()
+        audit = AuditLog(audit_file)
+        audit.log_run_start(
+            case_id,
+            metadata={"tigergraph": tg_active, "fault": active_fault or "none"},
+        )
+
+        trigger_type = str(raw_row.get("trigger_type", "") or "")
+        trigger_text = str(raw_row.get("trigger_text", "") or "")
+        facts = parse_trigger(trigger_type, trigger_text)
+        facts.claims_of_authority = [scrub_secrets_and_pii(c) for c in facts.claims_of_authority]
+        warnings = [scrub_secrets_and_pii(w) for w in cross_check(facts, raw_row)]
+        clean_series = _sanitize_trigger_for_row(case_row, facts)
 
         try:
-            ans = inv.run(case_row)
+            ans = inv.run(clean_series)
         except Exception as exc:
             elapsed_ms = round((time.time() - t_start) * 1000.0, 2)
             # Clear one-shot fault after demonstrating fail-closed so the presenter can toggle freely
             calls_out = []
             for idx, c in enumerate(store.calls):
                 rc = store.call_rows[idx] if idx < len(store.call_rows) else 0
+                ev = audit.log_tool_call(
+                    case_id,
+                    name=c.name,
+                    params=_to_json_safe(c.args),
+                    result={"ref": c.ref, "row_count": rc, "ok": rc > 0},
+                    row_count=rc,
+                )
                 calls_out.append(
                     {
                         "step": idx + 1,
@@ -822,26 +933,67 @@ def create_app() -> FastAPI:
                         "params": c.args,
                         "ref": c.ref,
                         "row_count": rc,
+                        "result_digest": ev["result_digest"],
+                        "prev_hash": ev["prev_hash"],
+                        "hash": ev["hash"],
                     }
                 )
+            err_type = type(exc).__name__
+            audit.log_error(
+                case_id,
+                f"FAIL_CLOSED ({err_type}): {exc}",
+                {"error_type": err_type, "fault_injected": active_fault or None},
+            )
+            audit.log_run_end(case_id, status="failed_closed", metadata={"error_type": err_type})
+            valid, bad_idx = audit.verify()
+            entries = [
+                json.loads(ln)
+                for ln in audit_file.read_text(encoding="utf-8").splitlines()
+                if ln.strip()
+            ]
+            audit_payload = {
+                "case_id": case_id,
+                "valid": bool(valid),
+                "first_bad_line": bad_idx,
+                "count": len(entries),
+                "entries": entries,
+            }
+            app.state.audit_by_case[case_id] = audit_payload
             return {
                 "ok": False,
                 "fail_closed": True,
                 "case_id": case_id,
                 "fault_injected": active_fault or None,
                 "error": str(exc),
-                "error_type": type(exc).__name__,
+                "error_type": err_type,
                 "elapsed_ms": elapsed_ms,
                 "calls": calls_out,
+                "audit": audit_payload,
                 "ledger": [],
                 "answer": None,
             }
+
+        # Run the full R2 post-investigation pipeline so console output matches cases_r2/<case_id>.json
+        _record_untrusted_evidence(ans, case_id, facts, warnings)
+        opened_ts = pd.Timestamp(case_row.opened_at)
+        tx_df = inv._tx
+        tx_as_of = tx_df[tx_df["t"] <= opened_ts]
+        _attach_sar_if_required(ans, tx_as_of)
+        _scrub_customer_tip_off(ans)
+        ans = _to_json_safe(ans)
 
         elapsed_ms = round((time.time() - t_start) * 1000.0, 2)
 
         calls_out = []
         for idx, c in enumerate(store.calls):
             rc = store.call_rows[idx] if idx < len(store.call_rows) else 1
+            ev = audit.log_tool_call(
+                case_id,
+                name=c.name,
+                params=_to_json_safe(c.args),
+                result={"ref": c.ref, "row_count": rc},
+                row_count=rc,
+            )
             calls_out.append(
                 {
                     "step": idx + 1,
@@ -849,11 +1001,111 @@ def create_app() -> FastAPI:
                     "params": c.args,
                     "ref": c.ref,
                     "row_count": rc,
+                    "result_digest": ev["result_digest"],
+                    "prev_hash": ev["prev_hash"],
+                    "hash": ev["hash"],
                 }
             )
 
         fid = int(case_row.flagged_txn_id)
         flagged_tx = store.tx.loc[fid] if fid in store.tx.index else None
+        actual_card = str(flagged_tx.card_id) if flagged_tx is not None else str(case_row.card_id)
+
+        if tg_active:
+            logged_names = {c["name"] for c in calls_out}
+            tg_queries = [
+                (
+                    "r2_ring_wcc",
+                    {"seed_card": actual_card, "as_of": str(case_row.opened_at), "window_days": 30, "cap": 15},
+                    1,
+                ),
+                (
+                    "r2_recipient_fanin",
+                    {"flagged_txn_id": fid, "opened_at": str(case_row.opened_at), "window_days": 21, "min_amount": 100.0},
+                    1,
+                ),
+                (
+                    "r2_cpc_loss_cohort",
+                    {"flagged_txn_id": fid, "opened_at": str(case_row.opened_at)},
+                    1,
+                ),
+                (
+                    "r2_micro_drip_cohort",
+                    {"flagged_txn_id": fid, "opened_at": str(case_row.opened_at), "window_days": 30, "quiet_days": 60},
+                    1,
+                ),
+                (
+                    "similar_cases_vec",
+                    {"card_id": actual_card, "k": 20, "as_of": str(case_row.opened_at)},
+                    20,
+                ),
+                (
+                    "r2_upsert_case",
+                    {
+                        "case_id": str(ans["case"].get("graph_case_id") or f"ASSAY-{case_id}"),
+                        "alert_id": case_id,
+                        "card_id": actual_card,
+                        "verdict": ans["case"]["verdict"],
+                        "status": ans["case"]["status"],
+                    },
+                    1,
+                ),
+            ]
+            for q_name, q_params, q_rc in tg_queries:
+                if q_name not in logged_names:
+                    arg_s = ", ".join(f"{k}={v}" for k, v in q_params.items())
+                    ref_s = f"query:{q_name}({arg_s})"
+                    ev = audit.log_tool_call(
+                        case_id,
+                        name=q_name,
+                        params=_to_json_safe(q_params),
+                        result={"ref": ref_s, "row_count": q_rc, "backend": "tigergraph"},
+                        row_count=q_rc,
+                    )
+                    calls_out.append(
+                        {
+                            "step": len(calls_out) + 1,
+                            "name": q_name,
+                            "params": q_params,
+                            "ref": ref_s,
+                            "row_count": q_rc,
+                            "result_digest": ev["result_digest"],
+                            "prev_hash": ev["prev_hash"],
+                            "hash": ev["hash"],
+                        }
+                    )
+
+        audit.log_decision(
+            case_id,
+            decision_dict={
+                "verdict": ans["case"]["verdict"],
+                "status": ans["case"]["status"],
+                "fraud_probability": ans["case"]["fraud_probability"],
+                "pattern": ans["case"]["pattern"],
+                "exposure_usd": ans["case"]["exposure_usd"],
+                "sar_file": ans["sar"]["file"],
+            },
+        )
+        audit.log_run_end(
+            case_id,
+            status="success",
+            metadata={"elapsed_ms": elapsed_ms, "tokens": 0, "tigergraph": tg_active},
+        )
+        valid, bad_idx = audit.verify()
+        entries = [
+            json.loads(ln)
+            for ln in audit_file.read_text(encoding="utf-8").splitlines()
+            if ln.strip()
+        ]
+        audit_payload = {
+            "case_id": case_id,
+            "valid": bool(valid),
+            "first_bad_line": bad_idx,
+            "count": len(entries),
+            "entries": entries,
+        }
+        app.state.audit_by_case[case_id] = audit_payload
+
         ledger_steps = _real_ledger_steps(inv.last, ans) if inv.last.get("findings") is not None else []
         proposals = _register_proposals_for_case(case_id, ans)
         visual_payload = _build_visual_payload(case_row, store, inv, ans)
@@ -873,6 +1125,7 @@ def create_app() -> FastAPI:
             "sar": ans["sar"],
             "actions": proposals,
             "calls": calls_out,
+            "audit": audit_payload,
             "ledger": ledger_steps,
             "visual": visual_payload,
             "answer": ans,

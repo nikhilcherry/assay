@@ -45,12 +45,6 @@
         "source": "external"
       },
       {
-        "claim": "Out-of-region use: card-present purchases in a billing region the cardholder has no history in, while their normal activity continues at home.",
-        "entity_ids": [],
-        "ref": "document:brief#known-fraud-patterns/out_of_region_use",
-        "source": "document"
-      },
-      {
         "claim": "Policy §3a: A case is opened at probability 0.30, on any evidence request, or on any dispute; a report is filed only when fraud is confirmed or strongly suspected and exposure exceeds $1,000, the activity connects to a shared device, region or another customer's fraud, or the pattern is coordinated or undocumented.",
         "entity_ids": [],
         "ref": "document:fraud-policy#§3a",
@@ -83,7 +77,7 @@
       "CC-4240"
     ],
     "status": "escalated",
-    "summary": "Out of region use on card C07871-K1: 1 transaction(s) from 2017-01-21 to 2017-01-21 totalling $165.65, probability 0.01. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: The alert describes transaction 3660353 as online but the bank records it as in-person, so the alert and the record disagree on how the card was used.",
+    "summary": "Uncertain activity on card C07871-K1: 1 transaction(s) from 2017-01-21 to 2017-01-21 totalling $165.65, probability 0.01. The evidence does not settle it, so it is held for a human under R4/R8. Escalated for analyst review: The alert describes transaction 3660353 as online but the bank records it as in-person, so the alert and the record disagree on how the card was used.",
     "verdict": "uncertain",
     "written_to_graph": true
   },
@@ -142,7 +136,7 @@
     "subjects": [],
     "total_amount_usd": 0
   },
-  "stop_reason": "Policy §6: fraud probability 0.01 is at or below 0.15 on 3 independent pieces of evidence.",
+  "stop_reason": "Policy §6: fraud probability is 0.01, but unresolved evidence or identity conflict prevents clearing (The alert describes transaction 3660353 as online but the bank records it as in-person, so the alert and the record disagree on how the card was used); the available graph evidence is exhausted and further traversal is unlikely to change the recommendation. Handed to a human under R8.",
   "tokens": 0,
   "tool_calls": 10
 }

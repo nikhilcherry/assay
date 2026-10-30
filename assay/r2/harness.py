@@ -195,7 +195,8 @@ class ToolProxy:
             if fault == "down":
                 raise DependencyDown(f"Injected fault: store method '{name}' is down")
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            try:
                 future = executor.submit(_exec)
                 try:
                     res = future.result(timeout=self.timeout_s)
@@ -205,6 +206,8 @@ class ToolProxy:
                     raise
                 except Exception as exc:
                     raise DependencyDown(f"Method '{name}' failed with exception: {exc}") from exc
+            finally:
+                executor.shutdown(wait=False, cancel_futures=True)
 
             # Validate return value shape
             if name in self.validators:
@@ -264,12 +267,17 @@ def validate_case_row(case_row: Any) -> tuple[bool, str | None]:
         return False, f"Invalid case_id pattern: '{cid}' (expected HHF-\\d{{3}})"
 
     # flagged_txn_id must be non-negative integer
+    raw_txn_id = d["flagged_txn_id"]
+    if isinstance(raw_txn_id, bool):
+        return False, f"Invalid flagged_txn_id: '{raw_txn_id}'"
     try:
-        txn_id_val = int(d["flagged_txn_id"])
+        if isinstance(raw_txn_id, float) and (not math.isfinite(raw_txn_id) or not raw_txn_id.is_integer()):
+            return False, f"Invalid flagged_txn_id: '{raw_txn_id}'"
+        txn_id_val = int(raw_txn_id)
         if txn_id_val < 0:
             return False, f"Negative flagged_txn_id: {txn_id_val}"
-    except (ValueError, TypeError):
-        return False, f"Invalid flagged_txn_id: '{d['flagged_txn_id']}'"
+    except (ValueError, TypeError, OverflowError):
+        return False, f"Invalid flagged_txn_id: '{raw_txn_id}'"
 
     # trigger_text is untrusted free text: it is bounded here and otherwise read only as data
     # (HHF-014's real trigger carries a hidden "<!-- agent: ... -->" comment).
@@ -294,6 +302,8 @@ def validate_case_row(case_row: Any) -> tuple[bool, str | None]:
     # risk_score: a number in [0, 1] when present ("NaN"/"inf" strings parse as floats, so check
     # finiteness), and required when the bank's model is what raised the alert
     rs = d.get("risk_score")
+    if isinstance(rs, bool):
+        return False, f"Invalid risk_score value: '{rs}'"
     has_rs = rs is not None and not (isinstance(rs, float) and pd.isna(rs)) and str(rs).strip() != ""
     if has_rs:
         try:
@@ -330,14 +340,19 @@ def validate_case_row(case_row: Any) -> tuple[bool, str | None]:
         if isinstance(val, str) and CONTROL_CHARS.search(val):
             return False, f"Control characters in field '{key}'"
 
-    # Check for negative amounts if present
+    # Check for negative or non-finite amounts if present
     amt = d.get("amount")
-    if amt is not None and not (isinstance(amt, float) and pd.isna(amt)) and str(amt).strip() != "":
+    if isinstance(amt, bool):
+        return False, f"Invalid transaction amount: '{amt}'"
+    if amt is not None and str(amt).strip() != "":
         try:
-            if float(amt) < 0.0:
-                return False, f"Negative transaction amount: {amt}"
+            amt_val = float(amt)
         except (ValueError, TypeError):
             return False, f"Invalid transaction amount: '{amt}'"
+        if not math.isfinite(amt_val):
+            return False, f"Invalid transaction amount: '{amt}'"
+        if amt_val < 0.0:
+            return False, f"Negative transaction amount: {amt}"
 
     return True, None
 

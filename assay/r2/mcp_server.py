@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from assay.r2.frames import closed_cases, tx_all
+from assay.r2.frames import case_pack, closed_cases, tx_all
 from assay.store import Store
 
 INJECTION_RE = re.compile(
@@ -29,6 +29,13 @@ INJECTION_RE = re.compile(
 )
 
 CARD_ID_RE = re.compile(r"^C\d{5}-K\d+$")
+
+
+def _parse_naive_utc(val: Any) -> pd.Timestamp:
+    ts = pd.Timestamp(val)
+    if ts.tzinfo is not None:
+        ts = ts.tz_convert("UTC").tz_localize(None)
+    return ts
 
 
 def _clean_val(v: Any) -> Any:
@@ -126,8 +133,8 @@ class R2Store(Store):
 
     def card_window(self, card_id: str, start: Any, end: Any) -> Tuple[pd.DataFrame, str]:
         ref = self._log("card_window", card_id=card_id, start=str(start), end=str(end))
-        s_dt = pd.to_datetime(start)
-        e_dt = pd.to_datetime(end)
+        s_dt = _parse_naive_utc(start)
+        e_dt = _parse_naive_utc(end)
         w = self._tx[(self._tx.card_id == card_id) & (self._tx.t >= s_dt) & (self._tx.t <= e_dt)]
         return w, ref
 
@@ -159,15 +166,51 @@ class R2Store(Store):
             res = self._cc[m1 | m2].drop_duplicates(subset=["case_id"])
         else:
             res = self._cc[m1]
+
+        extra_rows = []
+        existing_ids = set(res["case_id"].astype(str)) if "case_id" in res.columns and not res.empty else set()
+        for item in self.memory:
+            m_cid = str(item.get("case_id") or item.get("attributes", {}).get("alert_id") or item.get("v_id", ""))
+            m_card = str(item.get("card_id", ""))
+            m_conn = item.get("connected", set())
+            if (m_card == card_id or card_id in m_conn) and m_cid not in existing_ids:
+                existing_ids.add(m_cid)
+                attrs = item.get("attributes", {})
+                extra_rows.append({
+                    "case_id": m_cid,
+                    "v_id": item.get("v_id", f"ASSAY-{m_cid}"),
+                    "card_id": m_card or card_id,
+                    "customer_id": (m_card or card_id).split("-")[0] if "-" in (m_card or card_id) else "",
+                    "outcome": attrs.get("verdict", ""),
+                    "verdict": attrs.get("verdict", ""),
+                    "pattern": attrs.get("pattern", ""),
+                    "connected_list": sorted(list(m_conn)),
+                })
+        if extra_rows:
+            extra_df = pd.DataFrame(extra_rows)
+            res = pd.concat([res, extra_df], ignore_index=True)
         return res, ref
 
     def write_case(self, answer: dict, card_id: str = "") -> str:
-        case_id = answer.get("case_id") or answer.get("id") or "UNKNOWN"
+        case_id = str(answer.get("case_id") or answer.get("id") or "UNKNOWN")
         gid = f"ASSAY-{case_id}"
         c = answer.get("case", {})
+        if not card_id:
+            card_id = str(answer.get("card_id") or (c.get("card_id") if isinstance(c, dict) else "") or "")
+        if not card_id and case_id.startswith("HHF-"):
+            try:
+                cp = case_pack()
+                hit = cp[cp["case_id"] == case_id]
+                if not hit.empty:
+                    card_id = str(hit.iloc[0]["card_id"])
+            except Exception:
+                pass
         conn = set(c.get("connected_card_ids", [])) if isinstance(c, dict) else set()
+        if isinstance(answer.get("connected_card_ids"), list):
+            conn.update(answer["connected_card_ids"])
         self.memory.append({
             "v_id": gid,
+            "case_id": case_id,
             "card_id": card_id,
             "connected": conn,
             "attributes": {
@@ -175,6 +218,7 @@ class R2Store(Store):
                 "pattern": c.get("pattern") if isinstance(c, dict) else "",
                 "alert_id": case_id,
             },
+            "raw": answer,
         })
         self._log("write_case", graph_case_id=gid)
         return gid
@@ -328,7 +372,24 @@ class MCPServer:
             if req not in args:
                 raise ValueError(f"Missing required parameter '{req}' for tool '{tool_name}'")
 
-        _check_injection(args)
+        if tool_name == "write_case":
+            cj = args.get("case_json")
+            if isinstance(cj, dict):
+                id_fields = (
+                    "case_id", "id", "card_id", "customer_id",
+                    "approval_id", "approval_ids", "l1_approval_id", "l2_approval_id",
+                    "connected_card_ids", "affected_txn_ids",
+                )
+                for k in id_fields:
+                    if k in cj:
+                        _check_injection(cj[k])
+                c_inner = cj.get("case")
+                if isinstance(c_inner, dict):
+                    for k in id_fields:
+                        if k in c_inner:
+                            _check_injection(c_inner[k])
+        else:
+            _check_injection(args)
 
         if "card_id" in args:
             card_id = str(args["card_id"])
@@ -385,8 +446,8 @@ class MCPServer:
 
     def _exec_card_window(self, args: dict) -> dict:
         card_id = str(args["card_id"])
-        start_dt = pd.to_datetime(args["start"])
-        end_dt = pd.to_datetime(args["end"])
+        start_dt = _parse_naive_utc(args["start"])
+        end_dt = _parse_naive_utc(args["end"])
 
         if end_dt < start_dt:
             raise ValueError("Start date must be before or equal to end date")
@@ -397,7 +458,7 @@ class MCPServer:
 
         if hasattr(self.store, "card_window"):
             try:
-                df, ref = self.store.card_window(card_id, args["start"], args["end"])
+                df, ref = self.store.card_window(card_id, start_dt, end_dt)
             except TypeError:
                 df = self.tx[(self.tx.card_id == card_id) & (self.tx.t >= start_dt) & (self.tx.t <= end_dt)]
         else:
@@ -523,6 +584,44 @@ class MCPServer:
         recs = _clean_data(df)
         if not isinstance(recs, list):
             recs = [recs] if recs else []
+
+        existing_ids = {
+            str(r.get("case_id") or r.get("alert_id") or r.get("v_id") or "")
+            for r in recs
+            if isinstance(r, dict)
+        }
+        for written in self.append_only_store:
+            if not isinstance(written, dict):
+                continue
+            w_cid = str(written.get("case_id") or written.get("id") or "")
+            c_sub = written.get("case", {}) if isinstance(written.get("case"), dict) else {}
+            w_card = str(written.get("card_id") or c_sub.get("card_id") or "")
+            if not w_card and w_cid.startswith("HHF-"):
+                try:
+                    cp = case_pack()
+                    hit = cp[cp["case_id"] == w_cid]
+                    if not hit.empty:
+                        w_card = str(hit.iloc[0]["card_id"])
+                except Exception:
+                    pass
+            w_conn = set()
+            if isinstance(c_sub.get("connected_card_ids"), list):
+                w_conn.update(str(x) for x in c_sub["connected_card_ids"])
+            if isinstance(written.get("connected_card_ids"), list):
+                w_conn.update(str(x) for x in written["connected_card_ids"])
+
+            if (w_card == card_id or card_id in w_conn) and w_cid and w_cid not in existing_ids and f"ASSAY-{w_cid}" not in existing_ids:
+                existing_ids.add(w_cid)
+                recs.append({
+                    "case_id": w_cid,
+                    "v_id": f"ASSAY-{w_cid}",
+                    "card_id": w_card or card_id,
+                    "customer_id": (w_card or card_id).split("-")[0] if "-" in (w_card or card_id) else "",
+                    "outcome": str(c_sub.get("verdict") or written.get("verdict") or ""),
+                    "verdict": str(c_sub.get("verdict") or written.get("verdict") or ""),
+                    "pattern": str(c_sub.get("pattern") or written.get("pattern") or ""),
+                    "connected_list": sorted(list(w_conn)),
+                })
 
         total = len(recs)
         truncated = total > 500
